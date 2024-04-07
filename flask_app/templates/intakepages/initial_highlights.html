@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Highlights</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="container mt-5">
+        <h1 class="display-4 text-center mb-5">Client Highlights</h1>
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <!-- Client Information -->
+                <h2>Client Information</h2>
+                <p><strong>Name:</strong> {{ client_data.first_name }} {{ client_data.last_name }}</p>
+                <p><strong>Age:</strong> {{ client_data.age }}</p>
+                <p><strong>Gender:</strong> {{ client_data.gender }}</p>
+                <p><strong>Contact:</strong> {{ client_data.email }}, {{ client_data.phone_number }}</p>
+
+                <!-- Fitness Goals and Prior Exercise Experience -->
+                <h2>Fitness Goals and Exercise Experience</h2>
+                <p><strong>Fitness Goals:</strong> {{ consultation_data.fitness_goals }}</p>
+                <p><strong>Prior Exercise Programs:</strong> {{ consultation_data.prior_exercise_programs }}</p>
+
+                 <!-- Diet and Lifestyle Factors -->
+                 <h2>Diet and Lifestyle Factors</h2>
+                 <p><strong>Diet Description:</strong> {{ consultation_data.diet_description }}</p>
+                 <p><strong>Dietary Restrictions:</strong> {{ consultation_data.dietary_restrictions }}</p>
+                 <p><strong>Processed Food Consumption:</strong> {{ consultation_data.processed_food_consumption }}</p>
+                 <p><strong>Daily Water Intake:</strong> {{ consultation_data.daily_water_intake }}</p>
+                 <p><strong>Daily Routine:</strong> {{ consultation_data.daily_routine }}</p>
+                 <p><strong>Stress Level:</strong> {{ consultation_data.stress_level }}</p>
+                 <p><strong>Smoking/Alcohol Habits:</strong> {{ consultation_data.smoking_alcohol_habits }}</p>
+                 <p><strong>Hobbies:</strong> {{ consultation_data.hobbies }}</p>
+
+                <h3>Flexibility Assessment</h3>
+                <p><strong>Shoulder Flexibility:</strong> {{ Flexibilityassessment_data.shoulder_flexibility }}</p>
+                <p><strong>Lower Body Flexibility:</strong> {{ Flexibilityassessment_data.lower_body_flexibility }}</p>
+                <p><strong>Joint Mobility:</strong> {{ Flexibilityassessment_data.joint_mobility }}</p>
+
+                <!-- Assessment Findings -->
+                <h2>Assessment Findings</h2>
+                {% if Beginnerassessment_data %}
+                <h3>Functional Assessment</h3>
+                <p><strong>Movement Techniques:</strong> {{ Beginnerassessment_data.basic_technique }}</p>
+                <p><strong>Chair Sit-to-Stand Test:</strong> {{ Beginnerassessment_data.chair_sit_to_stand }}</p>
+                <p><strong>Arm Curl Test:</strong> {{ Beginnerassessment_data.arm_curl }}</p>
+                <p><strong>Balance Test Results:</strong> {{ Beginnerassessment_data.balance_test_results }}</p>
+                <p><strong>Cardio Results:</strong> {{ Beginnerassessment_data.cardio_test }}</p>
+                {% endif %}
+
+                {% if Advancedassessment_data %}
+                <h3>Functional Assessment</h3>
+                <p><strong>Movement Techniques:</strong> {{ Advancedassessment_data.advanced_technique }}</p>
+                <p><strong>Max Strength Results:</strong> {{ Advancedassessment_data.strength_max }}</p>
+                <p><strong>Muscular Strength Endurance Results:</strong> {{ Advancedassessment_data.strength_endurance }}</p>
+                <p><strong>Circuit Results:</strong> {{ Advancedassessment_data.circuit }}</p>
+                <p><strong>Cardio Results:</strong> {{ Advancedassessment_data.moderate_cardio }}</p>
+                {% endif %}
+
+                <!-- Recommendations and Next Steps -->
+                <h2>Recommendations and Next Steps</h2>
+                <p>Based on the assessment findings and client goals, we recommend the following:</p>
+                <ul>
+                    <li>Customized fitness program targeting specific areas for improvement.</li>
+                    <li>Dietary adjustments to support fitness goals and overall health.</li>
+                    <li>Lifestyle changes to reduce stress and improve overall well-being.</li>
+                    <li>Scheduling follow-up assessments to track progress and adjust goals as needed.</li>
+                </ul>
+                <form action="/create_prompt">
+                    <button type="submit" class="btn btn-primary">Continue</button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

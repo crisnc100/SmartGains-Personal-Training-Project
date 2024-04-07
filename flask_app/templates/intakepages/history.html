@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical History</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Medical History</h1>
+    <form action="/save_medical_history" method="post">
+        <input type="hidden" name="client_id" value="{{ client_id }}">
+        <div class="mb-3">
+            <label for="existing_conditions" class="form-label question">Do you have any existing medical conditions? If yes, please specify:</label>
+            <input type="text" class="form-control" id="existing_conditions" name="existing_conditions" required>
+        </div>
+        <div class="mb-3">
+            <label for="medications" class="form-label question">Are you currently taking any medications? If yes, please list them:</label>
+            <input type="text" class="form-control" id="medications" name="medications" required>
+        </div>
+        <div class="mb-3">
+            <label for="surgeries_or_injuries" class="form-label question">Have you had any surgeries or injuries in the past? If yes, please provide details:</label>
+            <input type="text" class="form-control" id="surgeries_or_injuries" name="surgeries_or_injuries" required>
+        </div>
+        <div class="mb-3">
+            <label for="allergies" class="form-label question">Are you allergic to any medications or foods? If yes, please specify:</label>
+            <input type="text" class="form-control" id="allergies" name="allergies" required>
+        </div>
+        <div class="mb-3">
+            <label for="family_history" class="form-label question">Do you have a family history of any medical conditions? If yes, please specify:</label>
+            <input type="text" class="form-control" id="family_history" name="family_history" required>
+        </div>
+        <div class="row mt-4">
+            <div class="col text-end">
+                <button type="submit" class="btn btn-primary">Continue</button>
+                <a href="/consultation/{{ client_id }}" class="btn btn-secondary">Back</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

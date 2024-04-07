@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Trainer Portal</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 80%;
+            margin: auto;
+            text-align: center;
+            padding-top: 50px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        p {
+            color: #666;
+        }
+
+        .btn-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .project-img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Welcome to the Personal Trainer Portal</h1>
+        <p>Conduct the best consultations for new clients, track and record existing client data, and get AI assistance with your programs.</p>
+        <div class="btn-container">
+            <a href="/login_page" class="btn">Sign In</a>
+            <a href="/new_trainer" class="btn">Register</a>
+        </div>
+        <img src="https://via.placeholder.com/800x400" alt="Project Image" class="project-img">
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Smooth scroll effect
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

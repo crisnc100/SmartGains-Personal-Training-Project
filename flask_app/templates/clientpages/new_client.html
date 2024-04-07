@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Client Information</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <style>
+    .form-group label {
+      font-weight: bold;
+    }
+    .top-right {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    form {
+        margin-bottom: 20px;
+    }
+    .flash-messages {
+      list-style-type: none;
+      padding: 10px;
+      margin: 0;
+      color: red;
+      font-size: 14px;
+    }
+    .alert.alert {
+      list-style-type: none;
+      padding: 10px;
+      margin: 0;
+      color: red;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container mt-5">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    <div class="row">
+      <div class="col-md-6 offset-md-3">
+        <h1 class="text-center mb-4">New Client Information</h1>
+        <!-- Back Button -->
+        <form action="/back_to_dashboard" method="post">
+          <button type="submit" class="btn btn-secondary top-right" style="margin-top: 10px;">Back to Home</button>
+      </form>
+        <!-- Form -->
+        <form action="/add_client" method="post">
+          <!-- First Name -->
+          <div class="form-group">
+            <label for="first_name">First Name</label>
+            <input type="text" class="form-control" id="first_name" name="first_name" required>
+          </div>
+          <!-- Last Name -->
+          <div class="form-group">
+            <label for="last_name">Last Name</label>
+            <input type="text" class="form-control" id="last_name" name="last_name" required>
+          </div>
+          <!-- Age -->
+          <div class="form-group">
+            <label for="age">Age</label>
+            <input type="number" class="form-control" id="age" name="age" required>
+          </div>
+          <!-- Gender -->
+          <div class="form-group">
+            <label for="gender">Gender</label>
+            <select class="form-select" id="gender" name="gender" required>
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <!-- Occupation -->
+          <div class="form-group">
+            <label for="occupation">Occupation</label>
+            <input type="text" class="form-control" id="occupation" name="occupation">
+          </div>
+          <!-- Email -->
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" class="form-control" id="email" name="email">
+          </div>
+          <!-- Phone Number -->
+          <div class="form-group">
+            <label for="phone_number">Phone Number</label>
+            <input type="tel" class="form-control" id="phone_number" name="phone_number">
+          </div>
+          <!-- Address -->
+          <div class="form-group">
+            <label for="address">Address</label>
+            <input type="text" class="form-control" id="address" name="address">
+          </div>
+          <!-- Gym Location -->
+          <div class="form-group">
+            <label for="location_gym">Location</label>
+            <input type="text" class="form-control" id="location_gym" name="location_gym">
+          </div>
+          <!-- Empty Div for Space -->
+          <div class="mb-4"></div>
+          <!-- Submit Button -->
+          <button type="submit" class="btn btn-primary me-2">Continue to Fitness Experience</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

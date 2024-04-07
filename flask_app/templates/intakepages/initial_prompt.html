@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Workout Prompt</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #prompt_list {
+            margin-top: 20px;
+        }
+        #additional_comments {
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-4">Select Workout Prompt</h1>
+
+        <!-- Fitness Level Rating -->
+        <div class="form-group">
+            <label for="level">Client's Fitness Level:</label>
+            <select id="level" name="level" class="form-control" onchange="loadPrompts()">
+                <option value="">Select Level</option>
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+            </select>
+        </div>
+
+        <!-- Workout Prompts List -->
+        <div id="prompt_template" name="prompt_template">
+            <!-- Prompts will be loaded here dynamically -->
+        </div>
+
+        <!-- Additional Comments -->
+        <div class="form-group">
+            <textarea id="additional_comments" class="form-control" rows="5" placeholder="Enter any additional comments or philosophies here..."></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <button class="btn btn-primary" onclick="submitPrompt()">Generate Example Plan</button>
+        
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function loadPrompts() {
+            var level = document.getElementById('level').value;
+            var promptTemplateDiv = document.getElementById('prompt_template');
+            var clientData = {
+                'client_name': '{{ client_data.first_name }} {{ client_data.last_name }}',
+                'client_age': '{{ client_data.age }}',
+                'client_gender': '{{ client_data.gender }}',
+                'client_prior_exercise_programs': '{{ consultation_data.prior_exercise_programs}}',
+                'client_fitness_goals': '{{ consultation_data.fitness_goals }}',
+                'client_medical_considerations': '{{ history_data.existing_conditions }}',
+                'client_exercise_habits': '{{ consultation_data.exercise_habits }}',
+                'client_prior_exercise_programs': '{{ consultation_data.prior_exercise_programs}}',
+                'client_exercise_likes': '{{ consultation_data.exercise_likes }}',
+                'client_exercise_dislikes': '{{ consultation_data.exercise_dislikes }}'
+            };
+        
+            var prompts = {
+                'Beginner': [
+                    `Develop a beginner-friendly 3-day workout plan for ${clientData.client_name}, a ${clientData.client_age}-year-old ${clientData.client_gender}, aiming to achieve goals like ${clientData.client_fitness_goals}. This client leads a sedentary lifestyle, has minimal exercise experience, and medical considerations: ${clientData.client_medical_considerations}. The plan should incorporate low-impact, functional exercises to enhance daily living activities, improve cardiovascular health, and build foundational strength. Emphasize safety, technique, and gradual progression. Take into account the client's equipment availability. Specifically include exercises the client likes, such as ${clientData.client_exercise_likes}, and avoid exercises the client dislikes, ensuring ${clientData.client_exercise_dislikes}. Tailor the workouts to respect these preferences, promoting a positive and sustainable fitness journey.`,
+                    `Create a 3-day workout plan for beginner-level hypertrophy and strength training for ${clientData.client_name}, a ${clientData.client_age}-year-old ${clientData.client_gender}, focusing on slow progression and basic strength-building exercises. Goals: ${clientData.client_fitness_goals}. Background: ${clientData.client_medical_considerations}. Include exercises that target major muscle groups with an emphasis on technique, safety, and gradual progression in strength and muscle building. Specifically include exercises the client likes, such as ${clientData.client_exercise_likes}, and try to avoid exercises the client dislikes, ensuring ${clientData.client_exercise_dislikes}. Tailor the workouts to respect these preferences, promoting a positive and sustainable fitness journey.`,
+                    `Develop a beginner-friendly 3-day workout plan for ${clientData.client_name}, a ${clientData.client_age}-year-old ${clientData.client_gender} aiming to enhance cardiovascular health and build endurance. Goals: ${clientData.client_fitness_goals}. Exercise habits: ${clientData.client_exercise_habits}. The routine should introduce low to moderate-intensity cardiovascular exercises, gradually improving stamina and heart health. Specifically include exercises the client likes, such as ${clientData.client_exercise_likes}, and avoid exercises the client dislikes, ensuring ${clientData.client_exercise_dislikes}. Tailor the workouts to respect these preferences, promoting a positive and sustainable fitness journey.`
+                ],
+                'Intermediate': [
+                    `Design an intermediate-level 3-day functional training workout plan for ${clientData.client_name}, aged ${clientData.client_age} years ${clientData.client_gender}, with some exercise experience. Objectives: ${clientData.client_fitness_goals}. Considering the medical history: ${clientData.client_medical_considerations}. This plan should integrate compound movements and functional exercises to enhance overall body strength, mobility, and coordination. Specifically include exercises the client likes, such as ${clientData.client_exercise_likes}, and avoid exercises the client dislikes, ensuring ${clientData.client_exercise_dislikes}. Tailor the workouts to respect these preferences, promoting a positive and sustainable fitness journey.`,
+                    `Formulate an intermediate 3-day workout plan focusing on hypertrophy and strength development for ${clientData.client_name}, aged ${clientData.client_age} years ${clientData.client_gender}. Prioritize exercises that enhance muscle growth and strength, such as progressive overload in weightlifting. Incorporate variety in exercise selection to target all major muscle groups effectively, aligning with ${clientData.client_fitness_goals} and taking into account ${clientData.client_medical_considerations}. Specifically include exercises the client likes, such as ${clientData.client_exercise_likes}, and avoid exercises the client dislikes, ensuring ${clientData.client_exercise_dislikes}. Tailor the workouts to respect these preferences, promoting a positive and sustainable fitness journey.`,
+                    `Create an intermediate 3-day cardiovascular and endurance workout plan for ${clientData.client_name}, aged ${clientData.client_age} years ${clientData.client_gender}, to boost heart health and stamina. Plan should include a mix of moderate to high-intensity cardio exercises and longer duration sessions to progressively enhance cardiovascular endurance. Factor in ${clientData.client_fitness_goals} and ${clientData.client_medical_considerations} for a comprehensive approach to improving endurance and stamina. Specifically include exercises the client likes, such as ${clientData.client_exercise_likes}, and avoid exercises the client dislikes, ensuring ${clientData.client_exercise_dislikes}. Tailor the workouts to respect these preferences, promoting a positive and sustainable fitness journey.`
+                ],
+                'Advanced': [
+                    `Devise an advanced 3-day functional and performance training workout plan for ${clientData.client_name}, a seasoned athlete aged ${clientData.client_age} ${clientData.client_fitness_goals}. Target: ${clientData.client_fitness_goals}. Incorporate high-intensity functional movements and performance drills that challenge strength, power, agility, and endurance, tailored to the client's robust fitness background and ${clientData.client_medical_considerations}.`,
+                    `Construct an advanced 3-day hypertrophy and strength training program for ${clientData.client_name}, aged ${clientData.client_age} years ${clientData.client_gender}. This plan should push the boundaries of muscle growth and strength, incorporating advanced lifting techniques, high-volume sets, and periodized strength progression. Goals: ${clientData.client_fitness_goals}, accommodating the client's extensive exercise history and ${clientData.client_medical_considerations}.`,
+                    `Design an advanced 3-day cardiovascular and endurance training regimen for ${clientData.client_name}, a ${clientData.client_age}-year-old ${clientData.client_gender}, aiming to optimize cardiorespiratory fitness and endurance. Include high-intensity interval training (HIIT), tempo runs, and endurance cycling sessions, progressively intensifying the workload to meet the ambitious fitness objectives of ${clientData.client_fitness_goals} while considering ${clientData.client_medical_considerations}.`
+                ]
+            };
+        
+            promptTemplateDiv.innerHTML = ''; // Clear existing content
+        
+            if (level in prompts) {
+                prompts[level].forEach(function(prompt, index) {
+                    var radioBtn = document.createElement("input");
+                    radioBtn.type = "radio";
+                    radioBtn.id = "prompt" + index;
+                    radioBtn.name = "selected_prompt";
+                    radioBtn.value = prompt;
+                
+                    var label = document.createElement("label");
+                    label.htmlFor = "prompt" + index;
+                    label.innerHTML = prompt.replace(new RegExp(`(${clientData.client_name}|${clientData.client_age}|${clientData.client_gender}|${clientData.client_fitness_goals}|${clientData.client_medical_considerations}|${clientData.client_exercise_likes}|${clientData.client_exercise_dislikes}|${clientData.client_exercise_habits})`, 'g'), '<strong>$1</strong>');
+                
+                    var div = document.createElement("div");
+                    div.appendChild(radioBtn);
+                    div.appendChild(label);
+                    promptTemplateDiv.appendChild(div);
+                });
+                
+            }
+        }
+        
+
+        function submitPrompt() {
+            var selectedPrompt = $('#prompt_template input[type=radio]:checked').val();
+            var additionalComments = $('#additional_comments').val();
+        
+            // Check if a prompt is selected
+            if (!selectedPrompt) {
+                alert("Please select a prompt.");
+                return;
+            }
+        
+            // Now send the data to the server using AJAX
+            $.ajax({
+                url: '/generate_example_plan',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    selected_prompt: selectedPrompt,
+                    additional_comments: additionalComments
+                }),
+                success: function(response) {
+                    // Assuming the server sends back a URL to navigate to
+                    if (response && response.redirect) {
+                        window.location.href = response.redirect; // Redirect to the new page
+                    } else {
+                        console.error('No redirect URL received');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error sending data:', status, error);
+                }
+            });
+        }
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trainer Profile</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        form {
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            position: relative; /* Added */
+        }
+        .form-group label {
+            font-weight: bold;
+        }
+        .form-group input[type="file"] {
+            display: none;
+        }
+        .form-group .btn {
+            cursor: pointer;
+        }
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        .preview-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .checkmark {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: green;
+            font-size: 24px;
+            display: none; /* Initially hidden */
+        }
+        .flash-messages {
+            list-style-type: none;
+            padding: 10px;
+            margin: 0;
+            color: red;
+            font-size: 14px;
+          }
+          .alert.alert {
+            list-style-type: none;
+            padding: 10px;
+            margin: 0;
+            color: red;
+            font-size: 14px;
+          }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h1>Trainer Profile</h1>
+        <form action="/save_trainer_profile" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="photo1">Profile Photo *</label>
+                <input type="file" id="photo1" name="photo1" accept="image/*" required>
+                <label class="btn btn-primary" for="photo1">Choose File</label>
+                <span class="checkmark" id="checkmark-photo1">&#10004;</span> <!-- Checkmark container -->
+            </div>
+            <div class="form-group">
+                <label for="quote1">Quote 1</label>
+                <textarea id="quote1" name="quote1" class="form-control"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="quote2">Quote 2</label>
+                <textarea id="quote2" name="quote2" class="form-control"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Profile</button>
+        </form>
+        <form action="/skip_profile" methods="POST">
+            <button type="submit" class="btn btn-success">Skip</button>
+        </form>
+    </div>
+
+    <script>
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function () {
+                const file = this.files[0];
+                const checkmark = document.getElementById(`checkmark-${this.id}`); // Get the corresponding checkmark container
+    
+                const reader = new FileReader();
+                reader.onload = function () {
+                    // Show the checkmark icon when image is loaded
+                    checkmark.style.display = 'block';
+                };
+                if (file) {
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
