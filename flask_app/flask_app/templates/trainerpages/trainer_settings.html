@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trainer Settings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Trainer Settings</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="/update_trainer" method="post">
+            <input type="hidden" id="trainerId" value="{{ trainer_id }}">
+            <label for="firstName">First Name:</label>
+            <input type="text" id="firstName" name="first_name" class="form-control mb-2" value={{trainer.first_name}} placeholder="Enter First Name" required>
+            
+            <label for="lastName">Last Name:</label>
+            <input type="text" id="lastName" name="last_name" class="form-control mb-2" value={{trainer.last_name}} placeholder="Enter Last Name" required>
+            
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" class="form-control mb-2" value={{trainer.email}} placeholder="Enter Email" required>
+            
+            <a href="/success" class="btn btn-secondary top-right">Back</a>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <div style="margin-top: 10px;">
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#passwordModal">Change Password</button>
+            </div>
+            
+        </form>
+        <h2>Delete Account</h2>
+        <button class="btn btn-danger" onclick="confirmAccountDeletion()">Delete Account</button>
+    </div>
+
+    <!-- Password Change Modal -->
+    <div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="passwordModalLabel">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="passwordForm">
+                        <label for="current-password">Current Password:</label>
+                        <input type="password" id="current-password" name="current_password" class="form-control mb-2" required>
+                        
+                        <label for="new-password">New Password:</label>
+                        <input type="password" id="new-password" name="new_password"class="form-control mb-2" required>
+                        
+                        <label for="confirm-password">Confirm New Password:</label>
+                        <input type="password" id="confirm-password" name="confirm_password"class="form-control mb-2" required>
+
+                        <input id="csrf_token" name="csrf_token" type="hidden" value="{{ csrf_token() }}">
+
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="changePasswordButton">Change Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var changePasswordButton = document.querySelector('#changePasswordButton');
+            changePasswordButton.addEventListener('click', submitPasswordChange);
+        });
+        function submitPasswordChange(event) {
+            event.preventDefault();  // Good practice to prevent default form submission behavior
+            var trainerId = document.getElementById('trainerId').value;
+            var formData = {
+                'current_password': document.getElementById('current-password').value,
+                'new_password': document.getElementById('new-password').value,
+                'confirm_password': document.getElementById('confirm-password').value,
+                "csrf_token": document.getElementById('csrf_token').value  // Fetching the value of the hidden CSRF token inpuy
+            };
+        
+            if (!trainerId) {
+                alert('Trainer ID is missing or incorrect');
+                return;  // Stop the function if trainer ID isn't available
+            }
+        
+            console.log("Sending AJAX to /update_password/" + trainerId, formData);
+
+            $.ajax({
+                type: "POST",
+                url: "/update_password/" + trainerId,
+                data: formData,
+                success: function(response) {
+                    console.log("Success response:", response);  // Client Debug 2
+                    $('#passwordModal').modal('hide');
+                    alert('Password successfully updated');
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error response:", xhr.responseText);  // Client Debug 3
+                }
+            });
+        }
+    
+        function confirmAccountDeletion(trainerId) {
+            if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                var form = document.createElement('form');
+                document.body.appendChild(form);
+                form.method = 'post';
+                form.action = `/delete_trainer/${trainerId}`;
+                form.submit();
+            }
+        }
+    </script>
+</body>
+</html>

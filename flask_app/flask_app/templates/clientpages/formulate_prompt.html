@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Workout Plan Prompt Selection</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    .top-right {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container mt-5">
+    <h1 class="mb-4">Build Your Plan:</h1>
+    <form action="/current_client/{{client_data.id}}" method="get">
+      <button type="submit" class="btn btn-secondary top-right" style="margin-top: 10px;">Back to Client</button>
+    </form>
+    <div class="form-group">
+      <label for="level">Client Level:</label>
+      <select class="form-control" id="level" name="level" required>
+        <option value="" disabled selected>Select your level</option>
+        <option value="beginner">Beginner</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <select class="form-control" id="intensity" name="intensity" required>
+        <option value="" disabled selected>Select intensity</option>
+        <option value="low">Low</option>
+        <option value="moderate">Moderate</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="trainingType">Type of Training:</label>
+      <select class="form-control" id="trainingType" name="training_type" required>
+        <option value="" disabled selected>Select training type</option>
+        <option value="strength">Strength Training</option>
+        <option value="hypertrophy">Hypertrophy Training</option>
+        <option value="functional">Functional Training</option>
+        <option value="endurance">Strength Endurance Training</option>
+        <option value="balanced">Balanced Health-Focused Training</option>
+        <option value="althetic">Althetic Training</option>
+        <option value="cardio">Cardio Training</option>
+        <option value="power">Power Training</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Main Body Parts:</label><br>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartChest" name="body_parts"
+          value="chest">
+        <label class="form-check-label" for="bodyPartChest">Chest</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartBack" name="body_parts" value="back">
+        <label class="form-check-label" for="bodyPartBack">Back</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartShoulders" name="body_parts"
+          value="shoulders">
+        <label class="form-check-label" for="bodyPartShoulders">Shoulders</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartTriceps" name="body_parts"
+          value="triceps">
+        <label class="form-check-label" for="bodyPartTriceps">Triceps</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartBiceps" name="body_parts"
+          value="biceps">
+        <label class="form-check-label" for="bodyPartBiceps">Biceps</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartQuadriceps" name="body_parts"
+          value="quadriceps">
+        <label class="form-check-label" for="bodyPartQuadriceps">Quadriceps</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartHamstrings" name="body_parts"
+          value="hamstrings">
+        <label class="form-check-label" for="bodyPartHamstrings">Hamstrings</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartGlutes" name="body_parts"
+          value="glutes">
+        <label class="form-check-label" for="bodyPartGlutes">Glutes</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartCalves" name="body_parts"
+          value="calves">
+        <label class="form-check-label" for="bodyPartCalves">Calves</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input main-body-part" type="checkbox" id="bodyPartCore" name="body_parts" value="core">
+        <label class="form-check-label" for="bodyPartCore">Core</label>
+      </div>
+      <!-- Add more checkboxes for other body parts -->
+    </div>
+    <div class="form-group">
+      <label>Specifics:</label><br>
+      <div class="form-check">
+        <input class="form-check-input specific" type="checkbox" id="bodyPartPushDay" name="body_parts" value="pushday">
+        <label class="form-check-label" for="bodyPartPushDay">Push Day (Chest, Shoulders, Triceps)</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input specific" type="checkbox" id="bodyPartPullDay" name="body_parts" value="pullday">
+        <label class="form-check-label" for="bodyPartPullDay">Pull Day (Back and Biceps)</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input specific" type="checkbox" id="bodyPartLegDay" name="body_parts" value="legday">
+        <label class="form-check-label" for="bodyPartLegDay">Leg Day (Quads, Hamstrings, Glutes, Calves)</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input specific" type="checkbox" id="bodyPartArmDay" name="body_parts" value="armday">
+        <label class="form-check-label" for="bodyPartArmDay">Arm Day (Triceps, Biceps, and Forearms)</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input specific" type="checkbox" id="bodyPartFullBody" name="body_parts"
+          value="fullbody">
+        <label class="form-check-label" for="bodyPartFullBody">Full Body</label>
+      </div>
+    </div>
+
+
+    <div class="form-group">
+      <label for="duration">Duration (minutes):</label>
+      <select class="form-control" id="duration_min" name="duration_min" required>
+        <option value="30">30</option>
+        <option value="60">60</option>
+        <option value="90">90</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="equipment">Equipment Availability:</label>
+      <select class="form-control" id="equipment" name="equipment" required>
+        <option value="none">None</option>
+        <option value="home">Home Weights</option>
+        <option value="limited">Limited Gym</option>
+        <option value="full">Full Gym</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="sessionType">Session Type:</label><br>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="session_type" id="sessionType1" value="single" required>
+        <label class="form-check-label" for="sessionType1">Single Day</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="session_type" id="sessionType3" value="3">
+        <label class="form-check-label" for="sessionType3">3 Day</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="session_type" id="sessionType5" value="5">
+        <label class="form-check-label" for="sessionType5">5 Day</label>
+      </div>
+      <div class="form-group">
+        <label for="additionalComments">Additional Comments:</label>
+        <textarea class="form-control" id="additionalComments" name="additional_comments"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="promptDisplay">Generated Prompt:</label>
+        <textarea id="promptDisplay" class="form-control" rows="5" readonly></textarea>
+      </div>
+
+
+    </div>
+    <button type="submit" class="btn btn-primary" id="submitPrompt">Proceed</button>
+
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <script>
+    $(document).ready(function () {
+      var csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+      var clientData = {
+        'client_name': '{{ client_data.first_name }} {{ client_data.last_name }}',
+        'client_age': '{{ client_data.age }}',
+        'client_gender': '{{ client_data.gender }}',
+        'client_fitness_goals': '{{ consultation_data.fitness_goals }}',
+        'client_medical_considerations': '{{ history_data.existing_conditions }}'
+      };
+
+      function buildPrompt() {
+        var level = $('#level').val();
+        var intensity = $('#intensity').val();
+        var trainingType = $('#trainingType').val();
+        var bodyParts = $('input[name="body_parts"]:checked').map(function () {
+          return formatBodyPartDescription(this.value);
+        }).get().join(', ');
+        var duration = $('#duration_min').val();
+        var equipment = $('#equipment').val();
+        var sessionType = $('input[name="session_type"]:checked').val();
+        var additionalComments = $('#additionalComments').val();
+
+
+        // Descriptions based on fitness level and intensity
+        var levelDescription = getDescriptionByLevel(level);
+        var intensityDescription = getDescriptionByIntensity(intensity);
+        var trainingTypeDescription = getDescriptionByTraining(trainingType);
+
+        var prompt = `Develop a ${sessionType}-day workout plan for ${clientData.client_name}, a ${clientData.client_age}-year-old ${clientData.client_gender}. ` +
+          `${levelDescription} Aiming for ${intensity} intensity, ${intensityDescription} ` +
+          `Client goals include "${clientData.client_fitness_goals}", using a ${trainingTypeDescription}. ` +
+          `Focus on ${bodyParts} without deviating to unrelated areas. The sessions should last about ${duration} minutes, utilizing ${equipment} gym resources. ` +
+          `Consider any medical conditions: "${clientData.client_medical_considerations}".` +
+          (additionalComments ? `\nAdditional Comments: ${additionalComments}` : '');
+
+
+        $('#promptDisplay').text(prompt);
+      }
+      function validateFormBeforeSubmit() {
+        var level = $('#level').val();
+        var intensity = $('#intensity').val();
+        var trainingType = $('#trainingType').val();
+        var sessionType = $('input[name="session_type"]:checked').val();
+        var bodyPartsOrSpecificsSelected = $('input[name="body_parts"]:checked').length > 0;
+
+        if (!level || !intensity || !trainingType || !sessionType || !bodyPartsOrSpecificsSelected) {
+          alert('Please complete all required fields before proceeding.');
+          return false;
+        }
+
+        var specificsCount = $('.specific:checked').length;
+        if (sessionType === 'single' && specificsCount > 1 || sessionType === '3 days' && specificsCount > 3) {
+          alert(`You can select a maximum of ${sessionType === 'single' ? 'one' : 'three'} specific(s) for a ${sessionType} session.`);
+          return false;
+        }
+
+        if ($('.main-body-part:checked').length > 0 && $('.specific:checked').length > 0) {
+          alert("You cannot select options from both Main Body Parts and Specifics. Please choose one category.");
+          return false;
+        }
+
+        return true;
+      }
+
+
+      function getDescriptionByLevel(level) {
+        switch (level) {
+          case 'beginner':
+            return "This client is new to fitness, focusing on building basic strength and endurance.";
+          case 'intermediate':
+            return "This client has some experience and is looking to enhance their skill and fitness level.";
+          case 'advanced':
+            return "This client is experienced and aims to optimize performance and target specific fitness goals.";
+          default:
+            return "Fitness level description not found.";
+        }
+      }
+
+      function getDescriptionByIntensity(intensity) {
+        switch (intensity) {
+          case 'low':
+            return "the workout will emphasize steady, sustainable exercises to gradually improve fitness without overexertion.";
+          case 'moderate':
+            return "the workout will balance between challenging and achievable exercises to effectively boost fitness and skill.";
+          case 'high':
+            return "the workout will include high-intensity exercises for maximum improvement in strength, endurance, and performance.";
+          default:
+            return "intensity level description not found.";
+        }
+      }
+      function getDescriptionByTraining(trainingType) {
+        switch (trainingType) {
+          case 'strength':
+            return "strength training approach which focuses on increasing muscle force and the ability to lift heavier weights, enhancing overall muscular strength.";
+          case 'hypertrophy':
+            return "hypertrophy style approach which aims to increase muscle size through targeted exercises that incrementally increase the volume of weight lifted (sets x reps), optimizing muscle growth.";
+          case 'functional':
+            return "functional fitness approach which trains the body for daily activities and improves range of motion using multi-joint movements that involve bending, twisting, lifting, and more, making everyday tasks easier.";
+          case 'endurance':
+            return "strength endurance training which combines strength exercises with stabilization endurance exercises for the same body part, performed back-to-back without rest, enhancing muscle endurance and strength.";
+          case 'balanced':
+            return "balanced health-focused method to provide a comprehensive workout that promotes overall health and well-being, blending various exercise forms to improve physical fitness in a well-rounded manner.";
+          case 'athletic':
+            return "sports performance training to help athletes achieve performance goals through exercises designed to improve specific athletic capabilities, enhancing fitness for sports activities.";
+          case 'cardio':
+            return "cardio training, or aerobic exercise that involves rhythmic activities to raise the heart rate to a target zone to burn the most fat and calories, improving cardiovascular health.";
+          case 'power':
+            return "power training training which involves exercises that require applying the maximum amount of force as quickly as possible; it is based on the formula where strength + speed = power, enhancing explosive power.";
+          default:
+            return "No training type specified.";
+        }
+      }
+      function formatBodyPartDescription(part) {
+        const descriptions = {
+          'chest': 'chest',
+          'back': 'back',
+          'shoulders': 'shoulders',
+          'triceps': 'triceps',
+          'biceps': 'biceps',
+          'quadriceps': 'quadriceps',
+          'hamstrings': 'hamstrings',
+          'glutes': 'glutes',
+          'calves': 'calves',
+          'core': 'core',
+          'pushday': 'a push day (chest, shoulders, triceps)',
+          'pullday': 'a pull day (back and biceps)',
+          'legday': 'a leg day (quads, hamstrings, glutes, calves)',
+          'armday': 'a arm day (triceps, biceps, and forearms)',
+          'fullbody': 'a full body workout'
+        };
+        return descriptions[part] || part;
+      }
+
+
+      $('#submitPrompt').click(function (event) {
+        if (!validateFormBeforeSubmit()) {
+          event.preventDefault(); // Prevent form submission if validation fails
+        } else {
+          submitPrompt(); // Call submit prompt function
+        }
+      });
+
+      function submitPrompt() {
+        var trainers_prompt = $('#promptDisplay').text();
+        $.ajax({
+          url: '/generate_workout_prompt',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            trainers_prompt: trainers_prompt,
+            client_id: clientData.client_id
+          }),
+          beforeSend: function (xhr) {
+            xhr.setRequestHeader("X-CSRF-TOKEN", csrfToken);  // Set CSRF token header
+          },
+          success: function (response) {
+            console.log('Prompt saved successfully:', response);
+            if (response.success) {
+              window.location.href = response.redirect;
+            } else {
+              alert('Failed to generate the workout prompt: ' + response.message);
+              if (response.redirect) {
+                window.location.href = response.redirect;
+              }
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error('Error saving prompt:', error);
+            alert('Error while saving prompt. Please try again.');
+          }
+        });
+      }
+
+      buildPrompt();
+      $('input, select, textarea').change(buildPrompt);
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+      const bodyParts = document.querySelectorAll('.main-body-part');
+      const specifics = document.querySelectorAll('.specific');
+      const submitButton = document.getElementById('submitPrompt');
+      const additionalComments = document.getElementById('additionalComments');
+
+      function toggleCheckboxGroups() {
+        const anyBodyPartChecked = Array.from(bodyParts).some(checkbox => checkbox.checked);
+        const anySpecificChecked = Array.from(specifics).some(checkbox => checkbox.checked);
+
+        if (anyBodyPartChecked && anySpecificChecked) {
+          alert("You cannot select options from both Main Body Parts and Specifics. Please choose one category.");
+          return false;
+        }
+
+        Array.from(bodyParts).forEach(checkbox => {
+          checkbox.disabled = anySpecificChecked;
+        });
+
+        Array.from(specifics).forEach(checkbox => {
+          checkbox.disabled = anyBodyPartChecked;
+        });
+
+        additionalComments.placeholder = anyBodyPartChecked || anySpecificChecked ?
+          'Add in additional information in comments for specific training methods or preferences' : '';
+
+        return true;
+      }
+
+      Array.from(bodyParts).concat(Array.from(specifics)).forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+          if (!toggleCheckboxGroups()) {
+            // Uncheck and re-enable all if both categories were selected
+            checkbox.checked = false;
+            Array.from(bodyParts).concat(Array.from(specifics)).forEach(cb => cb.disabled = false);
+          }
+        });
+      });
+
+
+    });
+
+
+
+
+  </script>
+
+</body>
+
+</html>

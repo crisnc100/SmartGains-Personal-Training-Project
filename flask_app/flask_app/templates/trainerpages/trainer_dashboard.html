@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Consultation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            min-height: 100vh;
+            width: 250px;
+            background-color: #343a40;
+            color: white;
+            padding: 20px;
+            float: left;
+            margin-left: -12px;
+        }
+        .sidebar a, .sidebar button {
+            color: white;
+            padding: 10px;
+            display: block;
+            text-decoration: none;
+            margin: 5px 0;
+        }
+        .sidebar a:hover, .sidebar button:hover {
+            background-color: #495057;
+        }
+        .content {
+            margin-left: 260px;
+            padding: 20px;
+        }
+        .header-content {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .profile-photo {
+            max-width: 100px;
+            height: auto;
+            border-radius: 35%;
+            margin-right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row bg-dark text-light">
+            <div class="col-12 text-end">
+                <div class="dropdown">
+                    <button class="btn btn-dark dropdown-toggle" type="button" id="accountDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        Account
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" aria-labelledby="accountDropdown">
+                        <li><a class="dropdown-item" href="/edit_profile">Edit Profile</a></li>
+                        <li><a class="dropdown-item" href="/trainer_settings">Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="document.getElementById('logout-form').submit();">Logout</a></li>
+                    </ul>
+                </div>
+                <form id="logout-form" action="/logout_trainer" style="display: none;" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-logout">Logout</button>
+                </form>
+                
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <h4>Client Management</h4>
+            <a href="/client_new">Add In-Person Client</a>
+            <a href="/existing_clients">View All Clients</a>
+            <a href="/client_pending">Pending Approvals</a>
+            <a href="/client_inactive">Inactive/Rejected Clients</a>
+            <button id="copyFormLink" class="btn btn-warning mt-3" onclick="copyFormLink()">Copy Form Link</button>
+        </div>
+
+        <div class="content">
+            <div class="header-content">
+                {% if trainer_profile and trainer_profile.photo1 %}
+                <img src="{{ url_for('uploaded_file', filename=trainer_profile.photo1) }}" class="profile-photo" alt="Profile Photo">
+                {% endif %}
+                <div>
+                    <h1>Welcome, {{trainer.first_name}} {{trainer.last_name}}!</h1>
+                    <p class="lead">Let's change the lives of people and help them achieve their fitness goals.</p>
+                </div>
+            </div>
+
+            <!-- Quotes and additional contents can be dynamically added here -->
+            {% if trainer_profile %}
+            <blockquote class="blockquote">
+                <p class="mb-0">{{ trainer_profile.quote1 }}</p>
+            </blockquote>
+            <blockquote class="blockquote">
+                <p class="mb-0">{{ trainer_profile.quote2 }}</p>
+            </blockquote>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function copyFormLink() {
+            navigator.clipboard.writeText('https://yourdomain.com/form_link').then(() => {
+                alert('Form link copied to clipboard!');
+            }).catch(err => {
+                console.error('Error copying text: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

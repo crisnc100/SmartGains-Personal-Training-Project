@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Example Plan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .workout-item {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .workout-item[contenteditable="true"] {
+            background-color: #ffffcc;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        #buttonGroup {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-10 offset-md-1">
+                <h1 class="text-center mb-4">Example 3-Day Workout Plan</h1>
+                <div id="buttonGroup" class="text-center">
+                    <button class="btn btn-outline-primary" onclick="editDemoPlan()">Edit Plan</button>
+                    <button id="saveChangesBtn" class="btn btn-outline-success" onclick="updateDemoPlan()" style="display:none;">Save Changes</button>
+                    <button id="cancelEditBtn" class="btn btn-outline-danger" onclick="cancelEditMode()" style="display:none;">Cancel</button>
+                    <button class="btn btn-outline-info" id="emailPlanButton">Email Plan to Client</button>
+                </div>
+                <div class="card">
+                    <div class="card-body" id="demo_plan_details">
+                        <input type="hidden" id="client_id" value="{{ client_id }}">
+                        {% for item in (demo_plan.demo_plan_details or '').split('\n') %}
+                            <div class="workout-item" contenteditable="false">{{ item }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                </div>
+                <form action="/back_to_dashboard" method="post" class="mt-4">
+                    <button type="submit" class="btn btn-primary">Back to Home</button>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <script>
+        function editDemoPlan() {
+            console.log('Switching to edit mode...');
+            $('.workout-item').attr('contenteditable', 'true');
+            $('#saveChangesBtn').show();
+            $('#cancelEditBtn').show();
+            $('button[onclick="editDemoPlan()"]').hide();
+        }
+        
+        function cancelEditMode() {
+            $('#saveChangesBtn').hide();
+            $('#cancelEditBtn').hide();
+            $('button[onclick="editDemoPlan()"]').show();
+            $('.workout-item').attr('contenteditable', 'false');
+            // Optionally reload to reset changes
+            location.reload();
+        }
+        
+        function updateDemoPlan() {
+            var updatedPlan = '';
+            var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            $('#demo_plan_details .workout-item').each(function() {
+                updatedPlan += $(this).text().trim() + '\n';  // Collect and trim each line, then add a newline character
+            });
+        
+            var clientId = $('#client_id').val(); // Assuming you have an input field with id="client_id" holding the value
+        
+            console.log("Updated Plan:", updatedPlan);
+            console.log("Client ID:", clientId);
+        
+            $.ajax({
+                url: '/update_demo_plan',
+                type: 'POST',
+                headers: {
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                contentType: 'application/json',
+                data: JSON.stringify({ client_id: clientId, demo_plan_details: updatedPlan }),
+                success: function(response) {
+                    if (response.success) {
+                        console.log('Plan updated successfully.');
+                        // No need to reload the page, just exit edit mode
+                        exitEditMode(); // Make sure this function resets the editable state properly
+                    } else {
+                        console.error('Failed to update the plan.');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error updating plan:', status, error);
+                }
+            });
+        }
+        
+        function exitEditMode() {
+            $('.workout-item').attr('contenteditable', 'false'); // Turn off contenteditable
+            $('#saveChangesBtn').hide(); // Hide save button
+            $('#cancelEditBtn').hide(); // Hide cancel button
+            $('button[onclick="editDemoPlan()"]').show(); // Show edit button
+        }
+        $(document).ready(function() {
+            var csrfToken = $('meta[name="csrf-token"]').attr('content');
+        
+            function emailPlan() {
+                var clientId = $('#client_id').val();
+                var planDetails = $('#demo_plan_details .workout-item').map(function() {
+                    return $(this).text();
+                }).get().join('\n');
+        
+                $.ajax({
+                    url: '/email_plan_to_client',
+                    type: 'POST',
+                    headers: {
+                        "X-CSRF-TOKEN": csrfToken
+                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        client_id: clientId,
+                        demo_plan_details: planDetails
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Plan emailed successfully to the client.');
+                        } else {
+                            alert('Failed to email the plan: ' + response.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error emailing plan:', status, error);
+                    }
+                });
+            }
+        
+            // Bind the function to the button click event
+            $('#emailPlanButton').click(emailPlan);
+        });
+        
+        
+        
+    </script>
+</body>
+
+</html>

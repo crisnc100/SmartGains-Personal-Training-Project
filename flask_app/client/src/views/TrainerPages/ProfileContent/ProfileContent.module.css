@@ -1,0 +1,17 @@
+
+.headerContent {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    color: black;
+    margin-left: px;
+}
+.profilePhoto {
+    max-width: 100px;
+    height: auto;
+    border-radius: 35%;
+    margin-right: 50px;
+}

@@ -1,0 +1,226 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Electrolize&display=swap');
+
+        body{
+            margin: 0;
+            padding: 0;
+            color: #ffffff;
+            background-color: #0d0a0b;
+            background-image: linear-gradient(74deg, #0d0a0b 0%, #009fc2 74%);
+        }
+
+        
+       
+        .heroSection {
+            background: url('/images/homepage_option_1.webp') no-repeat center center;
+            background-size: cover;
+            background-attachment: scroll;
+            background-position: top center;
+            padding: 70px 0;
+            position: relative;
+            color: #ffffff;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            min-height: 65vh;
+            overflow: hidden;
+            opacity: 0.95;
+
+        }
+
+       
+        .heroSection h1 {
+            color: #fff;
+            text-shadow:
+                3px 3px 4px rgba(0, 0, 0, 0.8), 
+                -1px -1px 4px rgba(0, 0, 0, 0.8), 
+                1px -1px 4px rgba(0, 0, 0, 0.8),
+                -1px 1px 4px rgba(0, 0, 0, 0.8),
+                1px 1px 4px rgba(0, 0, 0, 0.8);
+            font-size: 40px;
+        }
+        
+
+        .heroSection p {
+            color: #fff;
+            text-shadow:
+            3px 3px 4px rgba(0, 0, 0, 0.8), /* darker shadow */
+            -1px -1px 4px rgba(0, 0, 0, 0.8), /* shadow on all sides */
+            1px -1px 4px rgba(0, 0, 0, 0.8),
+            -1px 1px 4px rgba(0, 0, 0, 0.8),
+            1px 1px 4px rgba(0, 0, 0, 0.8); /* shadow on all sides */
+            font-size: 18px;
+            
+
+        }
+    
+        .subHeaders{
+            color: white;
+            font-size: 30px;
+        }
+
+
+      
+        .contentSection {
+            text-align: center;
+            padding: 30px 20px;
+        }
+        .contentSection p{
+            font-size: 18px;
+        }
+       
+        .contentSection img,
+        .contentSection video {
+            max-width: 50%;
+        
+            height: auto;
+          
+            margin: 0 auto;
+        }
+
+      
+        .footer {
+            color: #d0efff;
+            text-align: center;
+            padding: 10px;
+            position: relative;
+            bottom: 0;
+        }
+
+        
+        .examplePrompt {
+            background-color: #333;
+            color: #D1E8E2;
+            border-left: 5px solid #D9B08C;
+            padding: 20px 5px;
+            margin: 20px;
+            font-family: monospace;
+            font-size: 17px;
+            font-weight: bold;
+            
+        }
+
+        
+        @media (max-width: 768px) {
+            .heroSection {
+                padding: 50px 10px;
+
+            }
+
+            .btnPrimary {
+                width: 80%;
+                
+            }
+
+            .contentSection {
+                padding: 20px 10px;
+            }
+        }
+
+        
+        
+        .descriptionSection {
+            padding: 10px 20px;
+            text-align: center;
+            color: #fff;
+        }
+        .descriptionSection {
+            font-size: 18px;
+        }
+
+      
+        .customSelect {
+            width: 100%;
+            padding: 12px 12px;
+            border-radius: 5px;
+            border: 2px solid #02b1e4;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: #ffffff;
+            appearance: none;
+            background-image: linear-gradient(to bottom, #182b3a 0%, #043a6b 50%, #105392 75%, #20a4f3 100%);
+            background-position: right 10px top 50%, 0 0;
+            background-size: 12px 12px, 100%;
+            background-repeat: no-repeat;
+            font-size: 15px;
+        }
+
+          
+        .customSelect option {
+            background: #182b3a;
+            color: #ffffff;
+        }
+
+      
+        .btnPrimary {
+            display: block;
+            width: 25%;
+            margin: 20px auto;
+            padding: 10px;
+            font-size: 16px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: none;
+            border-radius: 5px;
+            background-image: linear-gradient(45deg, #0298d0 0%, #02b1e4 100%);
+            color: #ffffff;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+          
+        .btnPrimary:hover {
+            background-image: linear-gradient(45deg, #02b1e4 0%, #0298d0 100%);
+            transform: scale(1.05);
+        }
+
+        
+        .buttonContainer {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+          
+        .sliderContainer {
+            margin: 20px;
+            color: #d0efff;
+        }
+
+         
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #043a6b;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+
+         
+        .slider:hover {
+            opacity: 1;
+    
+        }
+
+         
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #20a4f3;
+            cursor: pointer;
+        }
+
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #20a4f3;
+            cursor: pointer;
+        }
+
+         
+        #workoutPlan {
+            text-align: center;
+        }

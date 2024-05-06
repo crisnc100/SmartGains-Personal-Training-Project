@@ -1,0 +1,16 @@
+/* CurrentClient.module.css */
+.editableField {
+    display: inline-block; /* Keeps input inline */
+    width: 100%;
+    min-width: 150px;  
+    background-color: #ffffe0;
+    padding: 2px 4px; /* Sufficient padding without bulking */
+    box-sizing: border-box; /* Includes padding and border in width */
+}
+.label {
+    display: inline-block; /* Ensures label stays in line */
+    font-weight: bold;
+    margin-right: 4px; /* Space between label and input */
+}
+
+
