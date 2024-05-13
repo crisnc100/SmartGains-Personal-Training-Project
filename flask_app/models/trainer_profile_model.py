@@ -9,7 +9,17 @@ class TrainerProfile:
         self.created_at = data['created_at']
         self.updated_at = data['updated_at']
         self.trainer_id = data['trainer_id']
-        self.trainer_first_name = data
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "photo1": self.photo1,
+            "quote1": self.quote1,
+            "quote2": self.quote2,
+            "created_at": str(self.created_at),  
+            "updated_at": str(self.updated_at),
+            "trainer_id": self.trainer_id
+        }
 
     @classmethod
     def save(cls, data):
@@ -30,13 +40,13 @@ class TrainerProfile:
 
     @classmethod
     def update(cls, data):
-    # Create the base query
+
         query = """
             UPDATE trainer_profile
             SET updated_at = NOW()
         """
 
-        # Dynamically add fields to update only if they are provided
+        
         set_parts = []
         if 'photo1' in data:
             set_parts.append("photo1 = %(photo1)s")
@@ -45,7 +55,7 @@ class TrainerProfile:
         if 'quote2' in data:
             set_parts.append("quote2 = %(quote2)s")
 
-    # Append the set parts to the query
+
         if set_parts:
             query += ", " + ", ".join(set_parts)
 

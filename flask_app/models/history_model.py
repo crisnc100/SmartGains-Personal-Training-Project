@@ -13,6 +13,19 @@ class History:
         self.updated_at = data.get('updated_at', None)
         self.client_id = data['client_id']
     
+    def serialize(self):
+        return {
+            'id': self.id,
+            'existing_conditions': self.existing_conditions,
+            'medications': self.medications,
+            'surgeries_or_injuries': self.surgeries_or_injuries,
+            'allergies': self.allergies,
+            'family_history': self.family_history,
+            'created_at': str(self.created_at),  
+            'updated_at': str(self.updated_at),
+            'client_id': self.client_id
+        }
+    
     #CREATE
     @classmethod
     def save(cls, data):

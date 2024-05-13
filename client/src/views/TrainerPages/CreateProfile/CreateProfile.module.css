@@ -1,0 +1,46 @@
+.profilePage {
+    display: flex;
+    min-height: 100vh;
+    color: #fff;
+    background: url('/images/profile_background_4.webp') no-repeat center center;
+    background-size: cover;
+
+    
+    
+}
+
+.formContainer {
+    flex-basis: 100%;
+    background-color: #ffffff;  
+    background-image: linear-gradient(10deg, #f0f4f8 0%, #1b2845 74%);  
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;  
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);  
+    border: 1px solid #d1d8e0;  
+}
+
+.brandContainer {
+    display: flex;
+    justify-content: center;
+  }
+.brand {
+  
+    color: #a8ff04;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    font-size: 1.5vw; 
+    text-decoration: none;
+    font-style: 'Arial', sans-serif;
+    text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 8px #00dffc;
+    font-weight: bold;
+    width: 9vw; 
+    text-align: center;
+
+}
+
+.brand:hover {
+    filter: brightness(120%);
+}

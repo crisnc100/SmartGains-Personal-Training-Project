@@ -1,0 +1,75 @@
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #222121; /* Dark grey background */
+    padding: 18px 40px;
+  }
+  
+  .brand a {
+    display: inline-block; 
+    color: #a8ff04; 
+    font-size: 2.2vw;
+    text-decoration: none;
+    font-style: 'Arial', sans-serif; 
+    text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.7); 
+    box-shadow: 0 0 8px #00dffc; 
+    width: 13vw;
+    padding: 2px; 
+    text-align: center; 
+    font-weight: bold; 
+
+  }
+  .brand a:hover {
+    filter: brightness(120%);
+  }
+  
+  
+  .navItems a {
+    color: #ffffff; 
+    font-size: 18px;
+    font-style: 'Arial', sans-serif; 
+    text-transform: uppercase; 
+    text-decoration: none;
+    margin-left: 20px;
+    padding: 12px 24px;
+    background: linear-gradient(to right, #009fc2 0%, #005678 100%); 
+    border-radius: 5px; 
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border: none; 
+}
+
+.navItems a:hover {
+  color: #ffffff;
+  background-color: #03506e; /* Change to a noticeable different color */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+  filter: brightness(150%);
+}
+
+
+  
+
+  /* Cool Gold */
+.cool-gold { color: #FFD700; box-shadow: 0 0 10px #FFD700; }
+
+/* Deep Sky Blue */
+.deep-sky-blue { color: #00BFFF; box-shadow: 0 0 10px #00BFFF; }
+
+/* Electric Magenta */
+.electric-magenta { color: #FF00FF; box-shadow: 0 0 10px #FF00FF; }
+
+/* Implementations from previous colors for reference */
+/* Neon Blue */
+.neon-blue { color: #00dffc; box-shadow: 0 0 10px #00dffc; }
+
+/* Vivid Purple */
+.vivid-purple { color: #c442ff; box-shadow: 0 0 10px #c442ff; }
+
+/* Bright Orange */
+.bright-orange { color: #ff6f00; box-shadow: 0 0 10px #ff6f00; }
+
+/* Neon Green */
+.neon-green { color: #a8ff04}

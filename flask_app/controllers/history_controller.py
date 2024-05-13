@@ -1,33 +1,36 @@
-from flask import render_template, redirect, request, session, flash
+from flask import request, jsonify
 from flask_app import app
 from flask_app.models.history_model import History
 from flask_app.models.client_model import Client
 
 
-@app.route(f'/medical_history/<int:client_id>')
-def medical_history(client_id):
-    return render_template('intakepages/history.html', client_id=client_id, first_name=session.get('first_name'), last_name=session.get('last_name'))
 
-@app.route('/save_medical_history', methods=['POST'])
-def save_medical_history():
-    client_id = request.form.get('client_id')
-    if client_id is None:
-        flash("Client ID not found. Unable to save fitness experience data.", 'error')
-        return redirect(f'/medical_history/{client_id}')
+@app.route('/api/add_medical_history', methods=['POST'])
+def add_medical_history():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
     
-    data = {
-        "existing_conditions": request.form["existing_conditions"],
-        "medications": request.form["medications"],
-        "surgeries_or_injuries": request.form["surgeries_or_injuries"],
-        "allergies": request.form["allergies"],
-        "family_history": request.form["family_history"],
-        "client_id": client_id,
-        "client_first_name": session.get('first_name'),
-        "client_last_name": session.get('last_name')
-    }
+    client_id = data.get('client_id') 
+    if client_id is None:
+        return jsonify({'error': 'Client ID not found. Unable to add medical history for the client.'}), 400
 
-    history_id = client_id
-    History.save(data)
+  
+    required_fields = [
+        "existing_conditions",
+        "medications",
+        "surgeries_or_injuries",
+        "allergies",
+        "family_history"
+    ]
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing one or more required fields'}), 400
 
-    return redirect(f'/flexibility_test/{client_id}')
+
+
+    history_id = History.save(data)  
+    if history_id:
+        return jsonify({'message': 'Medical History added for client'}), 200
+    else:
+        return jsonify({'error': 'Failed to add medical history data for the client'}), 500
 

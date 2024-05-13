@@ -21,6 +21,30 @@ class Consultation:
         self.created_at = data.get('created_at', None)
         self.updated_at = data.get('updated_at', None)
         self.client_id = data['client_id']
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'prior_exercise_programs': self.prior_exercise_programs,
+            'exercise_habits': self.exercise_habits,
+            'fitness_goals': self.fitness_goals,
+            'progress_measurement': self.progress_measurement,
+            'area_specifics': self.area_specifics,
+            'exercise_likes': self.exercise_likes,
+            'exercise_dislikes': self.exercise_dislikes,
+            'diet_description': self.diet_description,
+            'dietary_restrictions': self.dietary_restrictions,
+            'processed_food_consumption': self.processed_food_consumption,
+            'daily_water_intake': self.daily_water_intake,
+            'daily_routine': self.daily_routine,
+            'stress_level': self.stress_level,
+            'smoking_alcohol_habits': self.smoking_alcohol_habits,
+            'hobbies': self.hobbies,
+            'created_at': str(self.created_at), 
+            'updated_at': str(self.updated_at),
+            'client_id': self.client_id
+            
+        }
 
     #CREATE
     @classmethod

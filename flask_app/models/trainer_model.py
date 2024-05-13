@@ -1,5 +1,5 @@
 from flask_app.config.mysqlconnection import connectToMySQL
-from flask import flash
+from flask import flash, current_app
 import re
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]+$')
 
@@ -13,10 +13,27 @@ class Trainer:
         self.created_at = data['created_at']
         self.updated_at = data['updated_at']
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "created_at": str(self.created_at),  
+            "updated_at": str(self.updated_at)
+        }
+
     @classmethod
     def save(cls, data):
-        query = "INSERT INTO trainers (first_name, last_name, email, password_hash, created_at, updated_at) VALUES (%(first_name)s, %(last_name)s, %(email)s, %(password_hash)s, NOW(), NOW());"
-        return connectToMySQL('fitness_consultation_schema').query_db(query,data)
+        query = """
+        INSERT INTO trainers (first_name, last_name, email, password_hash, created_at, updated_at)
+        VALUES (%(first_name)s, %(last_name)s, %(email)s, %(password_hash)s, NOW(), NOW());
+        """
+        try:
+            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        except Exception as e:
+            current_app.logger.error('Error saving trainer: %s', str(e))
+            return None
     
     @staticmethod
     def validate_trainer(trainer):
@@ -39,6 +56,21 @@ class Trainer:
         is_valid = False
         
         return is_valid
+
+    @classmethod
+    def email_exists(cls, email):
+        query = "SELECT COUNT(*) AS count FROM trainers WHERE email = %(email)s;"
+        data = {'email': email}
+        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        return result[0]['count'] > 0
+    
+    
+    @classmethod
+    def trainer_name_exists(cls, first_name, last_name):
+        query = "SELECT COUNT(*) AS count FROM trainers WHERE first_name = %(first_name)s AND last_name = %(last_name)s;"
+        data = {'first_name': first_name, 'last_name': last_name}
+        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        return result[0]['count'] > 0
 
     
     @classmethod
@@ -64,9 +96,21 @@ class Trainer:
     
     @classmethod
     def update(cls, data):
-        query = """
-                UPDATE trainers
-                SET first_name = %(first_name)s, last_name = %(last_name)s, email = %(email)s, password_hash = %(password_hash)s, updated_at = NOW()
-                WHERE id = %(id)s;"""
-        results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
-        return results
+        query = "UPDATE trainers SET first_name=%(first_name)s, last_name=%(last_name)s, email=%(email)s WHERE id=%(id)s;"
+        # condition to check if password_hash is in data to update it
+        if 'password_hash' in data:
+            query = "UPDATE trainers SET first_name=%(first_name)s, last_name=%(last_name)s, email=%(email)s, password_hash=%(password_hash)s WHERE id=%(id)s;"
+        return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+    
+    @classmethod
+    def update_password_hash(cls, trainer_id, password_hash):
+        query = "UPDATE trainers SET password_hash=%(password_hash)s WHERE id=%(id)s;"
+        return connectToMySQL('fitness_consultation_schema').query_db(query, {'id': trainer_id, 'password_hash': password_hash})
+
+    
+
+    @classmethod
+    def delete(cls, trainer_id):
+        query = "DELETE FROM trainers WHERE id = %(id)s;"
+        data = {"id": trainer_id}
+        return connectToMySQL('fitness_consultation_schema').query_db(query, data)

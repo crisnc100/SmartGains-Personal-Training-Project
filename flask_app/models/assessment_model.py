@@ -11,6 +11,17 @@ class FlexibilityAssessment:
         self.created_at = data.get('created_at', None)
         self.updated_at = data.get('updated_at', None)
         self.client_id = data['client_id']
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'shoulder_flexibility': self.shoulder_flexibility,
+            'lower_body_flexibility': self.lower_body_flexibility,
+            'joint_mobility': self.joint_mobility,
+            'created_at': str(self.created_at),  
+            'updated_at': str(self.updated_at),
+            'client_id': self.client_id
+        }
 
     #CREATE
     @classmethod
@@ -84,6 +95,19 @@ class BeginnerAssessment:
         self.created_at = data.get('created_at', None)
         self.updated_at = data.get('updated_at', None)
         self.client_id = data['client_id']
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'basic_technique': self.basic_technique,
+            'chair_sit_to_stand': self.chair_sit_to_stand,
+            'arm_curl': self.arm_curl,
+            'balance_test_results': self.balance_test_results,
+            'cardio_test': self.cardio_test,
+            'created_at': str(self.created_at),  
+            'updated_at': str(self.updated_at),
+            'client_id': self.client_id
+        }
         
     
     #CREATE
@@ -159,10 +183,21 @@ class AdvancedAssessment:
         self.updated_at = data.get('updated_at', None)
         self.client_id = data['client_id']
 
+    def serialize(self):
+        return {
+            'id': self.id,
+            'advanced_technique': self.advanced_technique,
+            'strength_max': self.strength_max,
+            'strength_endurance': self.strength_endurance,
+            'circuit': self.circuit,
+            'moderate_cardio': self.moderate_cardio,
+            'created_at': str(self.created_at),  
+            'updated_at': str(self.updated_at),
+            'client_id': self.client_id
+        }
     
     @classmethod
     def save(cls, data):
-        # Extract data from the dictionary
         advanced_technique = data.get("advanced_technique")
         strength_max = data.get("strength_max")
         strength_endurance = data.get("strength_endurance")
@@ -205,7 +240,6 @@ class AdvancedAssessment:
             else:
                 return None
         except Exception as e:
-            # Handle the exception (e.g., log the error, return a default value, etc.)
             print(f"An error occurred: {str(e)}")
             return None
 

@@ -19,8 +19,27 @@ class Client:
         self.created_at = data['created_at']
         self.updated_at = data['updated_at']
         self.trainer_id = data['trainer_id']
-        self.trainer_first_name = data['trainer_first_name']
-        self.trainer_last_name = data['trainer_last_name']
+        self.trainer_first_name = data.get('trainer_first_name')  
+        self.trainer_last_name = data.get('trainer_last_name')
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "age": self.age,
+            "gender": self.gender,
+            "occupation": self.occupation,
+            "email": self.email,
+            "phone_number": self.phone_number,
+            "address": self.address,
+            "location_gym": self.location_gym,
+            "created_at": str(self.created_at), 
+            "updated_at": str(self.updated_at),
+            "trainer_id": self.trainer_id,
+            "trainer_first_name": self.trainer_first_name,
+            "trainer_last_name": self.trainer_last_name
+        }
 
     @classmethod
     def save(cls, data):
@@ -103,7 +122,8 @@ class Client:
     def delete(cls, client_id):
         query = "DELETE FROM clients WHERE id = %(id)s;"
         data = {"id": client_id}
-        return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        return result != 0
     
     #VALIDATE
     @staticmethod
@@ -133,3 +153,20 @@ class Client:
         data = {'email': email}
         result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
         return result[0]['count'] > 0
+    
+    
+    @classmethod
+    def client_name_exists(cls, first_name, last_name):
+        query = "SELECT COUNT(*) AS count FROM clients WHERE first_name = %(first_name)s AND last_name = %(last_name)s;"
+        data = {'first_name': first_name, 'last_name': last_name}
+        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        return result[0]['count'] > 0
+    
+
+    @classmethod
+    def phone_number_exists(cls, phone_number):
+        query = "SELECT COUNT(*) AS count FROM clients WHERE phone_number = %(phone_number)s;"
+        data = {'phone_number': phone_number}
+        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        return result[0]['count'] > 0
+

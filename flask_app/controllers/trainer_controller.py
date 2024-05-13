@@ -1,85 +1,85 @@
-from flask import render_template, redirect, request, session, flash, url_for
+from flask import redirect, request, session, url_for
 from flask_app import app
 from flask_bcrypt import Bcrypt
+from flask import current_app
 from flask_app.models.trainer_model import Trainer
 from flask_app.models.client_model import Client
 from flask_app.models.trainer_profile_model import TrainerProfile
 from werkzeug.utils import secure_filename
 from flask import send_from_directory
+from flask import jsonify
+from datetime import datetime
+from werkzeug.exceptions import BadRequest
+import logging
+import re
 import os
 bcrypt = Bcrypt(app)
-app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
-
-UPLOAD_FOLDER = 'uploads'
+import os
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', '..', 'client', 'public', 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]+$')
 
-
-@app.route('/')
-def home():
-    return render_template('trainerpages/home.html')
-
-@app.route('/new_trainer')
-def new_trainer():
-    return render_template('trainerpages/new_trainer.html')
-
-
-@app.route('/register_trainer', methods=['POST'])
+@app.route('/api/register_trainer', methods=['POST'])
 def register_trainer():
-    validation_errors = []
+    data = request.get_json()
 
-    if len(request.form['first_name']) < 2:
-        validation_errors.append("First name must be at least 2 characters.")
-    if len(request.form['last_name']) < 2:
-        validation_errors.append("Last name must be at least 2 characters.")
-    if len(request.form['password_hash']) < 8:
-        validation_errors.append("Password must be at least 8 characters.")
-    if request.form['password_hash'] != request.form['password_confirm']:
-        validation_errors.append("Passwords do not match.")
+    required_fields = ['first_name', 'last_name', 'email', 'password']
+    if not all(field in data for field in required_fields):
+        missing = ', '.join([field for field in required_fields if field not in data])
+        return jsonify({'error': f'Missing data for required field(s): {missing}'}), 400
 
-    if validation_errors:
-        for error in validation_errors:
-            flash(error, 'register_error')
-        return redirect('/new_trainer')
+    # Password hashing
+    hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
 
-    pw_hash = bcrypt.generate_password_hash(request.form['password_hash'])
-
-    data = {
-        "first_name": request.form['first_name'],
-        "last_name": request.form["last_name"],
-        "email": request.form["email"],
-        "password_hash": pw_hash
+    # Creating trainer data dictionary
+    trainer_data = {
+        'first_name': data['first_name'],
+        'last_name': data['last_name'],
+        'email': data['email'],
+        'password_hash': hashed_password,
+        'created_at': None,  
+        'updated_at': None
     }
 
-    trainer_id = Trainer.save(data)
+    try:
+       
+        trainer_id = Trainer.save(trainer_data)  
+        print("Generated trainer_id:", trainer_id)  # Debugging 
+        if trainer_id:
+            session['trainer_id'] = trainer_id
+            print("Session after setting trainer_id:", session)
+            session['first_name'] = data['first_name']
+            session['last_name'] = data['last_name']
+            
+            return jsonify({'message': 'New trainer registered successfully', 'trainer_id': trainer_id}), 200
+        else:
+            return jsonify({'error': 'Failed to register new trainer'}), 500
+    except Exception as e:
+        app.logger.error(f"Error registering trainer: {e}")
+        return jsonify({'error': str(e)}), 500
 
-    if trainer_id:
-        session['trainer_id'] = trainer_id
-        session['first_name'] = request.form['first_name']
-        session['last_name'] = request.form['last_name']
-        return redirect('/create_profile')
-    else:
-        flash("Failed to register trainer. Please try again.", 'register_error')
-        return redirect('/')
-    
-@app.route('/login_page')
-def login_page():
-    return render_template('trainerpages/login_page.html')
 
-@app.route('/login_trainer', methods=['POST'])
-def login_trainer():
-    trainer = Trainer.get_by_email(request.form['email'])
-    if trainer and bcrypt.check_password_hash(trainer.password_hash, request.form['password_hash']):
-        session['trainer_id'] = trainer.id
-        session['first_name'] = trainer.first_name
-        session['last_name'] = trainer.last_name  
-        return redirect('/success')
-    else:
-        flash("Invalid email or password.", 'login_error')
-        return redirect('/login_page')
 
-@app.route('/create_profile')
-def create_profile():
-    return render_template('/trainerpages/create_profile.html')
+
+@app.route('/api/check_trainer', methods=['POST'])
+def check_trainer():
+    data = request.get_json()
+    email = data.get('email', '').strip()
+    first_name = data.get('first_name', '').strip()
+    last_name = data.get('last_name', '').strip()
+
+    try:
+        email_exists = Trainer.email_exists(email) if email else False
+        name_exists = Trainer.trainer_name_exists(first_name, last_name) if first_name and last_name else False
+        return jsonify({
+            'email_exists': email_exists,
+            'name_exists': name_exists
+        }), 200
+    except Exception as e:
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -88,145 +88,241 @@ def allowed_file(filename):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/save_trainer_profile', methods=['POST'])
-def save_trainer_profile():
-    if 'trainer_id' not in session:
-        flash("Please log in first.", 'error')
-        return redirect('/login_page')
+@app.route('/api/create_trainer_profile', methods=['POST'])
+def create_trainer_profile():
+ 
+    trainer_id = request.form.get('trainer_id')
+    if trainer_id is None:
+        return jsonify({'error': 'Trainer ID not found'}), 400
 
-    trainer_id = session['trainer_id']
-
-    # Check if the POST request has the file part for photo1
+    # Access the uploaded file
     if 'photo1' not in request.files:
-        flash('Please upload a profile picture!', 'error')
-        return redirect(request.url)
+        return jsonify({'error': 'Profile picture is required'}), 400
 
-    # Get the file for photo1 from the POST request
     file1 = request.files['photo1']
-
-    # Check if the user does not select a file for photo1
     if file1.filename == '':
-        flash('No selected file', 'error')
-        return redirect(request.url)
+        return jsonify({'error': 'No selected file'}), 400
 
-    # Check if the file has an allowed extension for photo1
     if file1 and allowed_file(file1.filename):
-        # Secure the filename to prevent any malicious filenames
         filename1 = secure_filename(file1.filename)
-        # Save the file to the uploads folder for photo1
-        file1.save(os.path.join(app.config['UPLOAD_FOLDER'], filename1))
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
+        file1.save(file_path)
 
-        # Extract other form data
-        data = {'photo1': filename1}
+        quote1 = request.form.get('quote1', '').strip()
+        quote2 = request.form.get('quote2', '').strip()
 
-        data.update({
-            'quote1': request.form.get('quote1'),
-            'quote2': request.form.get('quote2'),
+        # Save the data
+        data = {
+            'photo1': filename1,
+            'quote1': quote1,
+            'quote2': quote2,
             'trainer_id': trainer_id
-        })
-
-        # Assuming you have a TrainerProfile model with a save method
-        # Create a new TrainerProfile object and save it to the database
-        TrainerProfile.save(data)
-
-        flash("Trainer profile saved successfully.", 'success')
-        return redirect('/success')
+        }
+        try:
+            TrainerProfile.save(data)
+            return jsonify({'message': 'Trainer profile saved successfully'}), 200
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
     else:
-        flash('Invalid file format', 'error')
-        return redirect(request.url)
+        return jsonify({'error': 'Invalid file format'}), 400
+
+    
+
+
+@app.route('/api/login_trainer', methods=['POST'])
+def login_trainer():
+    try:
+        email = request.json.get('email')
+        password = request.json.get('password')
+        trainer = Trainer.get_by_email(email)
+        logging.info(f"Login attempt with email: {email}")
+        
+        if not trainer:
+            return jsonify({'success': False, 'error_message': 'Email is incorrect.'}), 401
+        
+        if not bcrypt.check_password_hash(trainer.password_hash, password):
+            return jsonify({'success': False, 'error_message': 'Password is incorrect.'}), 401
+
+        # If both checks pass
+        session['trainer_id'] = trainer.id
+        session['first_name'] = trainer.first_name
+        session['last_name'] = trainer.last_name
+        
+        return jsonify({'success': True, 'redirect_url': '/check_login'})
+    
+    except BadRequest:
+        logging.error("Bad Request: CSRF token is missing or invalid.")
+        return jsonify({'success': False, 'error_message': 'CSRF token is missing or invalid.'}), 400
 
 
 
-@app.route('/success')
-def success():
+@app.route('/api/check_login')
+def check_login():
     trainer_id = session.get('trainer_id')
     if trainer_id:
-        trainer = Trainer.get_by_id(trainer_id)
-        if trainer:
-            trainer_profile = TrainerProfile.get_by_trainer_id(trainer_id)  # Fetch trainer profile data
-            # Fetch only clients related to the logged-in trainer
-            trainer_clients = Client.get_all_by_trainer(trainer_id)
-            return render_template('trainerpages/trainer_dashboard.html', trainer=trainer, trainer_profile=trainer_profile, clients=trainer_clients)
+        return jsonify({'success': True}), 200
+    else:
+        return jsonify({'error': 'Unauthorized'}), 401
 
-    return redirect('/')
-
-
-
-@app.route('/back_to_dashboard', methods=['POST'])
-def back_to_dashboard():
-    session.pop('client_id', None)  
-    session.pop('client_first_name', None)
-    session.pop('client_last_name', None)  
-    return redirect('/success')
-
-@app.route('/logout_trainer',methods=['POST'])
-def logout_trainer():
-    session.pop('trainer_id', None)
-    session.pop('first_name', None)
-    session.pop('last_name', None)
-    return redirect('/')
-
-@app.route('/skip_profile')
-def skip_profile():
-    if 'trainer_id' not in session:
-        flash("Please log in first.", 'error')
-        return redirect(url_for('login_page'))
-
-    trainer_id = session['trainer_id']
-
-    # Check if the profile picture file exists for the trainer
-    photo1_path = os.path.join(app.config['UPLOAD_FOLDER'], f"photo1_{trainer_id}.jpg")
-    if os.path.exists(photo1_path):
-        flash("You already have a profile picture.", 'info')
-        return redirect(url_for('success'))
-
-    # If the profile picture file does not exist, show an error message
-    flash('Please upload a profile picture!', 'error')
-    return redirect(url_for('create_profile'))
-
-@app.route('/edit_profile', methods=['GET', 'POST'])
-def edit_profile():
-    if 'trainer_id' not in session:
-        flash("Please log in first.", 'error')
-        return redirect('/login_page')
     
-    trainer_id = session['trainer_id']
+@app.route('/api/get_trainer_id')
+def get_trainer_id():
+    trainer_id = trainer_id = session.get('trainer_id')
+    if not trainer_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+    trainer = Trainer.get_by_id(trainer_id)
+
+    if trainer:
+        return jsonify({
+            'trainer': trainer.serialize()
+        })
+    else:
+        return jsonify({'error': 'Data not found'}), 404
+
+@app.route('/api/trainer_data')
+def trainer_data():
+    trainer_id = session.get('trainer_id')
+    if not trainer_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    trainer = Trainer.get_by_id(trainer_id)
+    trainer_profile = TrainerProfile.get_by_trainer_id(trainer_id)
+
+    if trainer and trainer_profile:
+        trainer_clients = Client.get_all_by_trainer(trainer_id)
+        if trainer_clients:
+            clients_data = [client.serialize() for client in trainer_clients if isinstance(client, Client)]
+        else:
+            clients_data = []
+        
+        return jsonify({
+            'trainer': trainer.serialize(),  
+            'profile': trainer_profile.serialize(),
+            'clients': clients_data
+        })
+    else:
+        return jsonify({'error': 'Data not found'}), 404
     
-    current_trainer = Trainer.get_by_id(trainer_id)  # Retrieve trainer data from the Trainer model
-    
-    if request.method == 'GET':
-        existing_profile = TrainerProfile.get_by_trainer_id(trainer_id)
-        return render_template('trainerpages/edit_profile.html', current_trainer=current_trainer, existing_profile=existing_profile)
+
+
+@app.route('/api/get_trainer_profile')
+def get_trainer_profile():
+    trainer_id = session.get('trainer_id')
+    if not trainer_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    trainer_profile = TrainerProfile.get_by_trainer_id(trainer_id)
+
+    if trainer_profile:
+        profile_data = trainer_profile.serialize()
+        if trainer_profile.photo1:
+            profile_data['photo1'] = url_for('uploaded_file', filename=trainer_profile.photo1, _external=True)
+
+        return jsonify({'profile': profile_data})
+    else:
+        return jsonify({'error': 'Data not found'}), 404
 
 
 
 
-@app.route('/update_profile', methods=['POST'])
+
+
+@app.route('/api/update_profile', methods=['POST'])
 def update_profile():
-    if 'trainer_id' not in session:
-        flash("Please log in first.", 'error')
-        return redirect('/login_page')
+    trainer_id = session.get('trainer_id')
+    if not trainer_id:
+        return jsonify({'error': 'Trainer ID not found. Please log in again.'}), 401
 
-    trainer_id = session['trainer_id']
     photo1 = request.files.get('photo1')
-    quote1 = request.form.get('quote1', '')  # Default to empty if not provided
-    quote2 = request.form.get('quote2', '')  # Default to empty if not provided
+    quote1 = request.form.get('quote1', '')
+    quote2 = request.form.get('quote2', '')
 
     data = {'trainer_id': trainer_id, 'quote1': quote1, 'quote2': quote2}
 
     if photo1 and allowed_file(photo1.filename):
-        filename1 = secure_filename(photo1.filename)
+        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')  
+        filename1 = secure_filename(f"{timestamp}_{photo1.filename}")
         photo1_path = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
         photo1.save(photo1_path)
-        data['photo1'] = filename1  # Update photo1 in data only if a new file is uploaded
+        data['photo1'] = filename1
 
     try:
-        TrainerProfile.update(data)  # Now passing a single dictionary
-        flash("Profile updated successfully.", 'success')
-        return redirect('/success')
+        updated_profile = TrainerProfile.update(data)  
+        return jsonify({'success': 'Trainer profile updated successfully', 'profile': updated_profile}), 200
     except Exception as e:
-        flash(f"Error updating profile: {e}", 'error')
-        return redirect('/edit_profile')
+        return jsonify({"success": False, "message": f"An error occurred while updating profile: {str(e)}"}), 500
+
+
+
+
+
+@app.route('/api/update_trainer', methods=['POST'])
+def update_trainer():
+    trainer_id = session.get('trainer_id')
+    if trainer_id is None:
+        return jsonify({'error': 'Trainer ID not found. Please log in again.'}), 401
+
+    data = request.get_json()
+    email = data.get('email')
+    if email and not EMAIL_REGEX.match(email):
+        return jsonify({'error': 'Email format is incorrect'}), 400
+
+    updated_data = {
+        'id': trainer_id,  
+        'first_name': data.get('first_name'),
+        'last_name': data.get('last_name'),
+        'email': email
+    }
+
+    try:
+        Trainer.update(updated_data)
+        return jsonify({'success': 'Trainer data updated successfully'}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": f"An error occurred while updating trainer: {str(e)}"}), 500
+
+
+@app.route('/api/update_password', methods=['POST'])
+def update_password():
+    trainer_id = session.get('trainer_id')
+    if not trainer_id:
+        return jsonify({'error': 'Trainer ID not found. Please log in again.'}), 401 
+
+    data = request.get_json()
+    current_password = data.get('current')
+    new_password = data.get('new')
+    confirm_password = data.get('confirm')
+    
+    if new_password != confirm_password:
+        return jsonify({'error': 'Passwords do not match!'}), 400
+
+    trainer = Trainer.get_by_id(trainer_id)
+    if not trainer:
+        return jsonify({'error': 'Trainer not found'}), 404
+
+    if not bcrypt.check_password_hash(trainer.password_hash, current_password):
+        return jsonify({'error': 'Current password is incorrect'}), 400
+
+    hashed_password = bcrypt.generate_password_hash(new_password)
+    Trainer.update_password_hash(trainer_id, hashed_password)
+    return jsonify({'success': 'Trainer password updated successfully'}), 200
+
+
+
+
+
+@app.route('/api/logout_trainer', methods=['POST'])
+def logout_trainer():
+  
+    session.pop('trainer_id', None)
+    session.pop('first_name', None)
+    session.pop('last_name', None)
+    session.pop('client_id', None)
+    session.pop('client_first_name', None)
+    session.pop('client_last_name', None)
+
+    
+    return jsonify({'message': 'Successfully logged out'}), 200
+
 
 
 
