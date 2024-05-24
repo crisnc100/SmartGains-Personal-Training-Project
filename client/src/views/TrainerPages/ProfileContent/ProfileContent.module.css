@@ -1,4 +1,7 @@
-
+.content {
+    padding: 20px;
+    color: black;
+  }
 .headerContent {
     background-color: #fff;
     padding: 15px;
@@ -15,3 +18,27 @@
     border-radius: 35%;
     margin-right: 50px;
 }
+.quote {
+    border-left: 4px solid gray;
+    padding-left: 10px;
+    margin-bottom: 16px;
+    font-style: italic;
+    font-size: small;
+    color: black;
+    margin-left: 50px;
+  }
+.statsAndNotifications {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  .quickStats, .notifications {
+    width: 48%;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .statsContent, .notificationsContent {
+    font-size: 16px;
+  }

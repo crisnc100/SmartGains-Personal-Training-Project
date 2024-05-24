@@ -11,7 +11,7 @@ const DemoPrompt = () => {
   const [allClientData, setAllClientData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedPrompt, setSelectedPrompt] = useState(null); 
+  const [selectedPrompt, setSelectedPrompt] = useState(null);  
   const [availablePrompts, setAvailablePrompts] = useState([]);
   const [additionalComments, setAdditionalComments] = useState('');
   const [expandedPromptIndex, setExpandedPromptIndex] = useState(null);
@@ -158,9 +158,9 @@ const DemoPrompt = () => {
     const selected = availablePrompts.find(p => p.id === promptId);
     if (selected) {
         const htmlContent = ReactDOMServer.renderToStaticMarkup(selected.content);
-        setSelectedPrompt({ id: selected.id, content: htmlContent }); // Storing HTML a string
+        setSelectedPrompt({ id: selected.id, content: htmlContent }); // Storing HTML string
     } else {
-        setSelectedPrompt(null); // Reset if no prompt is found
+        setSelectedPrompt(null); 
     }
 };
 
@@ -172,10 +172,12 @@ const DemoPrompt = () => {
   };
 
   const validateForm = () => {
+
     setErrors({});
 
     let valid = true;
     if (!selectedPrompt) {
+  
       setErrors(prevErrors => ({
         ...prevErrors,
         prompt: 'Please select a prompt before submitting.'
@@ -217,7 +219,7 @@ const DemoPrompt = () => {
         navigate(`success`);  
     } catch (err) {
         console.error("Error during submission:", err);
-       
+    
     }
 };
 

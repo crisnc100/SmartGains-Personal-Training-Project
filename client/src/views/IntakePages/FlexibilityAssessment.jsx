@@ -5,9 +5,6 @@ import { NavLink, useNavigate, useParams } from 'react-router-dom';
 const FlexibilityAssessment = () => {
     const { clientId } = useParams(); 
     const navigate = useNavigate();
-    const goBack = () => {
-        navigate(-1);
-    };
     const [flexibilityForm, setFlexibilityForm] = useState({
         client_id: clientId,
         shoulder_flexibility: "",
@@ -97,20 +94,19 @@ const FlexibilityAssessment = () => {
     };
 
     return (
+        <div>
+            <div className="flex justify-end space-x-2 mt-4">
+                <button onClick={() => navigate(-1)} className="px-4 py-2 text-white bg-gray-400 hover:bg-gray-600 transition-colors duration-300 ease-in-out rounded">
+                    Return Back
+                </button>
+        </div>
         <div className="flex justify-center my-10 px-4">
             <form onSubmit={submitHandler} className="w-full max-w-2xl">
-            <button
-                    onClick={goBack}
-                    className="bg-gray-500 hover:bg-gray-700 text-white font-bold rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
-                    style={{ padding: '6px 12px', fontSize: '14px', margin: '5px' }}
-                >
-                    Back
-                </button>
                 <h1 className="text-2xl font-semibold text-center text-gray-900 mb-6">Flexibility Assessment</h1>
                 <div className="space-y-6">
                     {Object.entries(flexibilityForm).map(([key, value]) => (
                         <div key={key} className="form-group">
-                            {key !== 'client_id' && ( // Only render the label if the key is not 'client_id'
+                            {key !== 'client_id' && ( 
                                 <label className="block text-sm font-medium text-gray-900 capitalize no-transform" style={{ fontSize: '15px', textTransform: 'none' }} htmlFor={key}>
                                     {questionLabels[key] ? questionLabels[key]() : `No label defined for ${key}`}
                                 </label>
@@ -126,6 +122,7 @@ const FlexibilityAssessment = () => {
                     Continue
                 </button>
             </form>
+        </div>
         </div>
     );
 };

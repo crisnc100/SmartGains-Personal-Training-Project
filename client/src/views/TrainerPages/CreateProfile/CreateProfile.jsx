@@ -47,7 +47,7 @@ const CreateProfile = () => {
           'Content-Type': 'multipart/form-data'
         }
       });
-      alert('Profile created successfully');  // Provide user feedback
+      alert('Profile created successfully');  // Provides user feedback
       navigate('/trainer_dashboard');
     } catch (error) {
       console.error("Error while creating profile:", error);

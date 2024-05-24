@@ -24,7 +24,7 @@ function LoginForm() {
 
         setErrors(tempErrors);
 
-        if (Object.keys(tempErrors).length > 0) return; // Stop here if there are errors
+        if (Object.keys(tempErrors).length > 0) return; // Stop here if there are weird errors
 
         try {
             const response = await axios.post(
@@ -33,7 +33,7 @@ function LoginForm() {
                 { withCredentials: true }
             );
             if (response.data.success) {
-                navigate('/trainer_dashboard'); // Navigates to dashboard on successful login
+                navigate('/trainer_dashboard'); // Goes to dashboard on successful login
             } else {
                 setErrors({ [response.data.field]: response.data.error_message });
             }
@@ -84,7 +84,7 @@ function LoginForm() {
             </div>
             <div className={styles.rightContainer}>
                 <div className={styles.welcomeBack}>Welcome back</div>
-             
+              
             </div>
         </div>
     );

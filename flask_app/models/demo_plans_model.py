@@ -27,7 +27,7 @@ class DemoPlan:
     def save(self):
         data = {
             'client_id': self.client_id,
-            'name': self.name if self.name else "Quick 3-Day Plan",  # Provide a default name if none provided
+            'name': self.name if self.name else "Quick 3-Day Plan",  # Provided a default name if none provided
             'demo_plan_details': self.demo_plan_details
         }
         query = """
@@ -98,10 +98,10 @@ class DemoPlan:
             """
             params = {'demo_plan_id': demo_plan_id, **data}
             result = connectToMySQL('fitness_consultation_schema').query_db(query, params)
-            if result is not None and result > 0:  
-                return True  
+            if result is not None and result > 0:  # Checking if result is not None and greater than zero
+                return True  # True if the update was successful (i.e., affected at least one row)
             else:
-                return False  
+                return False  # False if no rows were affected or result was None
         except Exception as e:
             print(f"An error occurred while updating: {e}")
             return False

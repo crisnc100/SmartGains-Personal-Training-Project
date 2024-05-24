@@ -49,7 +49,7 @@ const IntakeForm = () => {
     const renderInputField = (key) => {
 
         if (key === 'client_id') {
-            return null; // Do not render anything for client_id
+            return null; 
         }
         if (key === 'stress_level') {
             return (
@@ -150,7 +150,7 @@ const IntakeForm = () => {
                     ...err.response.data.errors, 
                 }));
             } else {
-              
+                // Handled some cases where the error response is not received
                 setErrors(prevErrors => ({
                     ...prevErrors,
                     general: 'An unexpected error occurred. Please try again.'

@@ -3,7 +3,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #222121; /* Dark grey background */
+    background-color: #222121; 
     padding: 18px 40px;
   }
   
@@ -43,7 +43,7 @@
 
 .navItems a:hover {
   color: #ffffff;
-  background-color: #03506e; /* Change to a noticeable different color */
+  background-color: #03506e; 
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   transform: translateY(-2px);
   filter: brightness(150%);

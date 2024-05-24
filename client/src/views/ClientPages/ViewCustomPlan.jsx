@@ -153,10 +153,10 @@ const ViewCustomPlan = () => {
                         {isEditMode ? (
                             <textarea
                                 rows="20"
-                                value={editableData.generated_plan_details}  // Used editableData here
+                                value={editableData.generated_plan_details}  
                                 onChange={(e) => setEditableData({
                                     ...editableData,
-                                    generated_plan_details: e.target.value  // Updated editableData on change
+                                    generated_plan_details: e.target.value  // Update editableData on change
                                 })}
                                 className="w-full p-2 border rounded"
                             />

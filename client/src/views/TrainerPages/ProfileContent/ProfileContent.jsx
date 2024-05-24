@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styles from './ProfileContent.module.css'; 
-
+import axios from 'axios';
 
 const ProfileContent = () => {
   const [trainerData, setTrainerData] = useState(null);
   const [error, setError] = useState('');
-
-
-
 
   useEffect(() => {
     fetchTrainerData();
@@ -25,7 +22,7 @@ const ProfileContent = () => {
       setError(error.response ? error.response.data.error : 'Something went wrong');
     }
   };
-  //Logic to adjust welcome message based on the time of day. 
+
   const getTimeBasedGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) {
@@ -48,8 +45,9 @@ const ProfileContent = () => {
   if (!trainerData.profile) {
     return <div>Profile data is not available.</div>;
   }
+
   return (
-    <div className="content">
+    <div className={`content ${styles.content}`}>
       <div className={`header-content ${styles.headerContent}`}>
         {trainerData.profile.photo1 && (
           <img src={`/uploads/${trainerData.profile.photo1}`} className={`profile-photo ${styles.profilePhoto}`} alt="Profile Photo" />
@@ -60,20 +58,35 @@ const ProfileContent = () => {
         </div>
       </div>
 
-      
       {trainerData.profile.quote1 && (
-        <blockquote style={{ borderLeft: '4px solid gray', paddingLeft: '0px', marginBottom: '16px', fontStyle: 'italic', fontSize: 'small', color: 'black', marginLeft: '50px' }}>
-         
+        <blockquote className={styles.quote}>
           <p>{trainerData.profile.quote1}</p>
         </blockquote>
       )}
 
       {trainerData.profile.quote2 && (
-        <blockquote style={{ borderLeft: '4px solid gray', paddingLeft: '0px', marginBottom: '16px', fontStyle: 'italic', fontSize: 'small', color: 'black', marginLeft: '50px' }}>
-        
+        <blockquote className={styles.quote}>
           <p>{trainerData.profile.quote2}</p>
         </blockquote>
       )}
+
+      <div className={styles.statsAndNotifications}>
+        <div className={styles.quickStats}>
+          <h2 className="text-xl font-semibold mb-2">Quick Stats</h2>
+          <div className={styles.statsContent}>
+            <p>Total Clients: --</p>
+            <p>Upcoming Sessions: --</p>
+            <p>Pending Approvals: --</p>
+          </div>
+        </div>
+
+        <div className={styles.notifications}>
+          <h2 className="text-xl font-semibold mb-2">Notifications</h2>
+          <div className={styles.notificationsContent}>
+            <p>No new notifications</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

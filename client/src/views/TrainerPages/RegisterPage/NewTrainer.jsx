@@ -29,7 +29,7 @@ function NewTrainer() {
         let tempErrors = {};
         let isValid = true;
 
-    
+        // Checking for required field and minimum length
         ['first_name', 'last_name', 'email', 'password', 'confirm_password'].forEach(key => {
             if (!trainerForm[key].trim()) {
                 tempErrors[key] = 'This field is required';

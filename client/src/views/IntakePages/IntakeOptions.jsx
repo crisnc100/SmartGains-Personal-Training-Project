@@ -7,11 +7,11 @@ const IntakeOptions = () => {
     const navigate = useNavigate();
 
     const handleProceed = () => {
-        navigate(`/trainer_dashboard/add_client/${clientId}/additional-services/intake-form/flexibility-assessment`); // Link to performance assessments (flexibility assessment)
+        navigate(`/trainer_dashboard/add_client/${clientId}/additional-services/intake-form/flexibility-assessment`); // Goes to performance assessments (flexibility assessment)
     };
 
     const handleSkip = () => {
-        navigate(`/trainer_dashboard/add_client/${clientId}/additional-services/intake-form/choose-prompt`); // Link workout plan generator (Quick prompt page)
+        navigate(`/trainer_dashboard/add_client/${clientId}/additional-services/intake-form/choose-prompt`); // Goes to workout plan generator (Prompt page)
     };
 
     return (

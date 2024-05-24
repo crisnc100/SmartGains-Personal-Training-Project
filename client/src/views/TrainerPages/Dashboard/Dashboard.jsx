@@ -5,12 +5,12 @@ import styles from './Dashboard.module.css';
 import TopBar from '../../../components/TopBar/TopBar';
 
 const Dashboard = () => {
-    const [sidebarToggle, setSidebarToggle] = useState(false);  
+    const [sidebarToggle, setSidebarToggle] = useState(false);  // State to control the visibility of the sidebar
 
     return (
         <div className="flex min-h-screen" style={{ backgroundColor: 'white' }}>
             <Sidebar sidebarToggle={sidebarToggle} />
-            <div className={`flex-1 ${sidebarToggle ? 'ml-0' : 'ml-64'}`}>
+            <div className={`flex-1 ${sidebarToggle ? 'ml-0' : 'ml-72'}`}>
                 <TopBar 
                     sidebarToggle={sidebarToggle} 
                     setSidebarToggle={setSidebarToggle}

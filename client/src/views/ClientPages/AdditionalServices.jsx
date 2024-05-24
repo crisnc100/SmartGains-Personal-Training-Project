@@ -5,12 +5,12 @@ import { Tooltip } from 'react-tooltip';
 const AdditionalServices = () => {
     const { clientId } = useParams(); 
 
-    // Use this clientId to fetch data or perform other operations related to the client
+ 
     console.log("Service requested for client ID:", clientId);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 pb-80">
-            <div className="flex flex-col space-y-4 w-full max-w-md"> 
+            <div className="flex flex-col space-y-4 w-full max-w-md">
                 <h1 className="text-3xl font-semibold text-gray-800 mb-6 text-center">Additional Services</h1>
                 <NavLink
                     to='intake-form'
@@ -40,7 +40,7 @@ const AdditionalServices = () => {
                 >
                     Skip to Generator
                 </NavLink>
-                {/* Created <Tooltip /> elements and set the id prop */}
+                {/* Create <Tooltip /> elements and set the id prop */}
                 <Tooltip style={{ width: '300px', fontSize: '12px' }} id="quickAddTooltip" />
                 <Tooltip style={{ width: '300px', fontSize: '12px' }} id="shortFormTooltip" />
                 <Tooltip style={{ width: '300px', fontSize: '12px' }} id="generatorTooltip" />

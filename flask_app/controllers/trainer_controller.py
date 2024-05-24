@@ -1,4 +1,4 @@
-from flask import redirect, request, session, url_for
+from flask import request, session, url_for
 from flask_app import app
 from flask_bcrypt import Bcrypt
 from flask import current_app
@@ -13,13 +13,24 @@ from werkzeug.exceptions import BadRequest
 import logging
 import re
 import os
+#from flask_wtf.csrf import generate_csrf
+#from flask_wtf.csrf import validate_csrf
 bcrypt = Bcrypt(app)
 import os
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', '..', 'client', 'public', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]+$')
+
+"""@app.route('/api/csrf_token', methods=['GET'])
+def csrf_token():
+    token = generate_csrf()
+    session['csrf_token'] = token
+    logging.info(f"CSRF Token generated and stored in session: {token}")
+    return jsonify({'csrf_token': token})"""
+
 
 @app.route('/api/register_trainer', methods=['POST'])
 def register_trainer():
@@ -46,7 +57,7 @@ def register_trainer():
     try:
        
         trainer_id = Trainer.save(trainer_data)  
-        print("Generated trainer_id:", trainer_id)  # Debugging 
+        print("Generated trainer_id:", trainer_id)  # Debugging print
         if trainer_id:
             session['trainer_id'] = trainer_id
             print("Session after setting trainer_id:", session)
@@ -78,6 +89,7 @@ def check_trainer():
             'name_exists': name_exists
         }), 200
     except Exception as e:
+        
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 
@@ -95,7 +107,7 @@ def create_trainer_profile():
     if trainer_id is None:
         return jsonify({'error': 'Trainer ID not found'}), 400
 
-    # Access the uploaded file
+    # Accessing the uploaded file
     if 'photo1' not in request.files:
         return jsonify({'error': 'Profile picture is required'}), 400
 
@@ -111,7 +123,7 @@ def create_trainer_profile():
         quote1 = request.form.get('quote1', '').strip()
         quote2 = request.form.get('quote2', '').strip()
 
-        # Save the data
+        # Saves the data
         data = {
             'photo1': filename1,
             'quote1': quote1,
@@ -240,7 +252,7 @@ def update_profile():
     data = {'trainer_id': trainer_id, 'quote1': quote1, 'quote2': quote2}
 
     if photo1 and allowed_file(photo1.filename):
-        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')  
+        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')  # Unique timestamp
         filename1 = secure_filename(f"{timestamp}_{photo1.filename}")
         photo1_path = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
         photo1.save(photo1_path)
@@ -324,6 +336,21 @@ def logout_trainer():
     return jsonify({'message': 'Successfully logged out'}), 200
 
 
+
+@app.route('/api/delete_trainer/<int:trainer_id>', methods=['DELETE'])
+def delete_trainer(trainer_id):
+    print(f"Received DELETE request for trainer ID {trainer_id}")
+    try:
+        success = Trainer.delete(trainer_id)
+        if success:
+            print(f"Successfully deleted trainer {trainer_id}")
+            return jsonify({"success": True}), 200
+        else:
+            print(f"No trainer found with ID {trainer_id}")
+            return jsonify({"success": False, "message": "Trainer not found"}), 400
+    except Exception as e:
+        print(f"Exception during delete: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 

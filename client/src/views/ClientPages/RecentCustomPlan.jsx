@@ -32,7 +32,7 @@ const RecentCustomPlan = () => {
                 if (response.data.success) {
                     setGeneratedPlan(response.data.generated_plan);
                     setPlanId(response.data.generated_plan.generated_plan_id);  
-                    setEditableData(response.data.generated_plan); 
+                    setEditableData(response.data.generated_plan); // Initialized editableData with the same data
                 } else {
                     setError('No recent workout plan found');
                 }
@@ -168,7 +168,7 @@ const RecentCustomPlan = () => {
                                 value={editableData.generated_plan_details}
                                 onChange={(e) => setEditableData({
                                     ...editableData,
-                                    generated_plan_details: e.target.value  
+                                    generated_plan_details: e.target.value 
                                 })}
                                 className="w-full p-2 border rounded"
 

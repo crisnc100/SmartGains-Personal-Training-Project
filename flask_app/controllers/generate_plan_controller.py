@@ -2,7 +2,7 @@ from flask import session, request, jsonify
 from flask_app import app
 import json
 import os
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 from flask_app.models.client_model import Client
 from flask_app.models.assessment_model import BeginnerAssessment, AdvancedAssessment
 from flask_app.models.demo_plans_model import DemoPlan
@@ -23,12 +23,12 @@ def generate_quick_plan(client_id):
     if not selected_prompt:
         return jsonify({"error": "No prompt selected. Please select a prompt."}), 400
   
-    
+    # Retrieving data from models
     beginner_assessment_data = BeginnerAssessment.get_by_client_id(client_id)
     advanced_assessment_data = AdvancedAssessment.get_by_client_id(client_id)
   
     
-
+    # Check which assessment data is available, clients will only have one of each!
     if beginner_assessment_data:
         assessment_type = 'Beginner'
         assessment_findings = f"""
@@ -59,14 +59,14 @@ def generate_quick_plan(client_id):
     try:
     # OpenAI API
         client_ai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        completion = client_ai.completions.create(
-            model="gpt-3.5-turbo-instruct",  # Appropriate model
-            prompt=final_prompt,
+        completion = client_ai.chat.completions.create(
+            model="gpt-4o-2024-05-13",  # Model (Newest one)
+            messages=[{"role": "system", "content": "You are a fitness trainer."}, {"role": "user", "content": final_prompt}],
             max_tokens=3000, 
             temperature=0  
         )
     
-        demo_plan_details = completion.choices[0].text.strip()
+        demo_plan_details = completion.choices[0].message.content.strip()
         session['demo_plan_details'] = demo_plan_details 
         demo_plan_data = {
             'client_id': client_id,
@@ -77,10 +77,16 @@ def generate_quick_plan(client_id):
         demo_plan = DemoPlan(demo_plan_data)
         demo_plan.save()
         
+    
+    # Return the generated plan as JSON response
         return jsonify({"success": True, "message": "Workout plan generated successfully."})
 
+    except OpenAIError as e:
+        print(f"OpenAI API error: {e}")
+        return jsonify({"success": False, "error": "An error occurred while generating the workout plan."}), 500
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        print(f"Unexpected error: {e}")
+        return jsonify({"success": False, "error": "An unexpected error occurred."}), 500
     
 
 @app.route('/api/get_recent_quick_plan/<int:client_id>', methods=['GET'])
@@ -157,19 +163,18 @@ def generate_custom_plan(client_id):
 
     
     try:
-    # Make a request to the OpenAI API
+    # Making the request to the OpenAI API
         client_ai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        completion = client_ai.completions.create(
-            model="gpt-3.5-turbo-instruct",  # Appropriate model
-            prompt=final_prompt,
-            max_tokens=3000,  
-            temperature=0  # Number of completions to generate
+        completion = client_ai.chat.completions.create(
+            model="gpt-4o-2024-05-13",  # Model (Newest One)
+            messages=[{"role": "system", "content": "You are a fitness trainer."}, {"role": "user", "content": final_prompt}],
+            max_tokens=3000,  # Adjust as needed (how big the responses are)
+            temperature=0  # Control the randomness?
         )
-    
 
-        generated_plan_details = completion.choices[0].text.strip()
+        generated_plan_details = completion.choices[0].message.content.strip()
 
-        # Store the generated plan details in session or database as needed
+       
         session['generated_plan_details'] = generated_plan_details
         
         generated_plan_data = {
@@ -183,8 +188,12 @@ def generate_custom_plan(client_id):
 
         return jsonify({"success": True, "message": "Workout plan generated successfully."})
 
+    except OpenAIError as e:
+        print(f"OpenAI API error: {e}")
+        return jsonify({"success": False, "error": "An error occurred while generating the workout plan."}), 500
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        print(f"Unexpected error: {e}")
+        return jsonify({"success": False, "error": "An unexpected error occurred."}), 500
     
 
 @app.route('/api/get_recent_custom_plan/<int:client_id>')

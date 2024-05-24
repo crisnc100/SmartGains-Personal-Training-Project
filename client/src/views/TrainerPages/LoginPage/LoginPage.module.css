@@ -32,7 +32,7 @@
 }
 
 .header a, .header a:visited {
-    text-decoration: none; 
+    text-decoration: none; /* Removed the underline */
     color: inherit;
 }
   

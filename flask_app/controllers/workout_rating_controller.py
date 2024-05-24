@@ -1,12 +1,16 @@
-from flask import request, session,jsonify
+from flask import request, session, jsonify
 from flask_app import app
 from flask_app.config.mysqlconnection import connectToMySQL
+from flask_app.models.client_model import Client
+from flask_app.models.trainer_model import Trainer
+from flask_app.models.demo_plans_model import DemoPlan
+from flask_app.models.generated_plans_model import GeneratedPlan
 from flask_app.models.workout_rating_model import WorkoutRating
 
 
 @app.route('/api/submit_feedback', methods=['POST'])
 def submit_feedback():
-    # Retrieve the JSON data sent with the request
+    # Retrieving the JSON data sent with the request
     data = request.get_json()
     
     client_id = data.get('client_id')
@@ -25,7 +29,6 @@ def submit_feedback():
 
     comments = data.get('comments')  
 
-    # Instantiate the WorkoutRating model with received data
     feedback = WorkoutRating({
         'client_id': client_id,
         'trainer_id': trainer_id,
@@ -33,7 +36,6 @@ def submit_feedback():
         'rating': rating,
         'comments': comments
     })
-
     if feedback.save():
         return jsonify({'success': 'Feedback submitted successfully'}), 200
     else:

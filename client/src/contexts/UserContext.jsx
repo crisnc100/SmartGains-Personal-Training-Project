@@ -7,7 +7,7 @@ export const useUser = () => useContext(UserContext);
 
 export const UserProvider = ({ children }) => {
     const [user, setUser] = useState({});
-    const [loading, setLoading] = useState(true); // State to track if data is being fetched
+    const [loading, setLoading] = useState(true); 
 
     useEffect(() => {
         // Fetch user data only if user is authenticated
@@ -20,12 +20,12 @@ export const UserProvider = ({ children }) => {
             } catch (error) {
                 console.error("Failed to fetch user data:", error);
             } finally {
-            
+                // Set loading state to false once data fetching is complete
                 setLoading(false);
             }
         };
 
-        const isAuthenticated = checkAuthentication(); 
+        const isAuthenticated = checkAuthentication(); // Implemented authentication check logic
         if (isAuthenticated) {
             fetchUserData(); // Fetch user data only if authenticated
         } else {

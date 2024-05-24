@@ -118,13 +118,13 @@ const CustomPrompt = () => {
                     ...formData.bodyParts,
                     [value]: checked
                 };
-                // Determine if any body parts are checked
+                // Determined if any body parts are checked
                 const anyBodyPartsChecked = Object.values(newBodyParts).some(val => val);
 
                 setFormData(prevFormData => ({
                     ...prevFormData,
                     bodyParts: newBodyParts,
-                    specific: anyBodyPartsChecked ? {} : prevFormData.specific // Disable 'specific' if any 'bodyPart' is checked
+                    specific: anyBodyPartsChecked ? {} : prevFormData.specific 
                 }));
             } else if (name === 'specific') {
                 const newSpecific = {
@@ -137,7 +137,7 @@ const CustomPrompt = () => {
                 setFormData(prevFormData => ({
                     ...prevFormData,
                     specific: newSpecific,
-                    bodyParts: anySpecificsChecked ? {} : prevFormData.bodyParts // Disabled 'bodyParts' if any 'specific' is checked
+                    bodyParts: anySpecificsChecked ? {} : prevFormData.bodyParts 
                 }));
             }
         } else {
@@ -174,13 +174,13 @@ const CustomPrompt = () => {
         if (allClientData && allClientData.client_data) {
             const { client_data, consultation_data, history_data } = allClientData;
 
-            // Combine both body parts and specifics into one description
+            // Combinded both body parts and specifics into one description
             const bodyPartDescriptions = Object.keys(formData.bodyParts)
-                .filter(key => formData.bodyParts[key])  // Filter only selected body parts
+                .filter(key => formData.bodyParts[key])  
                 .map(part => formatBodyPartDescription(part))
                 .concat(
                     Object.keys(formData.specific)
-                        .filter(key => formData.specific[key])  // Filter only selected specifics
+                        .filter(key => formData.specific[key])  
                         .map(part => formatBodyPartDescription(part))
                 )
                 .join(', ');
@@ -310,7 +310,7 @@ const CustomPrompt = () => {
                                     value={part.toLowerCase()}
                                     checked={formData.bodyParts[part.toLowerCase()] || false}
                                     onChange={handleChange}
-                                    disabled={Object.values(formData.specific).some(val => val)} 
+                                    disabled={Object.values(formData.specific).some(val => val)} // This disables the body parts if any specific is checked
                                     className="mr-2 leading-tight"
                                 />
                                 <span className="text-sm">{part}</span>

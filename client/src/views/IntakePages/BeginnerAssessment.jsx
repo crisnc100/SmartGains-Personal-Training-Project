@@ -3,7 +3,7 @@ import axios from 'axios';
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
 
 const BeginnerAssessment = () => {
-    const { clientId } = useParams();
+    const { clientId } = useParams(); 
     const [balanceTests, setBalanceTests] = useState([]);
     const [beginnerForm, setBeginnerForm] = useState({
         client_id: clientId,
@@ -43,7 +43,7 @@ const BeginnerAssessment = () => {
 
     const renderInputField = (key) => {
         if (key === 'client_id') {
-            return null; // Do not render anything for client_id
+            return null; 
         }
         if (key === 'cardio_test') {
             return (

@@ -33,7 +33,7 @@
 }
 
 .header a, .header a:visited {
-    text-decoration: none; 
+    text-decoration: none;
     color: inherit;
 }
   
@@ -64,7 +64,7 @@
     border: none;
     border-radius: 4px;
     margin-bottom: 20px;
-    transition: background-color 0.3s ease; 
+    transition: background-color 0.3s ease; /* Smooth transition for hover */
   }
   .registerButton:hover {
     background-color: #0090C1; 

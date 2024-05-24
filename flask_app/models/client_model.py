@@ -19,7 +19,7 @@ class Client:
         self.created_at = data['created_at']
         self.updated_at = data['updated_at']
         self.trainer_id = data['trainer_id']
-        self.trainer_first_name = data.get('trainer_first_name')  
+        self.trainer_first_name = data.get('trainer_first_name')  # Using .get to avoid errors with KeyError if not present
         self.trainer_last_name = data.get('trainer_last_name')
     
     def serialize(self):
@@ -102,9 +102,29 @@ class Client:
         for result in results:
             clients.append(cls(result))
         return clients
+    
 
 
-
+    @classmethod
+    def get_nutrition_profiles_by_trainer(cls, trainer_id):
+        query = """
+            SELECT c.id, c.first_name, c.last_name, 
+                   (SELECT COUNT(*) FROM nutrition_profile np WHERE np.client_id = c.id) AS has_nutrition_profile 
+            FROM clients c
+            WHERE c.trainer_id = %(trainer_id)s;
+        """
+        data = {'trainer_id': trainer_id}
+        results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        clients = []
+        for result in results:
+            client_data = {
+                'id': result['id'],
+                'first_name': result['first_name'],
+                'last_name': result['last_name'],
+                'has_nutrition_profile': result['has_nutrition_profile'] > 0
+            }
+            clients.append(client_data)
+        return clients
     
     
     #UPDATE

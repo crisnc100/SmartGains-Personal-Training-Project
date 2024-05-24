@@ -21,12 +21,12 @@ const TopBar = ({ sidebarToggle, setSidebarToggle, sidebarWidth }) => {
           }
       };
 
-    
+      // Bind the event listener
       if (isOpen) {
           window.addEventListener('click', handleClickOutside);
       }
       return () => {
-        
+          // Unbind the event listener on clean up
           window.removeEventListener('click', handleClickOutside);
       };
   }, [isOpen]);
@@ -45,12 +45,11 @@ const TopBar = ({ sidebarToggle, setSidebarToggle, sidebarWidth }) => {
     <nav className='bg-gray-900 px-4 py-3 flex relative' style={{ height: '60px' }}>
     <div style={{ 
         position: 'absolute', 
-        left: sidebarToggle ? '10px' : `calc(${sidebarWidth} + 10px)`, 
         display: 'flex', 
-        alignItems: 'center' 
+        alignItems: 'center',
     }}>
        <FaBars onClick={() => setSidebarToggle(!sidebarToggle)}
-        className='text-white mr-4 cursor-pointer' size={25} />
+        className='text-white mr-4 cursor-pointer' size={26} />
 <span className={styles.brand}>
   SmartGains
 </span>

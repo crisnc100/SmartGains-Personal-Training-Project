@@ -97,7 +97,7 @@ class Trainer:
     @classmethod
     def update(cls, data):
         query = "UPDATE trainers SET first_name=%(first_name)s, last_name=%(last_name)s, email=%(email)s WHERE id=%(id)s;"
-        # condition to check if password_hash is in data to update it
+        # Added a condition to check if password_hash is in data to update it
         if 'password_hash' in data:
             query = "UPDATE trainers SET first_name=%(first_name)s, last_name=%(last_name)s, email=%(email)s, password_hash=%(password_hash)s WHERE id=%(id)s;"
         return connectToMySQL('fitness_consultation_schema').query_db(query, data)
@@ -113,4 +113,5 @@ class Trainer:
     def delete(cls, trainer_id):
         query = "DELETE FROM trainers WHERE id = %(id)s;"
         data = {"id": trainer_id}
-        return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        return result !=0

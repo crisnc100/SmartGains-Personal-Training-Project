@@ -27,7 +27,7 @@ const MedicalHistory = () => {
 
     const renderInputField = (key) => {
         if (key === 'client_id') {
-            return null; // Do not render anything for client_id
+            return null; 
         }
         return (
             <input

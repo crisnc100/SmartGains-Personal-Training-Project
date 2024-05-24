@@ -135,10 +135,10 @@ const ViewQuickPlan = () => {
                         {isEditMode ? (
                             <textarea
                                 rows="20"
-                                value={editableData.demo_plan_details}  
+                                value={editableData.demo_plan_details}  // Use editableData here
                                 onChange={(e) => setEditableData({
                                     ...editableData,
-                                    demo_plan_details: e.target.value  
+                                    demo_plan_details: e.target.value  // Update editableData on change
                                 })}
                                 className="w-full p-2 border rounded"
                             />

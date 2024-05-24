@@ -10,7 +10,7 @@ import ProfileContent from './views/TrainerPages/ProfileContent/ProfileContent';
 import AllClients from './views/ClientPages/AllClients';
 import AddClient from './views/ClientPages/AddClient';
 import AdditionalServices from './views/ClientPages/AdditionalServices';
-import NutritionProfile from './views/IntakePages/NutritionProfile';
+import NutritionProfile from './views/NutritionPages/NutritionProfile';
 import IntakeForm from './views/IntakePages/IntakeForm';
 import MedicalHistory from './views/IntakePages/MedicalHistory';
 import IntakeOptions from './views/IntakePages/IntakeOptions';
@@ -28,7 +28,10 @@ import ViewCustomPlan from './views/ClientPages/ViewCustomPlan';
 import RecentQuickPlan from './views/ClientPages/RecentQuickPlan';
 import CustomPrompt from './views/ClientPages/CustomPrompt';
 import RecentCustomPlan from './views/ClientPages/RecentCustomPlan';
-import { UserProvider } from './contexts/UserContext';
+import MyCalendar from './views/TrainerPages/Calendar/MyCalendar';
+import RecordWorkoutSession from './views/ClientPages/RecordWorkoutSession';
+import ViewProgressSession from './views/ClientPages/ViewProgressSession';
+import NutritionIntake from './views/NutritionPages/NutritionIntake';
 
 
 
@@ -47,8 +50,15 @@ function App() {
             <Route index element={<ProfileContent />} /> {/* Nested route */}
             <Route path='edit-profile' element={<EditProfile />} />
             <Route path='settings' element={<TrainerSettings />} />
+            <Route path='calendar' element={<MyCalendar />} />
+            <Route path='nutrition-profile' element={<NutritionProfile />} />
+            <Route path='nutrition-profile/add/:clientId' element={<NutritionIntake />} />
             <Route path='all_clients' element={<AllClients />} />
             <Route path='all_clients/:clientId/current-client' element={<CurrentClient />} />
+            <Route path='all_clients/:clientId/current-client/intake-form' element={<IntakeForm />} />
+            <Route path='all_clients/:clientId/current-client/intake-form/medical-history' element={<MedicalHistory />} />
+            <Route path='all_clients/:clientId/current-client/intake-form/intake-options' element={<IntakeOptions />} />
+            <Route path='all_clients/:clientId/current-client/flexibility-assessment' element={<FlexibilityAssessment />} />
             <Route path='all_clients/:clientId/current-client/assessment-choice' element={<AssessmentChoice />} />
             <Route path='all_clients/:clientId/current-client/quick-plan/:planId' element={<ViewQuickPlan />} />
             <Route path='all_clients/:clientId/current-client/create-quick-plan' element={<DemoPrompt />} />
@@ -56,6 +66,8 @@ function App() {
             <Route path='all_clients/:clientId/current-client/custom-plan/:planId' element={<ViewCustomPlan />} />
             <Route path='all_clients/:clientId/current-client/create-custom-plan' element={<CustomPrompt />} />
             <Route path='all_clients/:clientId/current-client/create-custom-plan/success' element={<RecentCustomPlan />} />
+            <Route path='all_clients/:clientId/current-client/record-workout' element={<RecordWorkoutSession />} />
+            <Route path='all_clients/:clientId/current-client/progress-session/:planId' element={<ViewProgressSession />} />
             <Route path='add_client' element={<AddClient />} />
             <Route path='add_client/:clientId/additional-services' element={<AdditionalServices />} />
             <Route path='add_client/:clientId/additional-services/intake-form' element={<IntakeForm />} />

@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from flask_app import app
 from flask_app.models.assessment_model import FlexibilityAssessment, BeginnerAssessment, AdvancedAssessment
+from flask_app.models.client_model import Client
 
 
 #Flexibility Assessment:

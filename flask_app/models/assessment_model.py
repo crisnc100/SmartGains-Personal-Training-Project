@@ -205,7 +205,7 @@ class AdvancedAssessment:
         moderate_cardio = data.get("moderate_cardio")
         client_id = data.get("client_id")
 
-        # Insert data into the database
+    
         query = """
             INSERT INTO advanced_assessment
             (advanced_technique, strength_max, strength_endurance, circuit, moderate_cardio, created_at, updated_at, client_id) 

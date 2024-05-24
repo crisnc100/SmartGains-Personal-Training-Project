@@ -29,7 +29,7 @@ class GeneratedPlan:
     def save(self):
         data = {
             'client_id': self.client_id,
-            'name': self.name if self.name else "Custom Plan",  # Provide a default name if none provided
+            'name': self.name if self.name else "Custom Plan",  # Provided a default name if none provided
             'generated_plan_details': self.generated_plan_details,
             'parameters': self.parameters
         }

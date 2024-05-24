@@ -17,7 +17,7 @@ const EditProfile = () => {
   const fetchTrainerProfile = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/get_trainer_profile', { withCredentials: true });
-      console.log('API response:', response);  
+      console.log('API response:', response);  // Loging the full response
       if (response.data && response.data.profile) {
         console.log('Fetched data:', response.data.profile); // Logging the fetched data
         setTrainerProfile(response.data.profile);
@@ -32,7 +32,7 @@ const EditProfile = () => {
         console.error('Data fetch error: Data not found');
       }
     } catch (error) {
-      console.error('Fetch error:', error); // Logs any other weird error
+      console.error('Fetch error:', error); // Log any annoying errors
       setError(error.response ? error.response.data.error : 'Something went wrong');
     } finally {
       setLoading(false);
@@ -65,7 +65,7 @@ const EditProfile = () => {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      navigate(-1); // Navigates back or refresh profile data
+      navigate(-1); // Goes back or refresh profile data
     } catch (error) {
       setError('Error updating profile');
     }

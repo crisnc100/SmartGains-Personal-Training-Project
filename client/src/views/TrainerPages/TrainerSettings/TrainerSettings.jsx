@@ -7,11 +7,11 @@ import { useUser } from '../../../contexts/UserContext';
 const TrainerSettings = () => {
   const navigate = useNavigate();
   const [editableData, setEditableData] = useState({ trainer: { first_name: "", last_name: "", email: "" } });
-  const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });  // Initialized the passwords state
+  const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });  // Initialize passwords state
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const { user } = useUser();  // Get user context, so basically the "id"
+  const { user } = useUser();  // Get user context pretty much the trainer ID
 
 
 
@@ -32,7 +32,7 @@ const TrainerSettings = () => {
         setError('Data not found');
       }
     } catch (error) {
-      console.error('Fetch error:', error); // Debug: Log any weird fetch errors
+      console.error('Fetch error:', error); // Debug: This is to log any fetch errors
       setError(error.response ? error.response.data.error : 'Something went wrong');
     } finally {
       setLoading(false);
@@ -54,12 +54,12 @@ const TrainerSettings = () => {
   };
 
   const saveChanges = async (e) => {
-    e.preventDefault();  // Prevent the default form submit behavior
+    e.preventDefault();  // Prevents the default form submit behavior
   
     console.log("Submitting data:", { editableData, trainerId: user.id });
   
     try {
-      const { trainer } = editableData; // Destructure to get data
+      const { trainer } = editableData; // Destructure to get flat data
       const response = await axios.post(`http://localhost:5000/api/update_trainer`, {
         first_name: trainer.first_name,
         last_name: trainer.last_name,
@@ -106,7 +106,7 @@ const TrainerSettings = () => {
       if (response.data.success) {
         alert('Password updated successfully!');
         setPasswords({ current: "", new: "", confirm: "" }); // Reset password fields
-        setShowModal(false); // Close modal on success
+        setShowModal(false); // Modal closes only on success
         navigate('/trainer_dashboard'); 
       }
     } catch (error) {
@@ -120,6 +120,42 @@ const TrainerSettings = () => {
   const toggleModal = () => {
     setShowModal(!showModal);
     setError('');
+  };
+
+  const handleDeleteTrainer = async () => {
+    const trainerId = editableData.trainer.id;  
+
+    if (typeof trainerId !== 'number' && typeof trainerId !== 'string') {
+      console.error("Invalid trainerId:", trainerId);
+      return;
+    }
+
+    if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      if (window.confirm("Deleting your account will also delete all associated clients. Do you want to proceed?")) {
+        console.log(`Sending DELETE request for trainer ID ${trainerId}`);
+        try {
+          const response = await axios.delete(`http://localhost:5000/api/delete_trainer/${trainerId}`, { withCredentials: true });
+          console.log(`Received response: `, response.data);
+          if (response.data.success) {
+            alert("You have deleted your account successfully.");
+            navigate('/'); // Navigate to the dashboard after successful deletion
+          } else {
+            setError(`Failed to delete the trainer: ${response.data.message}`);
+          }
+        } catch (error) {
+          if (error.response) {
+            console.error(`Server responded with non-2xx code: ${error.response.data}`);
+            setError(`Failed to delete the trainer: ${error.response.data.message}`);
+          } else if (error.request) {
+            console.error("No response received:", error.request);
+            setError('No response from server');
+          } else {
+            console.error("Error setting up the DELETE request:", error.message);
+            setError('Error setting up the delete request');
+          }
+        }
+      }
+    }
   };
 
   if (loading) return <p>Loading...</p>;
@@ -188,6 +224,10 @@ const TrainerSettings = () => {
           </div>
         </div>
       )}
+      <div style={{marginTop: "2rem"}}>
+        <h1 className={styles.title}>Delete Account</h1>
+        <button className={styles.deleteButton} onClick={handleDeleteTrainer}>Delete Account</button>
+      </div>
     </div>
   );
 };

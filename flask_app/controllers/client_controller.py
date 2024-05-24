@@ -61,7 +61,6 @@ def check_client():
 
 @app.route('/api/existing_clients')
 def existing_clients():
-    # Retrieve the trainer ID 
     trainer_id = session.get('trainer_id')
     if not trainer_id:
         return jsonify({'error': 'Unauthorized'}), 401
@@ -126,6 +125,7 @@ def get_editable_data(client_id):
         consultation_data = Consultation.get_by_client_id(client_id)
         history_data = History.get_by_client_id(client_id)
 
+        # Created a dictionary only if data exists, else set to None or a default value
         client_dict = client_data.__dict__ if client_data else None
         consultation_dict = consultation_data.__dict__ if consultation_data else None
         history_dict = history_data.__dict__ if history_data else None
@@ -143,7 +143,7 @@ def get_editable_data(client_id):
 
 @app.route('/api/update_client_data/<int:client_id>', methods=['POST'])
 def update_client_data(client_id):
-    updated_data = request.get_json()  
+    updated_data = request.get_json()  # Ensures that you're working with a JSON payload
 
     # Update Client information
     if 'client_data' in updated_data and updated_data['client_data'] is not None:
@@ -172,7 +172,7 @@ def update_client_data(client_id):
     return jsonify({"success": True})
 
 def send_plan_email(client_email, client_name, plan_details, client_trainer_first_name, client_trainer_last_name):
-    trainer_name = f"{client_trainer_first_name} {client_trainer_last_name}" 
+    trainer_name = f"{client_trainer_first_name} {client_trainer_last_name}"  # Combining first and last name for use in the email
     subject = f"Workout Plan for {client_name}"
     formatted_plan_details = plan_details.replace('\n', '<br>').replace('*Bold*', '<strong>').replace('*/Bold*', '</strong>')
 
@@ -237,7 +237,7 @@ def send_plan_email(client_email, client_name, plan_details, client_trainer_firs
 @app.route('/api/email_plan_to_client', methods=['POST'])
 def email_plan_to_client():
     data = request.get_json()
-    print("Full received data:", data)  
+    print("Full received data:", data)  # Logging the complete data received for debugging
 
     client_id = data.get('client_id')
     plan_details = data.get('generated_plan_details') or data.get('demo_plan_details')

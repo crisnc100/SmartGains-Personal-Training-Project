@@ -69,7 +69,7 @@ const AddClient = () => {
                 ...prevErrors,
                 apiError: 'Failed to check for existing client.'
             }));
-            return null;  // Return null or a default object to handle error state
+            return null; 
         }
     };
 
@@ -153,7 +153,7 @@ const AddClient = () => {
                                     onChange={handleInputChange}
                                     className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
                                     placeholder={`Enter ${key.replace(/_/g, ' ')}`}
-                                    required={key !== 'location_gym'}  
+                                    required={key !== 'location_gym'} 
                                 />
                             )}
                             {errors[key] && (

@@ -26,7 +26,7 @@ const RecentQuickPlan = () => {
                 const response = await axios.get(`http://localhost:5000/api/get_recent_quick_plan/${clientId}`);
                 if (response.data.success) {
                     setDemoPlan(response.data.demo_plan);
-                    setEditableData(response.data.demo_plan); 
+                    setEditableData(response.data.demo_plan); // Initialized editableData with the same data
                 } else {
                     setError('No recent workout plan found');
                 }
@@ -149,7 +149,7 @@ const RecentQuickPlan = () => {
                                 value={editableData.demo_plan_details}
                                 onChange={(e) => setEditableData({
                                     ...editableData,
-                                    demo_plan_details: e.target.value 
+                                    demo_plan_details: e.target.value  // Update editableData on change
                                 })}
                                 className="w-full p-2 border rounded"
 

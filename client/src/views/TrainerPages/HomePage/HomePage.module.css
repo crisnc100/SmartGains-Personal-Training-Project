@@ -39,14 +39,14 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.4); 
+            background: rgba(0, 0, 0, 0.4); /* Opacity */
             z-index: -1;
         }
         
-     
+    
         .heroSection h1 {
             color: #fff; 
-            text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.9); /* Larger shadow */
+            text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.9); 
             font-size: 40px;
             background: rgba(0, 0, 0, 0.3); 
             padding: 10px; 
@@ -57,7 +57,7 @@
             color: #fff;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
             font-size: 18px;
-            max-width: 80%; 
+            max-width: 80%; /* Restricting width for better layout had some problems */
             margin: 0 auto;
         }
         

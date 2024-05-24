@@ -33,14 +33,15 @@ const FeedbackModal = ({ planId, onClose }) => {
             onClose();
         } catch (error) {
             if (error.response) {
+           
                 console.error("Error data:", error.response.data);
                 console.error("Error status:", error.response.status);
                 console.error("Error headers:", error.response.headers);
             } else if (error.request) {
-                // The request was made but no response was received
+        
                 console.error("No response received:", error.request);
             } else {
-                // Something happened in setting up the request that triggered an Error
+         
                 console.error("Error message:", error.message);
             }
             console.error("Config error:", error.config);

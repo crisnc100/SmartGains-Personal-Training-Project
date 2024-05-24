@@ -27,8 +27,8 @@ const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onD
           url = `http://localhost:5000/api/delete_custom_plan/${planId}`;
           updatePlans = clientPlans.filter(plan => plan.id !== planId);
           break;
-        case 'workout-progress':
-          url = `http://localhost:5000/api/delete_progress_plan/${planId}`;
+        case 'progress-session':
+          url = `http://localhost:5000/api/delete_progress_session/${planId}`;
           updatePlans = workoutProgressData.filter(plan => plan.id !== planId);
           break;
         default:
@@ -37,7 +37,7 @@ const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onD
   
       axios.delete(url)
         .then(response => {
-          onDeletePlan(updatePlans, type); // This updates the state in the parent
+          onDeletePlan(updatePlans, type); 
         })
         .catch(error => {
           console.error(`Failed to delete the ${type} plan:`, error);
@@ -64,7 +64,7 @@ const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onD
             Workout Progress
           </button>
         </div>
-        {/* Content based on active tab */}
+  
         <div>
           {activeSubTab === 'demoPlans' && (
             <div>
@@ -95,9 +95,9 @@ const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onD
               <h2 className="text-lg font-semibold text-gray-700">Workout Progress</h2>
               {workoutProgressData.map(entry => (
                 <div key={entry.id} className="flex justify-between items-center bg-gray-100 p-2 my-2 rounded hover:bg-gray-200">
-                <p className="text-gray-700 flex-grow">{new Date(entry.date).toLocaleDateString()}</p>
-                <button onClick={() => viewDetails(entry.id, 'workout-progress')} className="text-blue-500 hover:text-blue-700">View</button>
-                <button onClick={() => deletePlan(entry.id, 'workout-progress')} className="text-red-500 hover:text-red-700 ml-4">Delete</button>
+                <p className="text-gray-700 flex-grow">{entry.name} - {new Date(entry.date).toLocaleDateString()}</p>
+                <button onClick={() => viewDetails(entry.id, 'progress-session')} className="text-blue-500 hover:text-blue-700">View</button>
+                <button onClick={() => deletePlan(entry.id, 'progress-session')} className="text-red-500 hover:text-red-700 ml-4">Delete</button>
               </div>
               ))}
             </div>
