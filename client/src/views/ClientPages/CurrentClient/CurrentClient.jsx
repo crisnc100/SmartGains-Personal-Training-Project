@@ -5,6 +5,10 @@ import ClientAssessments from '../ClientAssessments';
 import ClientWorkouts from '../ClientWorkouts';
 import styles from './CurrentClient.module.css'
 import { Tooltip } from 'react-tooltip';
+import { format, differenceInYears, addMinutes } from 'date-fns';
+
+
+
 
 const CurrentClient = () => {
     const { clientId } = useParams();
@@ -33,7 +37,10 @@ const CurrentClient = () => {
     }, [clientId]);
 
 
-
+    const calculateAge = (dob) => {
+        if (!dob) return null;
+        return differenceInYears(new Date(), new Date(dob));
+    };
     const toggleEditMode = () => {
         if (!isEditMode) {
             setEditableData({ ...allClientData });
@@ -43,7 +50,7 @@ const CurrentClient = () => {
 
 
     const cancelEditMode = () => {
-        setAllClientData({ ...allClientData });  
+        setAllClientData({ ...allClientData });
         setIsEditMode(false);
     };
 
@@ -98,6 +105,12 @@ const CurrentClient = () => {
             {label}
         </button>
     );
+    const formatDateToLocal = (dateString) => {
+        const date = new Date(dateString);
+        const timezoneOffset = date.getTimezoneOffset();
+        return addMinutes(date, timezoneOffset);
+    };
+
 
     return (
         <div className="container mx-auto px-4">
@@ -150,14 +163,21 @@ const CurrentClient = () => {
                                 className={styles.editableField}
                             />) : (` ${allClientData.client_data.email}`)}</p>
                     <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                        <span className={styles.label}>Age:</span>
+                        <span className={styles.label}>Date of Birth:</span>
                         {isEditMode ? (
                             <input
-                                type="text"
-                                value={allClientData.client_data.age ? editableData.client_data.age : ''}
-                                onChange={(e) => handleInputChange(e, 'client_data', 'age')}
+                                type="date"
+                                value={editableData.client_data.dob ? editableData.client_data.dob : ''}
+                                onChange={(e) => handleInputChange(e, 'client_data', 'dob')}
                                 className={styles.editableField}
-                            />) : (` ${allClientData.client_data.age}`)}</p>
+                            />
+                        ) : (
+                            <>
+                                {allClientData.client_data.dob ? format(formatDateToLocal(allClientData.client_data.dob), 'MMMM d, yyyy') : ''} 
+                                {allClientData.client_data.dob && ` (${calculateAge(allClientData.client_data.dob)} years old)`}
+                            </>
+                        )}
+                    </p>
                     <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
                         <span className={styles.label}>Gender:</span>
                         {isEditMode ? (
@@ -168,7 +188,7 @@ const CurrentClient = () => {
                                 className={styles.editableField}
                             />) : (` ${allClientData.client_data.gender}`)}</p>
                     <div className="flex flex-col space-y-4 mt-4 relative">
-                
+
                         <div className="flex space-x-4">
                             <NavLink
                                 to="create-quick-plan"
@@ -205,7 +225,7 @@ const CurrentClient = () => {
                             data-tooltip-place="bottom"
                         >
                             <svg className="w-4 h-4 mr-1 fill-current text-white" viewBox="0 0 24 24">
-                    
+
                                 <path d="M5 13l4 4L19 7" />
                             </svg>
                             Record Workout
@@ -275,19 +295,19 @@ const CurrentClient = () => {
                             <div>
                                 {!allClientData.consultation_data || Object.keys(allClientData.consultation_data).length === 0 ? (
                                     <div>
-                                    <p>No data is available</p>
-                                    <div>
-                                        <NavLink
-                                            to='intake-form'
-                                            className="group box-border relative inline-flex items-center whitespace-nowrap 
+                                        <p>No data is available</p>
+                                        <div>
+                                            <NavLink
+                                                to='intake-form'
+                                                className="group box-border relative inline-flex items-center whitespace-nowrap 
                                                 justify-center w-auto px-2 py-2 overflow-hidden text-sm text-white font-bold bg-blue-500 
                                                 hover:bg-blue-700 rounded-md cursor-pointer shadow-lg hover:shadow-xl transform 
                                                 hover:translate-y-1 transition-all duration-300 ease-out focus:outline-none">
-                                            Add Intake Form
-                                        </NavLink>
-                                    </div>
+                                                Add Intake Form
+                                            </NavLink>
+                                        </div>
 
-                                </div>
+                                    </div>
                                 ) : (
                                     <>
                                         <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>

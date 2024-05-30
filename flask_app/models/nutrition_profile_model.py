@@ -5,7 +5,7 @@ class NutritionProfile:
         self.id = data.get('id')
         self.height = data.get('height')
         self.weight = data.get('weight')
-        self.age = data.get('age')
+        self.dob = data.get('dob')
         self.gender = data.get('gender')
         self.bodyfat_est = data.get('bodyfat_est')
         self.health_conditions = data.get('health_conditions')
@@ -43,7 +43,7 @@ class NutritionProfile:
             'id': self.id,
             'height': self.height,
             'weight': self.weight,
-            'age': self.age,
+            'dob': self.dob,
             'gender': self.gender,
             'bodyfat_est': self.bodyfat_est,
             'health_conditions': self.health_conditions,
@@ -63,7 +63,6 @@ class NutritionProfile:
             'dieting_challenges': self.dieting_challenges,
             'typical_work_schedule': self.typical_work_schedule,
             'activity_level_neat': self.activity_level_neat,
-            'average_daily_steps': self.average_daily_steps,
             'activity_level_eat': self.activity_level_eat,
             'exercise_days_per_week': self.exercise_days_per_week,
             'gym_duration': self.gym_duration,
@@ -78,15 +77,15 @@ class NutritionProfile:
     @classmethod
     def save(cls, data):
         query = """
-        INSERT INTO nutrition_profile (height, weight, age, gender, bodyfat_est, health_conditions, allergies, dietary_preferences, 
+        INSERT INTO nutrition_profile (height, weight, dob, gender, bodyfat_est, health_conditions, allergies, dietary_preferences, 
         favorite_foods, disliked_foods, meal_preferences, meal_snack_preference, meal_prep_habits, hydration, 
         current_cheat_meals, common_cravings, specific_days_indulgence, nutritional_goals, dieting_challenges, 
-        typical_work_schedule, activity_level_neat, average_daily_steps, activity_level_eat, exercise_days_per_week, 
+        typical_work_schedule, activity_level_neat, activity_level_eat, exercise_days_per_week, 
         gym_duration, additional_notes, normal_tdee, average_tdee, created_at, updated_at, client_id)
-        VALUES (%(height)s, %(weight)s, %(age)s, %(gender)s, %(bodyfat_est)s, %(health_conditions)s, %(allergies)s, %(dietary_preferences)s, 
+        VALUES (%(height)s, %(weight)s, %(dob)s, %(gender)s, %(bodyfat_est)s, %(health_conditions)s, %(allergies)s, %(dietary_preferences)s, 
         %(favorite_foods)s, %(disliked_foods)s, %(meal_preferences)s, %(meal_snack_preference)s, %(meal_prep_habits)s, 
         %(hydration)s, %(current_cheat_meals)s, %(common_cravings)s, %(specific_days_indulgence)s, %(nutritional_goals)s, 
-        %(dieting_challenges)s, %(typical_work_schedule)s, %(activity_level_neat)s, %(average_daily_steps)s, 
+        %(dieting_challenges)s, %(typical_work_schedule)s, %(activity_level_neat)s, 
         %(activity_level_eat)s, %(exercise_days_per_week)s, %(gym_duration)s, %(additional_notes)s, %(normal_tdee)s, 
         %(average_tdee)s, NOW(), NOW(), %(client_id)s)
         """
@@ -126,7 +125,7 @@ class NutritionProfile:
     @classmethod
     def get_tdee_variables(cls, client_id):
         query = """
-        SELECT height, weight, age, gender, bodyfat_est, activity_level_neat, average_daily_steps, activity_level_eat, exercise_days_per_week, gym_duration
+        SELECT height, weight, dob, gender, bodyfat_est, activity_level_neat, activity_level_eat, exercise_days_per_week, gym_duration
         FROM nutrition_profile
         WHERE client_id = %(client_id)s;
         """
@@ -161,7 +160,7 @@ class NutritionProfile:
             SET 
                 height = %(height)s,
                 weight = %(weight)s,
-                age = %(age)s,
+                dob = %(dob)s,
                 gender = %(gender)s,
                 bodyfat_est = %(bodyfat_est)s,
                 health_conditions = %(health_conditions)s,
@@ -180,7 +179,6 @@ class NutritionProfile:
                 dieting_challenges = %(dieting_challenges)s,
                 typical_work_schedule = %(typical_work_schedule)s,
                 activity_level_neat = %(activity_level_neat)s,
-                average_daily_steps = %(average_daily_steps)s,
                 activity_level_eat = %(activity_level_eat)s,
                 exercise_days_per_week = %(exercise_days_per_week)s,
                 gym_duration = %(gym_duration)s,

@@ -1,0 +1,64 @@
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 300px; /* Adjust the height to center vertically */
+}
+
+.bodyPartSlideshow {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 20px;
+  gap: 16px;
+  max-width: 80%;
+  margin: 0 auto;
+}
+
+.bodyPart {
+  flex: 0 0 auto;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+}
+
+.bodyPart:hover {
+  transform: scale(1.1);
+}
+
+.bodyPartImage {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.bodyPart p {
+  margin-top: 8px;
+  font-size: 1rem;
+  color: black;
+}
+
+.scrollButton {
+  background-color: #fff;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 1;
+  padding: 0 10px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scrollButton.left {
+  left: 10px;
+}
+
+.scrollButton.right {
+  right: 10px;
+}

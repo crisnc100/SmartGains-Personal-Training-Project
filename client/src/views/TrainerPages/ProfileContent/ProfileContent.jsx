@@ -35,15 +35,15 @@ const ProfileContent = () => {
   };
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div style={{color: 'red'}}>Error: {error}</div>;
   }
 
   if (!trainerData) {
-    return <div>Loading...</div>;
+    return <div style={{color: 'blue'}}>Loading...</div>;
   }
 
   if (!trainerData.profile) {
-    return <div>Profile data is not available.</div>;
+    return <div style={{color: 'red'}}>Profile data is not available.</div>;
   }
 
   return (

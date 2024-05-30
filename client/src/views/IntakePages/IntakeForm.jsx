@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const IntakeForm = () => {
     const { clientId } = useParams();
@@ -9,21 +9,22 @@ const IntakeForm = () => {
     const goBack = () => {
         navigate(-1);
     };
+
     const [intakeForm, setIntakeForm] = useState({
         client_id: clientId,
         prior_exercise_programs: "",
         exercise_habits: "",
-        fitness_goals: "",
-        progress_measurement: "",
+        fitness_goals: [],
+        progress_measurement: "Weight",
         area_specifics: "",
         exercise_likes: "",
         exercise_dislikes: "",
         diet_description: "",
-        dietary_restrictions: "",
-        processed_food_consumption: "",
-        daily_water_intake: "",
+        dietary_restrictions: "None",
+        processed_food_consumption: "Never",
+        daily_water_intake: "2 liters",
         daily_routine: "",
-        stress_level: "",
+        stress_level: "5",
         smoking_alcohol_habits: "",
         hobbies: ""
     });
@@ -31,13 +32,13 @@ const IntakeForm = () => {
     const questionLabels = {
         prior_exercise_programs: "Have you participated in any fitness programs or worked with a personal trainer before? Please describe.",
         exercise_habits: "What are your current exercise habits? (Include frequency, duration, and types of exercise)",
-        fitness_goals: "What are your fitness goals? (e.g., weight loss, muscle gain, improved endurance)",
+        fitness_goals: "What are your fitness goals?",
         progress_measurement: "How do you prefer to measure progress in your fitness journey?",
         area_specifics: "Are there specific areas of your body you want to focus on?",
         exercise_likes: "What types of exercise do you enjoy most?",
-        exercise_dislikes: "Are there any types of exercise you dislike or avoid?",
+        exercise_dislikes: "Are there any types of exercise you dislike or want to avoid?",
         diet_description: "Describe your typical daily diet (including meals, snacks, and beverages).",
-        dietary_restrictions: "Do you have any dietary restrictions or preferences? (e.g., vegetarian, gluten-free)",
+        dietary_restrictions: "Do you have any dietary restrictions or preferences?",
         processed_food_consumption: "How often do you eat out or consume processed foods?",
         daily_water_intake: "What are your hydration habits? How much water do you typically drink in a day?",
         daily_routine: "Describe your typical daily routine, including your work schedule, sleep patterns, and stress levels.",
@@ -46,17 +47,72 @@ const IntakeForm = () => {
         hobbies: "What are your hobbies or activities you enjoy outside of work?"
     };
 
-    const renderInputField = (key) => {
+    const predefinedOptions = {
+        fitness_goals: ["Weight Loss", "Muscle Gain", "Improved Endurance", "Flexibility", "Overall Fitness"],
+        progress_measurement: ["Weight", "Body Measurements", "Fitness Level", "Appearance"],
+        dietary_restrictions: ["None", "Vegetarian", "Vegan", "Gluten-Free", "Keto", "Other"],
+        processed_food_consumption: ["Never", "Rarely", "Occasionally", "Often", "Always"],
+        daily_water_intake: ["1 liter", "2 liters", "3 liters", "4 liters or more"]
+    };
 
+    const handleCheckboxChange = (event) => {
+        const { name, value } = event.target;
+        setIntakeForm((prevState) => {
+            const updatedGoals = prevState.fitness_goals.includes(value)
+                ? prevState.fitness_goals.filter(goal => goal !== value)
+                : [...prevState.fitness_goals, value];
+            return {
+                ...prevState,
+                [name]: updatedGoals
+            };
+        });
+    };
+
+    const renderInputField = (key) => {
         if (key === 'client_id') {
-            return null; 
+            return null;
         }
-        if (key === 'stress_level') {
+
+        if (key === 'fitness_goals') {
+            return (
+                <div className="flex flex-col" style={{color: 'black'}}>
+                    {predefinedOptions[key].map(option => (
+                        <label key={option} className="inline-flex items-center">
+                            <input
+                                type="checkbox"
+                                name={key}
+                                value={option}
+                                checked={intakeForm[key].includes(option)}
+                                onChange={handleCheckboxChange}
+                                className="form-checkbox"
+                                aria-label={option}
+                            />
+                            <span className="ml-2">{option}</span>
+                        </label>
+                    ))}
+                </div>
+            );
+        } else if (predefinedOptions[key]) {
+            return (
+                <select
+                    name={key}
+                    id={key}
+                    value={intakeForm[key]}
+                    onChange={handleInputChange}
+                    className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
+                    aria-label={questionLabels[key]}
+                >
+                    {predefinedOptions[key].map(option => (
+                        <option key={option} value={option}>{option}</option>
+                    ))}
+                </select>
+            );
+        } else if (key === 'stress_level') {
             return (
                 <div className="flex justify-between">
                     {Array.from({ length: 10 }, (_, i) => i + 1).map(value => (
                         <label key={value} className="inline-flex flex-col items-center" style={{ color: 'black' }}>
-                            <span className="text-sm">{value}</span> 
+                            <span className="text-sm">{value}</span>
                             <input
                                 type="radio"
                                 name={key}
@@ -64,6 +120,7 @@ const IntakeForm = () => {
                                 checked={intakeForm[key] === String(value)}
                                 onChange={handleInputChange}
                                 className="form-radio mt-1"
+                                aria-label={`Stress level ${value}`}
                             />
                         </label>
                     ))}
@@ -78,6 +135,7 @@ const IntakeForm = () => {
                     value={intakeForm[key]}
                     className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
                     rows="3"
+                    aria-label={questionLabels[key]}
                 />
             );
         } else {
@@ -89,23 +147,26 @@ const IntakeForm = () => {
                     value={intakeForm[key]}
                     onChange={handleInputChange}
                     className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
+                    aria-label={questionLabels[key]}
                 />
             );
         }
     };
 
-
     const [errors, setErrors] = useState({});
-    const [warnings, setWarnings] = useState({});
 
     const validateForm = () => {
         let tempErrors = {};
         let isValid = true;
 
-        // Checking for empty fields
         Object.keys(intakeForm).forEach(key => {
             if (key === 'client_id') return;
-            if (typeof intakeForm[key] !== 'string' || !intakeForm[key].trim()) {
+            if (Array.isArray(intakeForm[key])) {
+                if (intakeForm[key].length === 0) {
+                    tempErrors[key] = 'This field is required';
+                    isValid = false;
+                }
+            } else if (typeof intakeForm[key] !== 'string' || !intakeForm[key].trim()) {
                 tempErrors[key] = 'This field is required';
                 isValid = false;
             }
@@ -121,7 +182,6 @@ const IntakeForm = () => {
             [event.target.name]: event.target.value
         });
     };
-
 
     const submitHandler = async (e) => {
         e.preventDefault();
@@ -139,7 +199,7 @@ const IntakeForm = () => {
                 withCredentials: true
             });
             console.log("Response Data:", res.data);
-            navigate('medical-history'); 
+            navigate('medical-history');
         } catch (err) {
             console.error("Submission error:", err);
             if (err.response) {
@@ -147,10 +207,9 @@ const IntakeForm = () => {
                 console.error("Error status:", err.response.status);
                 setErrors(prevErrors => ({
                     ...prevErrors,
-                    ...err.response.data.errors, 
+                    ...err.response.data.errors,
                 }));
             } else {
-                // Handled some cases where the error response is not received
                 setErrors(prevErrors => ({
                     ...prevErrors,
                     general: 'An unexpected error occurred. Please try again.'
@@ -158,10 +217,11 @@ const IntakeForm = () => {
             }
         }
     };
+
     return (
         <div>
             <div className="flex justify-end space-x-2 mt-4">
-                <button onClick={() => navigate(-1)} className="px-4 py-2 text-white bg-gray-400 hover:bg-gray-600 transition-colors duration-300 ease-in-out rounded">
+                <button onClick={goBack} className="px-4 py-2 text-white bg-gray-400 hover:bg-gray-600 transition-colors duration-300 ease-in-out rounded">
                     Return Back
                 </button>
             </div>

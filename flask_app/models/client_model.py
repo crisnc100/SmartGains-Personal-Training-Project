@@ -1,6 +1,8 @@
 from flask_app.config.mysqlconnection import connectToMySQL
 from flask import flash
 import re
+from datetime import datetime
+
 EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]+$')
 PHONE_REGEX = re.compile(r'^\d{3}-\d{3}-\d{4}$')
 
@@ -9,7 +11,7 @@ class Client:
         self.id = data['id']
         self.first_name = data['first_name']
         self.last_name = data['last_name']
-        self.age = data['age']
+        self.dob = data['dob']
         self.gender = data['gender']
         self.occupation = data['occupation']
         self.email = data['email']
@@ -27,7 +29,7 @@ class Client:
             "id": self.id,
             "first_name": self.first_name,
             "last_name": self.last_name,
-            "age": self.age,
+            "dob": self.dob,
             "gender": self.gender,
             "occupation": self.occupation,
             "email": self.email,
@@ -43,7 +45,7 @@ class Client:
 
     @classmethod
     def save(cls, data):
-        query = "INSERT INTO clients (first_name, last_name, age, gender, occupation, email, phone_number, address, location_gym, created_at, updated_at, trainer_id) VALUES (%(first_name)s, %(last_name)s, %(age)s, %(gender)s, %(occupation)s, %(email)s, %(phone_number)s, %(address)s, %(location_gym)s, NOW(), NOW(), %(trainer_id)s);"
+        query = "INSERT INTO clients (first_name, last_name, dob, gender, occupation, email, phone_number, address, location_gym, created_at, updated_at, trainer_id) VALUES (%(first_name)s, %(last_name)s, %(dob)s, %(gender)s, %(occupation)s, %(email)s, %(phone_number)s, %(address)s, %(location_gym)s, NOW(), NOW(), %(trainer_id)s);"
         return connectToMySQL('fitness_consultation_schema').query_db(query, data)
     
     @classmethod
@@ -130,11 +132,28 @@ class Client:
     #UPDATE
     @classmethod
     def update(cls, data):
+        date_str = data.get('dob')
+        try:
+            if len(date_str) == 10:
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            else:
+                # Convert the date string from 'EEE, dd MMM yyyy HH:mm:ss GMT' to 'YYYY-MM-DD'
+                date_obj = datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %Z')
+            formatted_date = date_obj.strftime('%Y-%m-%d')
+            data['dob'] = formatted_date
+        except ValueError as e:
+            # Handle the error or re-raise it
+            print(f"Error parsing date: {e}")
+            raise e
         query = """
                 UPDATE clients
-                SET first_name = %(first_name)s, last_name = %(last_name)s, age = %(age)s, gender = %(gender)s, occupation = %(occupation)s, email = %(email)s, phone_number = %(phone_number)s, address = %(address)s, location_gym = %(location_gym)s, updated_at = NOW()
+                SET first_name = %(first_name)s, last_name = %(last_name)s, dob = %(dob)s, gender = %(gender)s, occupation = %(occupation)s, email = %(email)s, phone_number = %(phone_number)s, address = %(address)s, location_gym = %(location_gym)s, updated_at = NOW()
                 WHERE id = %(id)s;"""
         results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        print("Running Query: ", query)
+        print("With Data: ", data)
+        print("Results: ", results)
+        
         return results
     
     #DELETE

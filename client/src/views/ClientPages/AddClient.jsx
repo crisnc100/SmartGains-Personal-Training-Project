@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { NavLink, useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router-dom';
 
 const AddClient = () => {
     const [clientForm, setClientForm] = useState({
         first_name: "",
         last_name: "",
-        age: "",
+        dob: "",
         gender: "",
         occupation: "",
         email: "",
@@ -69,7 +69,7 @@ const AddClient = () => {
                 ...prevErrors,
                 apiError: 'Failed to check for existing client.'
             }));
-            return null; 
+            return null;
         }
     };
 
@@ -78,7 +78,7 @@ const AddClient = () => {
         if (!validateForm()) {
             return;
         }
-    
+
         const existingClient = await checkExistingClient();
         if (existingClient && existingClient.exists) {
             let newErrors = {};
@@ -89,7 +89,7 @@ const AddClient = () => {
                 newErrors.phone_number = 'Phone number already exists';
             }
             setErrors(newErrors);
-    
+
             if (existingClient.by_name) {
                 setWarnings({
                     duplicate_name: 'A client with this name already exists. Do you want to proceed?'
@@ -98,14 +98,14 @@ const AddClient = () => {
             }
             return; // Stop submission due to errors
         }
-    
+
         // No issues, proceed with creating the client
         try {
             const res = await axios.post('http://localhost:5000/api/add_client', clientForm, {
                 withCredentials: true
             });
             console.log("Client added, ID:", res.data.client_id);
-            navigate(`${res.data.client_id}/additional-services`); 
+            navigate(`${res.data.client_id}/additional-services`);
         } catch (err) {
             console.error("Error adding client:", err);
             setErrors(prevErrors => ({
@@ -114,10 +114,10 @@ const AddClient = () => {
             }));
         }
     };
-    
+
     const confirmProceed = async () => {
-        setWarnings({}); 
-        submitHandler(); 
+        setWarnings({});
+        submitHandler();
     };
 
     return (
@@ -128,7 +128,7 @@ const AddClient = () => {
                     {Object.entries(clientForm).map(([key, value]) => (
                         <div key={key}>
                             <label className="block text-sm font-medium text-gray-900 capitalize" style={{ fontWeight: 'bold', fontSize: '15px' }} htmlFor={key}>
-                                {key.replace(/_/g, ' ')}
+                                {key === 'dob' ? 'Date of Birth' : key.replace(/_/g, ' ')}
                             </label>
                             {key === 'gender' ? (
                                 <select
@@ -144,16 +144,37 @@ const AddClient = () => {
                                     <option value="Female">Female</option>
                                     <option value="Other">Other</option>
                                 </select>
+                            ) : key === 'dob' ? (
+                                <input
+                                    type="date"
+                                    id={key}
+                                    name={key}
+                                    value={value}
+                                    onChange={handleInputChange}
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
+                                    required
+                                />
+                            ) : key === 'phone_number' ? (
+                                <input
+                                    type="tel"
+                                    id={key}
+                                    name={key}
+                                    value={value}
+                                    onChange={handleInputChange}
+                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
+                                    placeholder="Enter phone number"
+                                    required
+                                />
                             ) : (
                                 <input
-                                    type={key === 'age' || key === 'phone_number' ? 'number' : 'text'}
+                                    type="text"
                                     id={key}
                                     name={key}
                                     value={value}
                                     onChange={handleInputChange}
                                     className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
                                     placeholder={`Enter ${key.replace(/_/g, ' ')}`}
-                                    required={key !== 'location_gym'} 
+                                    required={key !== 'location_gym'}
                                 />
                             )}
                             {errors[key] && (
@@ -176,15 +197,9 @@ const AddClient = () => {
                     </div>
                 )}
             </form>
-            <Outlet />  {/* This component renders the matching child route component */}
+            <Outlet />
         </div>
     );
 };
 
 export default AddClient;
-
-
-
-
-
-

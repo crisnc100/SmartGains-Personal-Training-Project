@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
+const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const NutritionIntake = () => {
     const { clientId } = useParams();
     const navigate = useNavigate();
@@ -10,7 +19,7 @@ const NutritionIntake = () => {
         client_id: clientId,
         height: "",
         weight: "",
-        age: "",
+        dob: "",
         gender: "",
         bodyfat_est: "",
         health_conditions: "",
@@ -30,7 +39,6 @@ const NutritionIntake = () => {
         dieting_challenges: "",
         typical_work_schedule: "",
         activity_level_neat: "",
-        average_daily_steps: "",
         activity_level_eat: "",
         exercise_days_per_week: "",
         gym_duration: "",
@@ -51,6 +59,7 @@ const NutritionIntake = () => {
                 setNutritionForm(prevForm => ({
                     ...prevForm,
                     ...client_data,
+                    dob: formatDate(client_data.dob),
                     ...consultation_data,
                     ...history_data,
                 }));
@@ -67,18 +76,27 @@ const NutritionIntake = () => {
         let tempErrors = {};
         let isValid = true;
 
-        Object.keys(nutritionForm).forEach(key => {
-            if (key === 'client_id') return;
-            if (typeof nutritionForm[key] !== 'string' || !nutritionForm[key].trim()) {
-                tempErrors[key] = 'This field is required';
-                isValid = false;
+        const requiredFields = [
+            'height', 'weight', 'dob', 'gender', 'bodyfat_est', 'health_conditions', 'allergies', 'current_diet',
+            'dietary_preferences', 'favorite_foods', 'disliked_foods', 'meal_preferences', 'meal_snack_preference',
+            'meal_prep_habits', 'hydration', 'current_cheat_meals', 'common_cravings', 'specific_days_indulgence',
+            'nutritional_goals', 'dieting_challenges', 'typical_work_schedule', 'activity_level_neat',
+            'activity_level_eat', 'exercise_days_per_week', 'gym_duration'
+        ];
+
+        requiredFields.forEach(field => {
+            if (field in nutritionForm) {
+                const value = nutritionForm[field];
+                if (typeof value !== 'string' || !value.trim()) {
+                    tempErrors[field] = 'This field is required';
+                    isValid = false;
+                }
             }
         });
 
         setErrors(tempErrors);
         return isValid;
     };
-
     const handleInputChange = (event) => {
         setNutritionForm({
             ...nutritionForm,
@@ -102,7 +120,7 @@ const NutritionIntake = () => {
                 withCredentials: true
             });
             console.log("Response Data:", res.data);
-            navigate('tdee-calculator'); 
+            navigate('tdee-calculator');
         } catch (err) {
             console.error("Submission error:", err);
             if (err.response) {
@@ -110,7 +128,7 @@ const NutritionIntake = () => {
                 console.error("Error status:", err.response.status);
                 setErrors(prevErrors => ({
                     ...prevErrors,
-                    ...err.response.data.errors, 
+                    ...err.response.data.errors,
                 }));
             } else {
                 setErrors(prevErrors => ({
@@ -166,15 +184,15 @@ const NutritionIntake = () => {
                                 {errors.weight && <p className="text-red-500 text-sm">{errors.weight}</p>}
                             </div>
                             <div className="form-group">
-                                <label htmlFor="age" className="block text-gray-700">Age</label>
+                                <label htmlFor="dob" className="block text-gray-700">Date of Birth:</label>
                                 <input
-                                    type="number"
-                                    name="age"
-                                    value={nutritionForm.age}
+                                    type="date"
+                                    name="dob"
+                                    value={nutritionForm.dob}
                                     onChange={handleInputChange}
                                     className="w-full p-2 border border-gray-300 rounded mt-1"
                                 />
-                                {errors.age && <p className="text-red-500 text-sm">{errors.age}</p>}
+                                {errors.dob && <p className="text-red-500 text-sm">{errors.dob}</p>}
                             </div>
                             <div className="form-group">
                                 <label htmlFor="gender" className="block text-gray-700">Gender</label>
@@ -409,23 +427,14 @@ const NutritionIntake = () => {
                                     onChange={handleInputChange}
                                     className="w-full p-2 border border-gray-300 rounded mt-1"
                                 >
-                                    <option value="Sedentary">Sedentary</option>
-                                    <option value="Light">Light</option>
-                                    <option value="Moderate">Moderate</option>
-                                    <option value="Active">Active</option>
+                                    <option value="Sedentary">Sedentary: 0-2999 steps/day</option>
+                                    <option value="Light">Light: 3000 - 4999 steps/day</option>
+                                    <option value="Moderate">Moderate: 5000-7499 steps/day</option>
+                                    <option value="Active">Active: 7500 steps/day </option>
+                                    <option value="Very_Active">Very Active: 10000 - 14999 steps/day</option>
+                                    <option value="Extremely_Active">Extremely Active: 15000+ steps/day</option>
                                 </select>
                                 {errors.activity_level_neat && <p className="text-red-500 text-sm">{errors.activity_level_neat}</p>}
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="average_daily_steps" className="block text-gray-700">On average, how many steps do you take per day?</label>
-                                <input
-                                    type="number"
-                                    name="average_daily_steps"
-                                    value={nutritionForm.average_daily_steps}
-                                    onChange={handleInputChange}
-                                    className="w-full p-2 border border-gray-300 rounded mt-1"
-                                />
-                                {errors.average_daily_steps && <p className="text-red-500 text-sm">{errors.average_daily_steps}</p>}
                             </div>
                             <div className="form-group">
                                 <label htmlFor="activity_level_eat" className="block text-gray-700">What is your exercise activity level?</label>
@@ -477,7 +486,7 @@ const NutritionIntake = () => {
                                 onChange={handleInputChange}
                                 className="w-full p-2 border border-gray-300 rounded mt-1"
                             />
-                            {errors.additional_notes && <p className="text-red-500 text-sm">{errors.additional_notes}</p>}
+
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import { format, differenceInYears } from 'date-fns';
+
+
 
 const CustomPrompt = () => {
     const { clientId } = useParams();
@@ -41,6 +44,10 @@ const CustomPrompt = () => {
             cardio: "cardio training, or aerobic exercise that involves rhythmic activities to raise the heart rate to a target zone to burn the most fat and calories, improving cardiovascular health.",
             power: "power training training which involves exercises that require applying the maximum amount of force as quickly as possible; it is based on the formula where strength + speed = power, enhancing explosive power."
         }
+    };
+    const calculateAge = (dob) => {
+        if (!dob) return null;
+        return differenceInYears(new Date(), new Date(dob));
     };
 
 
@@ -188,10 +195,11 @@ const CustomPrompt = () => {
             const levelDescription = descriptions.levels[formData.level] || "Fitness level description not found.";
             const intensityDescription = descriptions.intensity[formData.intensity] || "Intensity level description not found.";
             const trainingTypeDescription = descriptions.trainingType[formData.trainingType] || "No training type specified.";
+            
 
             return `
             Develop a ${formData.sessionType} workout plan for ${client_data.first_name} ${client_data.last_name},
-            a ${client_data.age}-year-old ${client_data.gender}.
+            a ${calculateAge(client_data.dob)}-year-old ${client_data.gender}.
             Fitness Level: ${formData.level} - ${levelDescription}
             Intensity: ${formData.intensity} - this indicates a focus on ${intensityDescription}
             Client goals include "${consultation_data.fitness_goals}", approached through ${trainingTypeDescription}

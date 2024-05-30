@@ -29,7 +29,7 @@ const FlexibilityAssessment = () => {
             return null; 
         }
         return (
-            <input
+            <textarea
                 type="text"
                 id={key}
                 name={key}

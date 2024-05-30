@@ -71,13 +71,13 @@ const Sidebar = ({ sidebarToggle }) => {
                 </NavLink>
               </li>
               <li className='hover:shadow-lg hover:bg-blue-600 transition duration-300 ease-in-out py-2 rounded'>
-                <NavLink to="exercise_library" className={({ isActive }) => isActive ? 'active link px-4' : 'link px-4'}>
+                <NavLink to="exercise-library" className={({ isActive }) => isActive ? 'active link px-4' : 'link px-4'}>
                   <FaBook className="inline-block w-5 h-5 mr-2 -mt-1" />
                   Exercise Library
                 </NavLink>
               </li>
               <li className='hover:shadow-lg hover:bg-blue-600 transition duration-300 ease-in-out py-2 rounded'>
-                <NavLink to="workout_logs" className={({ isActive }) => isActive ? 'active link px-4' : 'link px-4'}>
+                <NavLink to="workout-logs" className={({ isActive }) => isActive ? 'active link px-4' : 'link px-4'}>
                   <FaClipboardList className="inline-block w-5 h-5 mr-2 -mt-1" />
                   Workout Logs
                 </NavLink>

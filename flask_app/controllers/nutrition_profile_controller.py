@@ -42,59 +42,48 @@ def get_relatable_nutrition_data(client_id):
 
 @app.route('/api/add_nutrition_form', methods=['POST'])
 def add_nutrition_form():
- 
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-  
     client_id = data.get('client_id')
     if client_id is None:
         return jsonify({'error': 'Client ID not found. Unable to add nutrition profile for the client.'}), 400
 
-    
     required_fields = [
-        'height',
-        'weight',
-        'age',
-        'gender',
-        'bodyfat_est',
-        'health_conditions',
-        'allergies',
-        'current_diet',
-        'dietary_preferences',
-        'favorite_foods',
-        'disliked_foods',
-        'meal_preferences',
-        'meal_snack_preferences',
-        'meal_prep_habits',
-        'hydration',
-        'current_cheat_meals',
-        'common_cravings',
-        'specific_days_indulgence',
-        'nutritional_goals',
-        'dieting_challenges',
-        'typical_work_schedule',
-        'activity_level_neat',
-        'average_daily_steps',
-        'activity_level_eat',
-        'exercise_days_per_week',
-        'gym_duration',
-        'additional_notes'
+        'height', 'weight', 'dob', 'gender', 'bodyfat_est', 'health_conditions', 'allergies', 'current_diet',
+        'dietary_preferences', 'favorite_foods', 'disliked_foods', 'meal_preferences', 'meal_snack_preference',
+        'meal_prep_habits', 'hydration', 'current_cheat_meals', 'common_cravings', 'specific_days_indulgence',
+        'nutritional_goals', 'dieting_challenges', 'typical_work_schedule', 'activity_level_neat',
+        'activity_level_eat', 'exercise_days_per_week', 'gym_duration', 'additional_notes'
     ]
 
-    if not all(field in data for field in required_fields):
-        return jsonify({'error': 'Missing one or more required fields'}), 400
+    missing_fields = [field for field in required_fields if field not in data or not data[field].strip()]
+    if missing_fields:
+        return jsonify({'error': f'Missing required fields: {", ".join(missing_fields)}'}), 400
     
+    # Ensure TDEE fields are included in the data even if they are None
     data['normal_tdee'] = None
     data['average_tdee'] = None
 
-   
+    print("Data being saved:", data)  # Debugging line to check the data being passed to save method
+
     nutrition_profile_id = NutritionProfile.save(data)
     if nutrition_profile_id:
         return jsonify({'message': 'Nutrition Profile data added for client'}), 200
     else:
-        return jsonify({'error': 'Failed to add Nutrition Proifle data for client'}), 500
+        return jsonify({'error': 'Failed to add Nutrition Profile data for client'}), 500
+    
+
+@app.route('/api/get_tdee_variables/<int:client_id>', methods=['GET'])
+def get_tdee_variables(client_id):
+    tdee_variables = NutritionProfile.get_tdee_variables(client_id)
+    
+    if not tdee_variables:
+        return jsonify({'error': 'No data found for the provided client ID'}), 404
+
+    return jsonify(tdee_variables), 200
+
 
 @app.route('/api/update_tdee', methods=['POST'])
 def update_tdee():

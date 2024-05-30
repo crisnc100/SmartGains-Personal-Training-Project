@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactDOMServer from 'react-dom/server';
+import { format, differenceInYears } from 'date-fns';
+
 
 
 const DemoPrompt = () => {
@@ -16,6 +18,10 @@ const DemoPrompt = () => {
   const [additionalComments, setAdditionalComments] = useState('');
   const [expandedPromptIndex, setExpandedPromptIndex] = useState(null);
 
+  const calculateAge = (dob) => {
+    if (!dob) return null;
+    return differenceInYears(new Date(), new Date(dob));
+};
 
   useEffect(() => {
     axios.get(`http://localhost:5000/api/current_client/${clientId}`)
@@ -38,7 +44,7 @@ const DemoPrompt = () => {
         id: 'beginner1',
         content: (
           <>Develop a beginner-friendly 3-day workout plan for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, a
-            <strong> {allClientData.client_data.age}</strong>-year-old <strong>{allClientData.client_data.gender}</strong>, aiming to achieve goals if any:
+            <strong> {calculateAge(allClientData.client_data.dob)}</strong>-year-old <strong>{allClientData.client_data.gender}</strong>, aiming to achieve goals if any:
             "<strong>{allClientData.consultation_data ? allClientData.consultation_data.fitness_goals : 'no data provided'}</strong>". This client leads a sedentary lifestyle, has minimal exercise
             experience, and may have medical considerations such as "<strong>{allClientData.history_data ? allClientData.history_data.existing_conditions : 'no data provided'}</strong>". The plan should
             incorporate low-impact, functional exercises to enhance daily living activities, improve cardiovascular
@@ -52,7 +58,7 @@ const DemoPrompt = () => {
         id: 'beginner2',
         content: (<>Create a 3-day workout plan for beginner-level hypertrophy and strength training for
           <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, a
-          <strong> {allClientData.client_data.age}</strong>-year-old <strong>{allClientData.client_data.gender}</strong>, focusing on slow progression
+          <strong> {calculateAge(allClientData.client_data.dob)}</strong>-year-old <strong>{allClientData.client_data.gender}</strong>, focusing on slow progression
           and basic strength-building exercises. Goals if any: "<strong>{allClientData.consultation_data ? allClientData.consultation_data.fitness_goals : 'no data provided'}</strong>".
           Background conditions if any: "<strong>{allClientData.history_data ? allClientData.history_data.existing_conditions : 'no data provided'}</strong>". Include exercises that
           target major muscle groups with an emphasis on technique, safety, and gradual progression in strength and
@@ -66,7 +72,7 @@ const DemoPrompt = () => {
         id: 'beginner3',
         content: (<>
           Develop a beginner-friendly 3-day workout plan for <strong>{allClientData.client_data.first_name}
-            {allClientData.client_data.last_name}</strong>, a <strong>{allClientData.client_data.age}</strong>-year-old
+            {allClientData.client_data.last_name}</strong>, a <strong>{calculateAge(allClientData.client_data.dob)}</strong>-year-old
           <strong> {allClientData.client_data.gender}</strong> aiming to enhance cardiovascular health and build endurance.
           Goals if any: "<strong>{allClientData.consultation_data ? allClientData.consultation_data.fitness_goals : 'no data provided'}</strong>". Exercise habits if documented:
           "<strong>{allClientData.consultation_data ? allClientData.consultation_data.exercise_habits : 'no data provided'}</strong>". The routine should introduce low to moderate-intensity
@@ -81,7 +87,7 @@ const DemoPrompt = () => {
       {
         id: 'intermediate1',
         content: (<>Design an intermediate-level 3-day functional training workout plan for
-          <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, aged <strong>{allClientData.client_data.age}</strong> years
+          <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, aged <strong>{calculateAge(allClientData.client_data.dob)}</strong> years
           <strong> {allClientData.client_data.gender}</strong>, with some exercise experience. Objectives if any:
           "<strong>{allClientData.consultation_data ? allClientData.consultation_data.fitness_goals : 'no data provided'}</strong>". Considering the medical history if any:
           "<strong>{allClientData.history_data ? allClientData.history_data.existing_conditions : 'no data provided'}</strong>". This plan should integrate compound movements and
@@ -95,7 +101,7 @@ const DemoPrompt = () => {
         content: (<>
           Formulate an intermediate 3-day workout plan focusing on hypertrophy and strength development for
           <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, aged
-          <strong> {allClientData.client_data.age}</strong> years <strong>{allClientData.client_data.gender}</strong>. Prioritize exercises that
+          <strong> {calculateAge(allClientData.client_data.dob)}</strong> years <strong>{allClientData.client_data.gender}</strong>. Prioritize exercises that
           enhance muscle growth and strength, such as progressive overload in weightlifting. Incorporate variety in
           exercise selection to target all major muscle groups effectively, aligning with the client goals if any:
           "<strong>{allClientData.consultation_data ? allClientData.consultation_data.fitness_goals : 'no data provided'}</strong>" and taking into account of any conditions:
@@ -109,7 +115,7 @@ const DemoPrompt = () => {
         id: 'intermediate3',
         content: (<>
           Create an intermediate 3-day cardiovascular and endurance workout plan for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>,
-          aged <strong>{allClientData.client_data.age}</strong> years <strong> {allClientData.client_data.gender}</strong>, to boost heart health and stamina. Plan should include a mix of
+          aged <strong>{calculateAge(allClientData.client_data.dob)}</strong> years <strong> {allClientData.client_data.gender}</strong>, to boost heart health and stamina. Plan should include a mix of
           moderate to high-intensity cardio exercises and longer duration sessions to progressively enhance
           cardiovascular endurance. Factor in goals if any: "<strong>{allClientData.consultation_data ? allClientData.consultation_data.fitness_goals : 'no data provided'}</strong>" and
           medical conditions if any: "<strong>{allClientData.history_data ? allClientData.history_data.existing_conditions : 'no data provided'}</strong>" for a comprehensive approach
@@ -124,7 +130,7 @@ const DemoPrompt = () => {
       {
         id: 'advanced1',
         content: (<>Devise an advanced 3-day functional and performance training workout plan for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>,
-          a seasoned athlete aged <strong>"{allClientData.client_data.age}</strong>. Target goals if any: <strong>
+          a seasoned athlete aged <strong>"{calculateAge(allClientData.client_data.dob)}</strong>. Target goals if any: <strong>
             {allClientData.consultation_data.fitness_goals ? allClientData.consultation_data.fitness_goals : 'no data provided'}"</strong>.
           Incorporate high-intensity functional movements and performance drills that challenge strength, power,
           agility, and endurance, tailored to the client's robust fitness background and
@@ -134,7 +140,7 @@ const DemoPrompt = () => {
         id: 'advanced2',
         content: (<>
           Construct an advanced 3-day hypertrophy and strength training program for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>,
-          aged <strong>{allClientData.client_data.age}</strong> years <strong> {allClientData.client_data.gender}</strong>. This plan should push the boundaries of muscle growth and strength,
+          aged <strong>{calculateAge(allClientData.client_data.dob)}</strong> years <strong> {allClientData.client_data.gender}</strong>. This plan should push the boundaries of muscle growth and strength,
           incorporating advanced lifting techniques, high-volume sets, and periodized strength progression. Goals if any:
           "<strong>{allClientData.consultation_data ? allClientData.consultation_data.fitness_goals : 'no data provided'}</strong>", accommodating the client's extensive exercise history and
           any conditions: "<strong>{allClientData.history_data ? allClientData.history_data.existing_conditions : 'no data provided'}</strong>".
@@ -144,7 +150,7 @@ const DemoPrompt = () => {
         id: 'advanced3',
         content: (<>
           Design an advanced 3-day cardiovascular and endurance training regimen for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>,
-          a <strong>{allClientData.client_data.age}</strong>-year-old <strong> {allClientData.client_data.gender}</strong>, aiming to optimize cardiorespiratory fitness and endurance. Include
+          a <strong>{calculateAge(allClientData.client_data.dob)}</strong>-year-old <strong> {allClientData.client_data.gender}</strong>, aiming to optimize cardiorespiratory fitness and endurance. Include
           high-intensity interval training (HIIT), tempo runs, and endurance cycling sessions, progressively
           intensifying the workload to meet the ambitious fitness objectives of the client if any:
           "<strong>{allClientData.consultation_data ? allClientData.consultation_data.fitness_goals : 'no data provided'}</strong>" while considering any conditions

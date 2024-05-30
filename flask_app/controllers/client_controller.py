@@ -27,7 +27,7 @@ def add_client():
         return jsonify({'error': 'No data provided'}), 400
 
     
-    required_fields = ['first_name', 'last_name', 'age', 'gender', 'occupation', 'email', 'phone_number', 'address', 'location_gym']
+    required_fields = ['first_name', 'last_name', 'dob', 'gender', 'occupation', 'email', 'phone_number', 'address', 'location_gym']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing one or more required fields'}), 400
 

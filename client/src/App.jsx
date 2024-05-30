@@ -32,6 +32,8 @@ import MyCalendar from './views/TrainerPages/Calendar/MyCalendar';
 import RecordWorkoutSession from './views/ClientPages/RecordWorkoutSession';
 import ViewProgressSession from './views/ClientPages/ViewProgressSession';
 import NutritionIntake from './views/NutritionPages/NutritionIntake';
+import TDEECalculator from './views/NutritionPages/TDEECalculator';
+import ExerciseLibrary from './views/WorkoutPages/ExerciseLibrary';
 
 
 
@@ -53,6 +55,8 @@ function App() {
             <Route path='calendar' element={<MyCalendar />} />
             <Route path='nutrition-profile' element={<NutritionProfile />} />
             <Route path='nutrition-profile/add/:clientId' element={<NutritionIntake />} />
+            <Route path='nutrition-profile/add/:clientId/tdee-calculator' element={<TDEECalculator />} />
+            <Route path='exercise-library' element={<ExerciseLibrary />} />
             <Route path='all_clients' element={<AllClients />} />
             <Route path='all_clients/:clientId/current-client' element={<CurrentClient />} />
             <Route path='all_clients/:clientId/current-client/intake-form' element={<IntakeForm />} />
