@@ -12,7 +12,6 @@ from datetime import datetime
 from werkzeug.exceptions import BadRequest
 import logging
 import re
-import os
 #from flask_wtf.csrf import generate_csrf
 #from flask_wtf.csrf import validate_csrf
 bcrypt = Bcrypt(app)

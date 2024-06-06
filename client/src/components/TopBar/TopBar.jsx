@@ -3,6 +3,9 @@ import { FaSearch, FaBars, FaBell, FaUserCircle } from 'react-icons/fa';
 import axios from 'axios';
 import { NavLink, useNavigate } from 'react-router-dom';
 import styles from './TopBar.module.css'; 
+import logo_horziontal from '../../assets/logo_horziontal.png';
+
+
 
 
 
@@ -51,7 +54,7 @@ const TopBar = ({ sidebarToggle, setSidebarToggle, sidebarWidth }) => {
        <FaBars onClick={() => setSidebarToggle(!sidebarToggle)}
         className='text-white mr-4 cursor-pointer' size={26} />
 <span className={styles.brand}>
-  SmartGains
+        <img src={logo_horziontal} alt="SmartGains Logo" />
 </span>
     </div>
       <div style={{ flex: 1.0 }}></div> 
@@ -69,7 +72,7 @@ const TopBar = ({ sidebarToggle, setSidebarToggle, sidebarWidth }) => {
                 <FaUserCircle className='w-8 h-8 mt-1' />
             </button>
             {isOpen && (
-                <div className='absolute right-0 w-48 bg-white rounded-lg shadow-lg mt-2 z-20'>
+                <div className='absolute right-0 w-48 bg-white rounded-lg shadow-lg mt-2 z-20' style={{color: 'white'}}>
                     <ul className='py-2 bg-gray-900'>
                         <li className='hover:bg-blue-600'>
                             <NavLink to='edit-profile' onClick={closeDropdown} className='block px-4 py-2'>Edit Profile</NavLink>

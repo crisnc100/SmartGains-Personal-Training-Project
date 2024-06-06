@@ -1,16 +1,10 @@
 .brand {
-    color: #a8ff04;
     cursor: pointer;
-    font-size: 1.8vw; 
-    text-decoration: none;
-    font-style: 'Arial', sans-serif;
-    text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.7);
-    box-shadow: 0 0 8px #00dffc;
-    font-weight: bold;
-    width: 11vw; 
+    width: 6.5vw; 
     text-align: center;
+    height: auto;
+    transform: scale(1.3); 
+
+
 }
 
-.brand:hover {
-    filter: brightness(120%);
-}

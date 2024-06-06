@@ -516,12 +516,12 @@ const CurrentClient = () => {
                                         <p>No data is available</p>
                                         <div>
                                             <NavLink
-                                                to='intake-form'
+                                                to='medical-history'
                                                 className="group box-border relative inline-flex items-center whitespace-nowrap 
                                                     justify-center w-auto px-2 py-2 overflow-hidden text-sm text-white font-bold bg-blue-500 
                                                     hover:bg-blue-700 rounded-md cursor-pointer shadow-lg hover:shadow-xl transform 
                                                     hover:translate-y-1 transition-all duration-300 ease-out focus:outline-none">
-                                                Add Intake Form
+                                                Add Medical History
                                             </NavLink>
                                         </div>
 

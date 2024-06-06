@@ -9,14 +9,15 @@ const bodyPartImages = {
   Arms: '/images/arms1_body_part.webp',
   Legs: '/images/legs1_body_part.webp',
   Shoulders: '/images/shoulders_body_part.webp',
-  Waist: '/images/waist_body_part.webp'
+  Waist: '/images/waist_body_part.webp',
+  'My List': '/images/my_exercises.webp' // Add an image for My List section
 };
 
 const capitalize = (str) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-const BodyPartSlideShow = ({ onSelectBodyPart }) => {
+const BodyPartSlideShow = ({ onSelectBodyPart, onSelectMyList }) => {
   const [bodyParts, setBodyParts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,7 +26,7 @@ const BodyPartSlideShow = ({ onSelectBodyPart }) => {
     const fetchBodyParts = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/body_parts');
-        setBodyParts(response.data);
+        setBodyParts(['My List', ...response.data]);
       } catch (error) {
         setError('Error fetching body parts');
         console.error('Error fetching body parts:', error);
@@ -44,10 +45,10 @@ const BodyPartSlideShow = ({ onSelectBodyPart }) => {
         if (container.scrollLeft + container.clientWidth >= container.scrollWidth) {
           container.scrollLeft = 0; // Reset to start
         } else {
-          container.scrollLeft += 100;
+          container.scrollLeft += 200;
         }
       }
-    }, 10000); // 10 seconds interval
+    }, 15000); // 10 seconds interval
     return () => clearInterval(interval);
   }, []);
 
@@ -63,12 +64,20 @@ const BodyPartSlideShow = ({ onSelectBodyPart }) => {
     }
   };
 
+  const handleBodyPartClick = (bodyPart) => {
+    if (bodyPart === 'My List') {
+      onSelectMyList();
+    } else {
+      onSelectBodyPart(bodyPart);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <button className={`${styles.scrollButton} ${styles.left}`} onClick={() => handleScroll('left')}>{"<"}</button>
       <div id="bodyPartSlideshow" className={styles.bodyPartSlideshow}>
         {bodyParts.map((bodyPart) => (
-          <div key={bodyPart} className={styles.bodyPart} onClick={() => onSelectBodyPart(bodyPart)}>
+          <div key={bodyPart} className={styles.bodyPart} onClick={() => handleBodyPartClick(bodyPart)}>
             <img src={bodyPartImages[bodyPart]} alt={bodyPart} className={styles.bodyPartImage} />
             <p>{bodyPart}</p>
           </div>

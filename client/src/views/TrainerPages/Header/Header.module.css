@@ -1,0 +1,173 @@
+.header {
+  display: flex;
+  flex-direction: row;
+  padding: 3rem 2rem;
+  justify-content: center;
+}
+
+.headerContent {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-direction: column;
+  margin-left: 3rem;
+}
+
+.headerContent h1 {
+  font-family: var(--font-family);
+  font-weight: 800;
+  font-size: 62px;
+  line-height: 75px;
+  letter-spacing: -0.04em;
+}
+
+.headerContent p {
+  font-family: var(--font-family);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 28px;
+  color: rgb(226, 226, 226);
+  margin-top: 1.5rem;
+}
+
+.headerContentInput {
+  width: 100%;
+  margin: 2rem 0 1rem;
+  display: flex;
+  flex-direction: row;
+}
+
+.headerContentInput button {
+  flex: 0.6;
+  width: 100%;
+  min-height: 50px;
+  font-family: var(--font-family);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 28px;
+  background: #009425;
+  border: 2px solid #009425;
+  padding: 0 1rem;
+  color: #fff;
+  cursor: pointer;
+  outline: none;
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+.headerContentInput button:hover {
+  background: #00300c;
+}
+
+.callToActionText {
+  margin-top: 0.5rem;
+  font-family: var(--font-family);
+  font-weight: 400;
+  font-size: 14px;
+  color: #e2e2e2;
+}
+
+.headerContentPeople {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-direction: row;
+  margin-top: 2rem;
+}
+
+.headerContentPeople img {
+  width: 181.79px;
+  height: 38px;
+}
+
+.headerContentPeople p {
+  margin: 0 0 0 1rem;
+  font-family: var(--font-family);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 38px;
+  color: #fff;
+  text-align: center;
+}
+
+.headerImage {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.headerImage img {
+  width: 80%;
+  height: auto;
+}
+
+@media screen and (max-width: 1050px) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .headerContent {
+    margin: 0 0 3rem;
+    align-items: center;
+  }
+
+  .headerContent h1 {
+    text-align: center;
+  }
+
+  .headerContent p {
+    text-align: center;
+  }
+}
+
+@media screen and (max-width: 650px) {
+  .headerContent h1 {
+    font-size: 48px;
+    line-height: 60px;
+  }
+
+  .headerContent p {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .headerContentPeople {
+    flex-direction: column;
+  }
+
+  .headerContentPeople p {
+    margin: 0;
+  }
+
+  .headerContentInput button {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .callToActionText {
+    text-align: center;
+    font-size: 12px;
+  }
+}
+
+@media screen and (max-width: 490px) {
+  .headerContent h1 {
+    font-size: 36px;
+    line-height: 48px;
+  }
+
+  .headerContent p {
+    font-size: 14px;
+    line-height: 24px;
+  }
+
+  .headerContentInput button {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+}

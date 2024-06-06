@@ -3,14 +3,32 @@ import axios from 'axios';
 import { NavLink } from 'react-router-dom';
 import { FaTrash } from 'react-icons/fa';
 
-
 const AllClients = () => {
   const [allClients, setAllClients] = useState([]);
+  const [filteredClients, setFilteredClients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchAllClients();
   }, []);
+
+  useEffect(() => {
+    // Filter and sort clients based on search term
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    const sortedClients = allClients
+      .filter(client => {
+        const fullName = `${client.first_name} ${client.last_name}`.toLowerCase();
+        return fullName.includes(lowercasedSearchTerm);
+      })
+      .sort((a, b) => {
+        const nameA = `${a.first_name} ${a.last_name}`.toLowerCase();
+        const nameB = `${b.first_name} ${b.last_name}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
+    setFilteredClients(sortedClients);
+  }, [searchTerm, allClients]);
 
   const fetchAllClients = async () => {
     try {
@@ -48,10 +66,22 @@ const AllClients = () => {
     }
   };
 
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
 
   return (
     <div style={{ padding: '1rem' }}>
       <h1 className="text-3xl font-bold text-gray-800 mb-6">All Clients</h1>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search by full name..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+        />
+      </div>
       <div className="overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
         <table className="min-w-full bg-white">
           <thead className="bg-gray-800 text-white">
@@ -62,7 +92,7 @@ const AllClients = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {allClients.map(client => (
+            {filteredClients.map(client => (
               <tr key={client.id} className="hover:bg-gray-100 cursor-pointer transform hover:scale-[1.02] transition duration-300">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   <NavLink to={`${client.id}/current-client`} className="hover:text-blue-600">{client.first_name} {client.last_name}</NavLink>
@@ -85,8 +115,9 @@ const AllClients = () => {
           </tbody>
         </table>
       </div>
+      {error && <p className="text-red-500 mt-4">{error}</p>}
     </div>
   );
-}
+};
 
 export default AllClients;

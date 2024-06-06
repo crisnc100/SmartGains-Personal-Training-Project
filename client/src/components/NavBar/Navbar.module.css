@@ -1,75 +1,169 @@
-
+/* Navbar container */
 .navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #222121; 
-    padding: 18px 40px;
-  }
-  
-  .brand a {
-    display: inline-block; 
-    color: #a8ff04; 
-    font-size: 2.2vw;
-    text-decoration: none;
-    font-style: 'Arial', sans-serif; 
-    text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.7); 
-    box-shadow: 0 0 8px #00dffc; 
-    width: 13vw;
-    padding: 2px; 
-    text-align: center; 
-    font-weight: bold; 
-
-  }
-  .brand a:hover {
-    filter: brightness(120%);
-  }
-  
-  
-  .navItems a {
-    color: #ffffff; 
-    font-size: 18px;
-    font-style: 'Arial', sans-serif; 
-    text-transform: uppercase; 
-    text-decoration: none;
-    margin-left: 20px;
-    padding: 12px 24px;
-    background: linear-gradient(to right, #009fc2 0%, #005678 100%); 
-    border-radius: 5px; 
-    transition: all 0.3s ease-in-out;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    border: none; 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 4rem; /* Reduce padding to shift items up */
+  background-color: var(--color-bg);
 }
 
-.navItems a:hover {
+/* Logo and nav links container */
+.navbarLinks {
+  display: flex;
+  align-items: center;
+}
+
+/* Wrapper for the logo */
+.navbarLinksLogoWrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Logo image */
+.navbarLinksLogo img {
+  width: 250px; /* Set the desired width for the logo */
+  height: auto; /* Maintain aspect ratio */
+  display: block; /* Remove default inline spacing */
+  margin: 0; /* Remove any margin */
+  padding: 0; /* Remove any padding */
+  object-fit: contain; /* Ensure the image fits within the container */
+}
+
+/* Navigation links container */
+.navbarLinksContainer {
+  display: flex;
+  gap: 1.5rem;
+  margin-left: 3rem; /* Adjust margin to align properly */
+  align-items: center; /* Ensure vertical alignment */
+  margin-top: 8px;
+}
+
+/* Individual navigation link styling */
+.navbarLinksContainer p {
+  color: #929292;
+  font-family: var(--font-family);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 25px;
+  text-transform: capitalize;
+  margin: 0;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.navbarLinksContainer p:hover {
   color: #ffffff;
-  background-color: #03506e; 
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  transform: translateY(-2px);
-  filter: brightness(150%);
 }
 
+/* Sign in and sign up button styling */
+.navbarSign {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 8px;
 
-  
+}
 
-  /* Cool Gold */
-.cool-gold { color: #FFD700; box-shadow: 0 0 10px #FFD700; }
+.navbarSign p {
+  color: #929292;
+  font-family: var(--font-family);
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 25px;
+  text-transform: capitalize;
+  margin: 0;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
 
-/* Deep Sky Blue */
-.deep-sky-blue { color: #00BFFF; box-shadow: 0 0 10px #00BFFF; }
+.navbarSign p:hover {
+  color: #ffffff;
+}
 
-/* Electric Magenta */
-.electric-magenta { color: #FF00FF; box-shadow: 0 0 10px #FF00FF; }
+.navbarSign button {
+  padding: 0.5rem 1rem;
+  color: #fff;
+  background: #209bff;
+  font-family: var(--font-family);
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 25px;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
 
-/* Implementations from previous colors for reference */
-/* Neon Blue */
-.neon-blue { color: #00dffc; box-shadow: 0 0 10px #00dffc; }
+.navbarSign button:hover {
+  background: #115186;
+}
 
-/* Vivid Purple */
-.vivid-purple { color: #c442ff; box-shadow: 0 0 10px #c442ff; }
+/* Mobile menu toggle */
+.navbarMenu {
+  display: none;
+}
 
-/* Bright Orange */
-.bright-orange { color: #ff6f00; box-shadow: 0 0 10px #ff6f00; }
+.navbarMenu svg {
+  cursor: pointer;
+}
 
-/* Neon Green */
-.neon-green { color: #a8ff04}
+.navbarMenuContainer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  flex-direction: column;
+  text-align: end;
+  background: var(--color-footer);
+  padding: 2rem;
+  position: absolute;
+  right: 0;
+  top: 60px;
+  margin-top: 1rem;
+  min-width: 210px;
+  border-radius: 5px;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+}
+
+.navbarMenuContainer p {
+  margin: 1rem 0;
+}
+
+.navbarMenuContainerLinksSign {
+  display: none;
+}
+
+@media screen and (max-width: 1050px) {
+  .navbarLinksContainer {
+    display: none;
+  }
+
+  .navbarMenu {
+    display: flex;
+  }
+}
+
+@media screen and (max-width: 700px) {
+  .navbar {
+    padding: 1rem 2rem;
+  }
+}
+
+@media screen and (max-width: 550px) {
+  .navbar {
+    padding: 1rem;
+  }
+
+  .navbarSign {
+    display: none;
+  }
+
+  .navbarMenuContainer {
+    top: 40px;
+  }
+
+  .navbarMenuContainerLinksSign {
+    display: block;
+  }
+}

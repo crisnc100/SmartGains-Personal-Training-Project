@@ -3,6 +3,8 @@ import styles from './LoginPage.module.css';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import logo_horziontal from '../../../assets/logo_horziontal.png';
+
 
 function LoginForm() {
     const [email, setEmail] = useState('');
@@ -48,7 +50,7 @@ function LoginForm() {
             <div className={styles.leftContainer}>
                 <header className={styles.header}>
                     <Link to="/" className={styles.header}>
-                        <h1>SmartGains</h1>
+                        <img src={logo_horziontal} alt="SmartGains Logo" />
                     </Link>
                 </header>
                 <div className={styles.formContainer}>

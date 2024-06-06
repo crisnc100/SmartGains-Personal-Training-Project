@@ -1,6 +1,6 @@
 import './App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import HomePage from './views/TrainerPages/HomePage/HomePage';
+import HomePage from './views/TrainerPages/HomePage';
 import LoginPage from './views/TrainerPages/LoginPage/LoginPage';
 import NewTrainer from './views/TrainerPages/RegisterPage/NewTrainer';
 import CreateProfile from './views/TrainerPages/CreateProfile/CreateProfile';
@@ -37,6 +37,8 @@ import ExerciseLibrary from './views/WorkoutPages/ExerciseLibrary';
 
 
 
+
+
 function App() {
 
 
@@ -60,6 +62,7 @@ function App() {
             <Route path='all_clients' element={<AllClients />} />
             <Route path='all_clients/:clientId/current-client' element={<CurrentClient />} />
             <Route path='all_clients/:clientId/current-client/intake-form' element={<IntakeForm />} />
+            <Route path='all_clients/:clientId/current-client/medical-history' element={<MedicalHistory />} />
             <Route path='all_clients/:clientId/current-client/intake-form/medical-history' element={<MedicalHistory />} />
             <Route path='all_clients/:clientId/current-client/intake-form/intake-options' element={<IntakeOptions />} />
             <Route path='all_clients/:clientId/current-client/flexibility-assessment' element={<FlexibilityAssessment />} />

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import BodyPartSlideShow from './BodyPartSlideShow/BodyPartSlideShow';
 import ExerciseList from './ExerciseList/ExerciseList';
+import UserExerciseList from './UserExerciseList/UserExerciseList';
 import axios from 'axios';
 
 const ExerciseLibrary = () => {
   const [selectedBodyPart, setSelectedBodyPart] = useState(null);
+  const [showMyList, setShowMyList] = useState(false);
   const [loading, setLoading] = useState(true);
-
-
 
   useEffect(() => {
     const initializeExercises = async () => {
@@ -25,19 +25,28 @@ const ExerciseLibrary = () => {
 
   const handleSelectBodyPart = (bodyPart) => {
     setSelectedBodyPart(bodyPart);
+    setShowMyList(false);
+  };
+
+  const handleSelectMyList = () => {
+    setSelectedBodyPart(null);
+    setShowMyList(true);
   };
 
   const handleReturnBack = () => {
     setSelectedBodyPart(null);
+    setShowMyList(false);
   };
 
   return (
-    <div style={{color: 'black'}}>
-      <h1 style={{textAlign: 'center', fontSize: '35px'}}>Exercise Library</h1>
+    <div style={{ color: 'black' }}>
+      <h1 style={{ textAlign: 'center', fontSize: '35px' }}>Exercise Library</h1>
       {selectedBodyPart ? (
         <ExerciseList bodyPart={selectedBodyPart} onReturnBack={handleReturnBack} />
+      ) : showMyList ? (
+        <UserExerciseList onReturnBack={handleReturnBack} />
       ) : (
-        <BodyPartSlideShow onSelectBodyPart={handleSelectBodyPart} />
+        <BodyPartSlideShow onSelectBodyPart={handleSelectBodyPart} onSelectMyList={handleSelectMyList} />
       )}
     </div>
   );

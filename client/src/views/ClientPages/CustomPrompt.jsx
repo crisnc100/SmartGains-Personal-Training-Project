@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format, differenceInYears } from 'date-fns';
-
-
+import ClipLoader from 'react-spinners/ClipLoader';  // Import the spinner component
 
 const CustomPrompt = () => {
     const { clientId } = useParams();
@@ -23,6 +22,8 @@ const CustomPrompt = () => {
         sessionType: '',
         comments: ''
     });
+    const [submitting, setSubmitting] = useState(false);  // State for loading spinner
+
     const descriptions = {
         levels: {
             beginner: "This client is new to fitness, focusing on building basic strength and endurance.",
@@ -45,11 +46,11 @@ const CustomPrompt = () => {
             power: "power training training which involves exercises that require applying the maximum amount of force as quickly as possible; it is based on the formula where strength + speed = power, enhancing explosive power."
         }
     };
+    
     const calculateAge = (dob) => {
         if (!dob) return null;
         return differenceInYears(new Date(), new Date(dob));
     };
-
 
     useEffect(() => {
         axios.get(`http://localhost:5000/api/current_client/${clientId}`)
@@ -113,13 +114,10 @@ const CustomPrompt = () => {
         return true;
     };
     
-
-
     const handleChange = (event) => {
         const { name, value, type, checked } = event.target;
 
         if (type === 'checkbox') {
-
             if (name === 'bodyParts') {
                 const newBodyParts = {
                     ...formData.bodyParts,
@@ -207,13 +205,11 @@ const CustomPrompt = () => {
             Each session is designed to last approximately ${formData.duration} minutes, making optimal use of ${formData.equipment} gym resources.
             Medical considerations are noted as: "${history_data.existing_conditions}".
             Additional trainer insights: ${formData.comments}.
-            
             `;
         } else {
             return "Loading client data...";
         }
     };
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -232,6 +228,7 @@ const CustomPrompt = () => {
         console.log("Submitting data:", data);
 
         try {
+            setSubmitting(true);  // Show loading spinner
             const res = await axios.post(`http://localhost:5000/api/generate_custom_plan/${clientId}`, data, {
                 withCredentials: true,
                 headers: {
@@ -243,8 +240,13 @@ const CustomPrompt = () => {
         } catch (err) {
             console.error("Error during submission:", err);
             setError('Failed to submit the workout plan.');
+        } finally {
+            setSubmitting(false);  // Hide loading spinner
         }
     };
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error}</div>;
 
     return (
         <div className="container mx-auto p-4">
@@ -330,7 +332,6 @@ const CustomPrompt = () => {
                 <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-bold mb-2">Specifics:</label>
                     {errors.specifics && <p className="text-red-500 text-xs italic">{errors.specifics}</p>}
-
                     <div style={{ color: 'black' }}>
                         {['Push Day (Chest, Shoulders, Triceps)', 'Pull Day (Back and Biceps)', 'Leg Day (Quads, Hamstrings, Glutes, Calves)',
                             'Arm Day (Triceps, Biceps, Forearms)', 'Full-Body'].map(spec => (
@@ -414,9 +415,15 @@ const CustomPrompt = () => {
                     ></textarea>
                 </div>
 
+                {submitting && (
+                    <div className="flex justify-center my-4">
+                        <ClipLoader color={"#123abc"} loading={submitting} size={150} />
+                    </div>
+                )}
                 <button
                     type="submit"
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mb-4"  // Added mb-4 here
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mb-4"
+                    disabled={submitting}  // Disable button while submitting
                 >
                     Generate
                 </button>
@@ -424,9 +431,10 @@ const CustomPrompt = () => {
                     {createWorkoutPlanMessage()}
                 </p>
 
+                {errors.submitError && <div className="text-red-500 text-sm mt-2">{errors.submitError}</div>}
             </form>
         </div>
     );
 };
 
-export default CustomPrompt
+export default CustomPrompt;

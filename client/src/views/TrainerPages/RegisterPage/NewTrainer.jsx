@@ -3,6 +3,8 @@ import styles from './NewTrainer.module.css';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useUser } from '../../../contexts/UserContext';
+import logo_horziontal from '../../../assets/logo_horziontal.png';
+
 
 function NewTrainer() {
     const { updateUser } = useUser();
@@ -118,8 +120,8 @@ function NewTrainer() {
         <div className={styles.registerPage}>
             <div className={styles.leftContainer}>
                 <header className={styles.header}>
-                    <Link to="/" className={styles.header}>
-                        <h1>SmartGains</h1>
+                <Link to="/" className={styles.header}>
+                        <img src={logo_horziontal} alt="SmartGains Logo" />
                     </Link>
                 </header>
                 <div className={styles.formContainer}>

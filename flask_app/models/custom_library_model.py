@@ -47,10 +47,29 @@ class CustomExercises:
         return connectToMySQL('fitness_consultation_schema').query_db(query, data)
 
     @classmethod
-    def get_by_trainer_id(cls, trainer_id):
+    def get_all_by_trainer_id(cls, trainer_id):
         query = "SELECT * FROM trainer_custom_exercises WHERE trainer_id = %(trainer_id)s"
         results = connectToMySQL('fitness_consultation_schema').query_db(query, {'trainer_id': trainer_id})
         return [cls(result) for result in results]
+    
+    
+    
+
+    @classmethod
+    def get_exercises_by_body_part(cls, body_part):
+        query = "SELECT * FROM trainer_custom_exercises WHERE body_part = %(body_part)s"
+        data = { 'body_part': body_part }
+        results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        exercises = []
+        for row in results:
+            exercises.append(cls(row))
+        return exercises
+    
+    @classmethod
+    def get_body_parts(cls):
+        query = "SELECT DISTINCT body_part FROM trainer_custom_exercises"
+        results = connectToMySQL('fitness_consultation_schema').query_db(query)
+        return [row['body_part'] for row in results]
     
 
 

@@ -1,0 +1,87 @@
+.resources {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 2rem;
+    background: #0a0a23; /* Dark blue background */
+  }
+  
+  .resourcesHeading {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  
+  .resourcesHeading h1 {
+    font-size: 48px;
+    line-height: 56px;
+    font-family: var(--font-family);
+    font-weight: 800;
+    color: #ffffff; /* White text */
+  }
+  
+  .resourcesHeading p {
+    font-size: 18px;
+    color: #cccccc; /* Light grey text */
+    margin-top: 0.5rem;
+  }
+  
+  .resourcesContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .card {
+    flex: 1;
+    min-width: 280px;
+    max-width: 400px;
+    height: 200px;
+    background: linear-gradient(135deg, #00c6ff, #0072ff); /* Blue gradient */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+    text-decoration: none;
+    color: white;
+  }
+  
+  .card h3 {
+    font-size: 24px;
+    font-family: var(--font-family);
+  }
+  
+  .card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  @media screen and (max-width: 990px) {
+    .resourcesHeading h1 {
+      font-size: 36px;
+      line-height: 44px;
+    }
+  }
+  
+  @media screen and (max-width: 700px) {
+    .resourcesHeading h1 {
+      font-size: 32px;
+      line-height: 40px;
+    }
+  
+    .resourcesHeading p {
+      font-size: 16px;
+    }
+  }
+  
+  @media screen and (max-width: 550px) {
+    .resourcesHeading h1 {
+      font-size: 28px;
+      line-height: 34px;
+    }
+  }
+  

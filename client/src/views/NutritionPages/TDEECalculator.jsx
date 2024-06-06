@@ -129,8 +129,8 @@ const TDEECalculator = () => {
             'Light': 1.05,
             'Moderate': 1.1,
             'Active': 1.15,
-            'Very Active': 1.2,
-            'Extremely Active': 1.25
+            'Very_Active': 1.2,
+            'Extremely_Active': 1.25
         };
         const neatFactor = neatFactors[activity_level_neat] || 1.0;
         const neatAdjustment = bmr * (neatFactor - 1);

@@ -7,36 +7,22 @@
   
   .leftContainer {
     flex-basis: 50%;
-    background-color: #ffffff;
-    background-image: linear-gradient(315deg, #ffffff 0%, #1b2845 74%);
+    background-color: var(--color-bg);
     padding: 40px;
     display: flex;
     flex-direction: column;
   }
   
-  .header h1 {
-    color: #a8ff04;
-    margin-bottom: 2rem;
-    cursor: pointer;
-    font-size: 3vw; 
-    text-decoration: none;
-    font-style: 'Arial', sans-serif;
-    text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.7);
-    box-shadow: 0 0 8px #00dffc;
-    font-weight: bold;
-    width: 18vw; 
-    text-align: center;
-}
+  .header {
+   
+    margin-right: 5rem;
+  }
+  .header img {
+    height: auto;
+    width: 30rem;
 
-.header h1:hover {
-    filter: brightness(120%);
-}
+  }
 
-.header a, .header a:visited {
-    text-decoration: none; /* Removed the underline */
-    color: inherit;
-}
-  
   
   .formContainer {
     width: 100%;
@@ -78,9 +64,12 @@
     text-decoration: none;
     margin-bottom: 10px; 
   }
+  .options a:hover {
+    color: white;
+  }
   
   .rightContainer {
-    flex-basis: 60%;
+    flex-basis: 58%;
     position: relative;
     background-image: url('/images/homepage_option_2.webp'); /* Path to my background image */
     background-size: cover;

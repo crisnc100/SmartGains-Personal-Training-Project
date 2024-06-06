@@ -1,0 +1,25 @@
+.features {
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    background: var(--color-footer);
+}
+
+.featuresHeading {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.featuresHeading h1 {
+    font-size: 2.5rem;
+}
+
+.featuresHeading p {
+    font-size: 1.2rem;
+}
+
+.featuresContainer {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}

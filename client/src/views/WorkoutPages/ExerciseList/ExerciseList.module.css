@@ -3,29 +3,6 @@
   margin: 20px;
 }
 
-.returnButton {
-  position: absolute;
-  right: 2rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  cursor: pointer;
-  border-radius: 5px;
-}
-
-.returnButton:hover {
-  background-color: #0056b3;
-}
-
-.searchInput {
-  margin: 60px 0 20px 0; /* Add top and bottom margin to shift it down */
-  padding: 8px;
-  width: 100%;
-  border: 2px solid #007bff; /* Add a border to create an outline box */
-  border-radius: 4px;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* Optional: add a subtle shadow for depth */
-}
 
 .exerciseList {
   list-style: none;
@@ -77,4 +54,107 @@
 
 .pagination button:hover {
   background-color: #0056b3;
+}
+
+.filterButton {
+  position: relative;
+  background-color: white;
+  border: 1px solid blue;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.filterIcon {
+  color: blue; /* Blue color for the icon */
+}
+
+.filterButton:hover {
+  background-color: blue !important; /* Ensure the background color is blue on hover */
+  border: 1px solid blue;
+}
+
+.filterButton:hover .filterIcon {
+  color: white; /* White color for the icon on hover */
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 125%; /* Adjust this to position the tooltip correctly */
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 5px; /* Adjust as needed to position the tooltip */
+  padding: 2px 5px; /* Decrease padding for a smaller outline box */
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  white-space: nowrap; /* Prevent tooltip from wrapping */
+  font-size: 0.75rem; /* Decrease font size */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+  z-index: 10; /* Ensure the tooltip is above other elements */
+}
+
+.filterButton:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+
+.added {
+  background-color: #e0ffe0; /* Light green background for added exercises */
+}
+
+.addButton {
+  padding: 0.5em 0.5em;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.addButton:hover {
+  background-color: #45a049;
+}
+
+.addedLabel {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.removeButton {
+  padding: 0.5em 0.5em;
+  background-color: #ff0000;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.removeButton:hover {
+  background-color: #b90101;
+}
+
+.successMessage {
+  color: white;
+  background-color: green;
+  padding: 5px 10px;
+  border-radius: 3px;
+  position: absolute;
+  top: 100px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+}
+
+.successMessage .icon {
+  margin-right: 5px;
+}
+
+.smallTooltip {
+  padding: 3px 8px !important;  /* Adjust padding */
+  font-size: 12px !important;   /* Adjust font size */
+  white-space: nowrap;          /* Prevent line breaks */
+  z-index: 1000;
 }

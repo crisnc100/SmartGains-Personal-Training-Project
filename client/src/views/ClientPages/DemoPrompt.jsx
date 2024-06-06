@@ -3,8 +3,7 @@ import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactDOMServer from 'react-dom/server';
 import { format, differenceInYears } from 'date-fns';
-
-
+import ClipLoader from 'react-spinners/ClipLoader';  // Import the spinner component
 
 const DemoPrompt = () => {
   const { clientId } = useParams();
@@ -17,11 +16,12 @@ const DemoPrompt = () => {
   const [availablePrompts, setAvailablePrompts] = useState([]);
   const [additionalComments, setAdditionalComments] = useState('');
   const [expandedPromptIndex, setExpandedPromptIndex] = useState(null);
+  const [submitting, setSubmitting] = useState(false);  // State for loading spinner
 
   const calculateAge = (dob) => {
     if (!dob) return null;
     return differenceInYears(new Date(), new Date(dob));
-};
+  };
 
   useEffect(() => {
     axios.get(`http://localhost:5000/api/current_client/${clientId}`)
@@ -36,7 +36,6 @@ const DemoPrompt = () => {
         setLoading(false);
       });
   }, [clientId]);
-
 
   const prompts = allClientData && allClientData.client_data ? {
     'Beginner': [
@@ -168,8 +167,7 @@ const DemoPrompt = () => {
     } else {
         setSelectedPrompt(null); 
     }
-};
-
+  };
 
   const handleLevelChange = (e) => {
     const level = e.target.value;
@@ -178,12 +176,10 @@ const DemoPrompt = () => {
   };
 
   const validateForm = () => {
-
     setErrors({});
 
     let valid = true;
     if (!selectedPrompt) {
-  
       setErrors(prevErrors => ({
         ...prevErrors,
         prompt: 'Please select a prompt before submitting.'
@@ -193,8 +189,6 @@ const DemoPrompt = () => {
 
     return valid;
   };
-
-
 
   const handleCommentsChange = (e) => {
     setAdditionalComments(e.target.value);
@@ -215,6 +209,7 @@ const DemoPrompt = () => {
     console.log("Submitting data:", data);
 
     try {
+        setSubmitting(true);  // Show loading spinner
         const res = await axios.post(`http://localhost:5000/api/generate_quick_plan/${clientId}`, data, {
             withCredentials: true,
             headers: {
@@ -225,9 +220,11 @@ const DemoPrompt = () => {
         navigate(`success`);  
     } catch (err) {
         console.error("Error during submission:", err);
-    
+        handleErrorResponse(err);
+    } finally {
+        setSubmitting(false);  // Hide loading spinner
     }
-};
+  };
 
   const handleErrorResponse = (err) => {
     if (err.response && err.response.data && err.response.data.errors) {
@@ -245,7 +242,6 @@ const DemoPrompt = () => {
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
-
 
   return (
     <div className="container mx-auto p-4" style={{ color: 'black' }}>
@@ -298,9 +294,15 @@ const DemoPrompt = () => {
           onChange={(e) => setAdditionalComments(e.target.value)}
         />
       </div>
-      <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={submitHandler}>
+      {submitting && (
+        <div className="flex justify-center my-4">
+          <ClipLoader color={"#123abc"} loading={submitting} size={150} />
+        </div>
+      )}
+      <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={submitHandler} disabled={submitting}>
         Generate Example Plan
       </button>
+      {errors.submitError && <div className="text-red-500 text-sm mt-2">{errors.submitError}</div>}
     </div>
   );
 };

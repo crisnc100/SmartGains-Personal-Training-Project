@@ -11,7 +11,10 @@ const AddClient = () => {
         occupation: "",
         email: "",
         phone_number: "",
-        address: "",
+        street_address: "",
+        city: "",
+        state: "",
+        zip_code: "",
         location_gym: ""
     });
 
@@ -61,6 +64,8 @@ const AddClient = () => {
                 phone_number: clientForm.phone_number,
                 first_name: clientForm.first_name,
                 last_name: clientForm.last_name
+            }, {
+                withCredentials: true
             });
             return response.data;
         } catch (error) {
@@ -99,9 +104,15 @@ const AddClient = () => {
             return; // Stop submission due to errors
         }
 
+        // Combine address fields into one address field
+        const combinedAddress = `${clientForm.street_address}, ${clientForm.city}, ${clientForm.state}, ${clientForm.zip_code}`;
+
         // No issues, proceed with creating the client
         try {
-            const res = await axios.post('http://localhost:5000/api/add_client', clientForm, {
+            const res = await axios.post('http://localhost:5000/api/add_client', {
+                ...clientForm,
+                address: combinedAddress
+            }, {
                 withCredentials: true
             });
             console.log("Client added, ID:", res.data.client_id);
@@ -124,64 +135,172 @@ const AddClient = () => {
         <div className="flex justify-center my-10 px-4">
             <form onSubmit={submitHandler} className="w-full max-w-2xl">
                 <h1 className="text-2xl font-semibold text-center text-gray-900 mb-6">Add New Client</h1>
-                <div className="space-y-6">
-                    {Object.entries(clientForm).map(([key, value]) => (
-                        <div key={key}>
-                            <label className="block text-sm font-medium text-gray-900 capitalize" style={{ fontWeight: 'bold', fontSize: '15px' }} htmlFor={key}>
-                                {key === 'dob' ? 'Date of Birth' : key.replace(/_/g, ' ')}
-                            </label>
-                            {key === 'gender' ? (
-                                <select
-                                    id={key}
-                                    name={key}
-                                    value={value}
-                                    onChange={handleInputChange}
-                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
-                                    required
-                                >
-                                    <option value="">Select Gender</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            ) : key === 'dob' ? (
-                                <input
-                                    type="date"
-                                    id={key}
-                                    name={key}
-                                    value={value}
-                                    onChange={handleInputChange}
-                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
-                                    required
-                                />
-                            ) : key === 'phone_number' ? (
-                                <input
-                                    type="tel"
-                                    id={key}
-                                    name={key}
-                                    value={value}
-                                    onChange={handleInputChange}
-                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
-                                    placeholder="Enter phone number"
-                                    required
-                                />
-                            ) : (
-                                <input
-                                    type="text"
-                                    id={key}
-                                    name={key}
-                                    value={value}
-                                    onChange={handleInputChange}
-                                    className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
-                                    placeholder={`Enter ${key.replace(/_/g, ' ')}`}
-                                    required={key !== 'location_gym'}
-                                />
-                            )}
-                            {errors[key] && (
-                                <p className="mt-2 text-sm text-red-600">{errors[key]}</p>
-                            )}
-                        </div>
-                    ))}
+                <div className="grid grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="first_name">First Name</label>
+                        <input
+                            type="text"
+                            id="first_name"
+                            name="first_name"
+                            value={clientForm.first_name}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            required
+                        />
+                        {errors.first_name && <p className="mt-2 text-sm text-red-600">{errors.first_name}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="last_name">Last Name</label>
+                        <input
+                            type="text"
+                            id="last_name"
+                            name="last_name"
+                            value={clientForm.last_name}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            required
+                        />
+                        {errors.last_name && <p className="mt-2 text-sm text-red-600">{errors.last_name}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="dob">Date of Birth</label>
+                        <input
+                            type="date"
+                            id="dob"
+                            name="dob"
+                            value={clientForm.dob}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            required
+                        />
+                        {errors.dob && <p className="mt-2 text-sm text-red-600">{errors.dob}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="gender">Gender</label>
+                        <select
+                            id="gender"
+                            name="gender"
+                            value={clientForm.gender}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            required
+                        >
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        {errors.gender && <p className="mt-2 text-sm text-red-600">{errors.gender}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="occupation">Occupation</label>
+                        <input
+                            type="text"
+                            id="occupation"
+                            name="occupation"
+                            value={clientForm.occupation}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            required
+                        />
+                        {errors.occupation && <p className="mt-2 text-sm text-red-600">{errors.occupation}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="email">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={clientForm.email}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            required
+                        />
+                        {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="phone_number">Phone Number</label>
+                        <input
+                            type="tel"
+                            id="phone_number"
+                            name="phone_number"
+                            value={clientForm.phone_number}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            placeholder="Enter phone number"
+                            required
+                        />
+                        {errors.phone_number && <p className="mt-2 text-sm text-red-600">{errors.phone_number}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="street_address">Street Address</label>
+                        <input
+                            type="text"
+                            id="street_address"
+                            name="street_address"
+                            value={clientForm.street_address}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            placeholder="Enter street address"
+                            required
+                        />
+                        {errors.street_address && <p className="mt-2 text-sm text-red-600">{errors.street_address}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="city">City</label>
+                        <input
+                            type="text"
+                            id="city"
+                            name="city"
+                            value={clientForm.city}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            placeholder="Enter city"
+                            required
+                        />
+                        {errors.city && <p className="mt-2 text-sm text-red-600">{errors.city}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="state">State</label>
+                        <input
+                            type="text"
+                            id="state"
+                            name="state"
+                            value={clientForm.state}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            placeholder="Enter state"
+                            required
+                        />
+                        {errors.state && <p className="mt-2 text-sm text-red-600">{errors.state}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="zip_code">Zip Code</label>
+                        <input
+                            type="text"
+                            id="zip_code"
+                            name="zip_code"
+                            value={clientForm.zip_code}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            placeholder="Enter zip code"
+                            required
+                        />
+                        {errors.zip_code && <p className="mt-2 text-sm text-red-600">{errors.zip_code}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900" htmlFor="location_gym">Location Gym</label>
+                        <input
+                            type="text"
+                            id="location_gym"
+                            name="location_gym"
+                            value={clientForm.location_gym}
+                            onChange={handleInputChange}
+                            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+                            placeholder="Enter gym location"
+                        />
+                        {errors.location_gym && <p className="mt-2 text-sm text-red-600">{errors.location_gym}</p>}
+                    </div>
                 </div>
                 {!warnings.duplicate_name && (
                     <button type="submit" className="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm w-full p-2.5 text-center mt-6">

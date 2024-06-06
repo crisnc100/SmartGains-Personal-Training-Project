@@ -14,7 +14,7 @@ const Sidebar = ({ sidebarToggle }) => {
         <h1 className='text-2xl text-white font-bold' style={{ fontSize: '26px' }}>Dashboard</h1>
       </div>
       <hr />
-      <ul className='mt-4 space-y-2' style={{ fontSize: '17px' }}>
+      <ul className='mt-4 space-y-2' style={{ fontSize: '17px', color: 'white' }}>
         <li className='rounded hover:shadow-lg hover:bg-blue-600 transition duration-300 ease-in-out py-3'>
           <NavLink to="/trainer_dashboard" className={({ isActive }) => isActive ? 'active link px-4' : 'link px-4'}>
             <FaHome className="inline-block w-6 h-6 mr-3 -mt-1" />
