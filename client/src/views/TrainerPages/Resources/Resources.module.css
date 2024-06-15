@@ -3,7 +3,8 @@
     flex-direction: column;
     align-items: center;
     padding: 3rem 2rem;
-    background: #0a0a23; /* Dark blue background */
+    background: #040C18; /*Main blue color */
+    /* Dark blue background: #0a0a23*/
   }
   
   .resourcesHeading {

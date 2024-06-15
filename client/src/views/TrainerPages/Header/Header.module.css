@@ -102,6 +102,13 @@
 .headerImage img {
   width: 80%;
   height: auto;
+  filter: brightness(100%);
+  transition: filter 0.3s ease;
+}
+
+.headerImage img:hover {
+  filter: brightness(120%);
+
 }
 
 @media screen and (max-width: 1050px) {

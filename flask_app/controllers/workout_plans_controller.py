@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify, json
 from flask_app import app
 from flask_app.config.mysqlconnection import connectToMySQL
 from flask_app.models.client_model import Client
@@ -8,6 +8,9 @@ from flask_app.models.generated_plans_model import GeneratedPlan
 from flask import current_app
 from flask_app import mail
 from flask_mail import Message
+from datetime import datetime
+
+
 
 
 #Quick Plan Logic:
@@ -111,7 +114,51 @@ def delete_custom_plan(plan_id):
     except Exception as e:
         print(f"An error occurred while deleting Custom Plan with ID {plan_id}: {str(e)}")
         return jsonify({"success": False, "message": f"An error occurred while deleting the Custom Plan: {str(e)}"}), 500
+
+
+@app.route('/api/pin_plan_for_today/<int:plan_id>', methods=['POST'])
+def pin_plan_for_today(plan_id):
+    try:
+        result = GeneratedPlan.pin_for_today(plan_id)
+        if result:
+            return jsonify({"success": True, "message": "Plan pinned for today."})
+        else:
+            print("Failed to pin the plan.")
+            return jsonify({"success": False, "message": "Failed to pin the plan."}), 500
+    except Exception as e:
+        print(f"Error in pin_plan_for_today endpoint: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/api/get_pinned_plans', methods=['GET'])
+def get_pinned_plans():
+    try:
+        pinned_plans = GeneratedPlan.get_pinned_plans()
+        return jsonify({"success": True, "pinned_plans": [plan.serialize() for plan in pinned_plans]})
+    except Exception as e:
+        print(f"Error in get_pinned_plans endpoint: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/api/unpin_plan/<int:plan_id>', methods=['POST'])
+def unpin_plan(plan_id):
+    try:
+        result = GeneratedPlan.unpin_plan(plan_id)
+        if result:
+            return jsonify({"success": True, "message": "Plan unpinned."})
+        else:
+            return jsonify({"success": False, "message": "Failed to unpin the plan."}), 500
+    except Exception as e:
+        print(f"Error in unpin_plan endpoint: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
     
+@app.route('/api/check_pin_status/<int:plan_id>', methods=['GET'])
+def check_pin_status(plan_id):
+    try:
+        is_pinned = GeneratedPlan.check_pin_status(plan_id)
+        return jsonify({"success": True, "is_pinned": is_pinned})
+    except Exception as e:
+        print(f"Error in check_pin_status endpoint: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
 
 #Session Progress Logic: 
 
@@ -362,3 +409,36 @@ def email_session_to_client():
     except Exception as e:
         print(f"Error sending email: {e}")
         return jsonify({"success": False, "message": "Failed to send email."}), 500
+
+
+@app.route('/api/mark_plan_completed/<int:client_id>/<int:plan_id>', methods=['POST'])
+def mark_plan_completed(client_id, plan_id):
+    data = request.get_json()
+    progress = data.get('progress', {})
+    
+    review_data = {
+        'name': data.get('name', 'Workout Plan'),
+        'date': data.get('date', datetime.now().strftime('%Y-%m-%d')),
+        'workout_type': data.get('workout_type', 'Strength Training'),  # Default to 'Strength Training'
+        'duration_minutes': data.get('duration_minutes', 60),
+        'exercises_log': json.dumps(progress),
+        'intensity_level': data.get('intensity_level', 'moderate'),
+        'location': data.get('location', 'Local Gym'),
+        'workout_rating': data.get('workout_rating', 5),
+        'trainer_notes': data.get('trainer_notes', ''),  # Empty for the trainer to fill out
+        'workout_source': 'AI',  # Default to 'AI' for generated plans
+        'client_id': client_id
+    }
+
+    # Mark the plan as completed
+    success = GeneratedPlan.mark_as_completed(plan_id)
+
+    if not success:
+        return jsonify({'error': 'Failed to mark the plan as completed'}), 500
+
+    # Log the workout session
+    workout_log_id = WorkoutProgress.save(review_data)
+    if not workout_log_id:
+        return jsonify({'error': 'Failed to log the workout session'}), 500
+
+    return jsonify({'message': 'Plan marked as completed and logged as workout', 'workout_log_id': workout_log_id}), 200

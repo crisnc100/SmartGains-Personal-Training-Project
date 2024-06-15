@@ -1,17 +1,23 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import logo_horziontal from '../../assets/logo_horziontal.png';
+import styles from './SideBar.module.css'
+
 import { FaHome, FaUserPlus, FaUsers, FaClock, FaBan, FaCalendar, FaBolt, FaDumbbell, FaAppleAlt, FaClipboardList, FaBookOpen, FaClipboardCheck, FaUtensils, FaBook } from 'react-icons/fa';
 const Sidebar = ({ sidebarToggle }) => {
   const [activeTab, setActiveTab] = useState(null);
+  
 
   const handleToggle = (tab) => {
     setActiveTab(activeTab === tab ? null : tab);
   };
 
   return (
-    <div className={`${sidebarToggle ? 'hidden' : 'block'} w-72 bg-gray-900 fixed h-full p-4`} style={{ top: '0px' }}>
+    <div className={`${sidebarToggle ? 'hidden' : 'block'} w-72 bg-[#040C18] fixed h-full p-4`} style={{ top: '0px' }}>
       <div className='my-2 mb-4'>
-        <h1 className='text-2xl text-white font-bold' style={{ fontSize: '26px' }}>Dashboard</h1>
+      <span className={styles.brand}>
+        <img src={logo_horziontal} alt="SmartGains Logo" />
+</span>
       </div>
       <hr />
       <ul className='mt-4 space-y-2' style={{ fontSize: '17px', color: 'white' }}>

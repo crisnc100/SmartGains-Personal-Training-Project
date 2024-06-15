@@ -53,6 +53,14 @@ class ExerciseLibrary:
         for row in results:
             exercises.append(cls(row))
         return exercises
+    
+
+    @classmethod
+    def get_by_name(cls, name):
+        query = "SELECT * FROM exercise_library WHERE name = %s"
+        data = (name,)
+        results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        return cls(results[0]) if results else None
 
     @classmethod
     def get_exercises_by_body_part(cls, body_part):
@@ -69,4 +77,19 @@ class ExerciseLibrary:
         query = "SELECT DISTINCT body_part FROM exercise_library"
         results = connectToMySQL('fitness_consultation_schema').query_db(query)
         return [row['body_part'] for row in results]
-        
+    
+
+    @classmethod
+    def update(cls, exercise):
+        query = """
+        UPDATE exercise_library 
+        SET gif_url = %s, updated_at = NOW() 
+        WHERE name = %s
+        """
+        data = (exercise['gif_url'], exercise['name'])
+        try:
+            connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        except Exception as e:
+            print(f"Error updating exercise: {e}")
+            return None
+        return True

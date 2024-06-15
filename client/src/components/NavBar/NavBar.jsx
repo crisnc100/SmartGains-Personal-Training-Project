@@ -25,7 +25,9 @@ const Navbar = () => {
       </div>
       <div className={styles.navbarSign}>
         <p><Link to="/login_page">Sign in</Link></p>
-        <button type="button"><Link to="/new_trainer">Sign up</Link></button>
+        <Link to="/new_trainer">
+          <button type="button">Sign up</button>
+        </Link>
       </div>
       <div className={styles.navbarMenu}>
         {toggleMenu

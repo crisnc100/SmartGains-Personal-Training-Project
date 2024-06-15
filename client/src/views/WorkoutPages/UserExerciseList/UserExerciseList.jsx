@@ -3,9 +3,13 @@ import axios from 'axios';
 import styles from './UserExerciseList.module.css';
 import { FaFilter, FaTrashAlt, FaCheckCircle, FaRegEdit, FaEye, FaTimes } from 'react-icons/fa';
 import AddExerciseModal from '../AddExerciseModal';
+import EditExerciseModal from '../EditExerciseModal';
 import { useUser } from '../../../contexts/UserContext';
 import { Tooltip } from 'react-tooltip';
 import Select, { components } from 'react-select';
+import { Rnd } from 'react-rnd';
+
+
 import Modal from 'react-modal';
 
 axios.defaults.withCredentials = true;
@@ -52,14 +56,17 @@ const UserExerciseList = ({ onReturnBack }) => {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const filterRef = useRef(null);
   const containerRef = useRef(null);
-  const [showExerciseModal, setShowExerciseModal] = useState(false);
+  const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
+  const [showEditExerciseModal, setShowEditExerciseModal] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState(null);
   const [showOnlyCustomExercises, setShowOnlyCustomExercises] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [tooltipVisible, setTooltipVisible] = useState(true);
 
- 
+
+
 
   useEffect(() => {
     fetchFavoriteExercises();
@@ -108,11 +115,32 @@ const UserExerciseList = ({ onReturnBack }) => {
 
   const handleSearch = (event) => setSearchTerm(event.target.value);
   const handleTitleClick = (exerciseId) => setExpandedExerciseId(prevId => (prevId === exerciseId ? null : exerciseId));
-  const openExerciseModal = () => setShowExerciseModal(true);
-  const closeExerciseModal = () => setShowExerciseModal(false);
+  const openAddExerciseModal = () => {
+    setSelectedExercise(null);
+    setShowAddExerciseModal(true);
+  };
+
+  const openEditExerciseModal = (exercise) => {
+    setSelectedExercise(exercise);
+    setShowEditExerciseModal(true);
+  };
+
+  const closeExerciseModal = () => {
+    setSelectedExercise(null);
+    setShowAddExerciseModal(false);
+    setShowEditExerciseModal(false);
+  };
   const handleEquipmentChange = (selectedOptions) => setSelectedEquipment(selectedOptions ? selectedOptions.map(option => option.value) : []);
   const handleMuscleChange = (selectedOptions) => setSelectedMuscles(selectedOptions ? selectedOptions.map(option => option.value) : []);
   const handleCustomExerciseToggle = () => setShowOnlyCustomExercises(!showOnlyCustomExercises);
+
+  const updateCustomExerciseList = (updatedExercise) => {
+    setCustomExercises(prevExercises =>
+      prevExercises.map(exercise =>
+        exercise.id === updatedExercise.id ? updatedExercise : exercise
+      )
+    );
+  };
 
   const removeFavoriteExercise = async (exerciseId) => {
     try {
@@ -163,6 +191,19 @@ const UserExerciseList = ({ onReturnBack }) => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target) && !containerRef.current.contains(event.target)) {
+        setIsFilterVisible(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const customStyles = {
     control: (provided) => ({
       ...provided,
@@ -207,7 +248,45 @@ const UserExerciseList = ({ onReturnBack }) => {
     setModalIsOpen(false);
     setVideoUrl('');
     setTooltipVisible(true);
-   
+  };
+
+  const renderVideoContent = (url) => {
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      const videoId = url.split('v=')[1] || url.split('youtu.be/')[1];
+      const embedUrl = `https://www.youtube.com/embed/${videoId.split('&')[0]}`;
+      return (
+        <iframe
+          width="100%"
+          height="100%"
+          src={embedUrl}
+          title="YouTube video"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+      );
+    } else if (url.includes('vimeo.com')) {
+      const videoId = url.split('vimeo.com/')[1];
+      const embedUrl = `https://player.vimeo.com/video/${videoId}`;
+      return (
+        <iframe
+          width="100%"
+          height="100%"
+          src={embedUrl}
+          title="Vimeo video"
+          frameBorder="0"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+      );
+    } else {
+      return (
+        <video controls className={styles.videoContainer}>
+          <source src={url} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      );
+    }
   };
 
   if (loading) return <p style={{ color: 'blue' }}>Loading...</p>;
@@ -286,12 +365,13 @@ const UserExerciseList = ({ onReturnBack }) => {
       )}
       <div className="flex justify-end space-x-2 mt-4">
         <button
-          onClick={openExerciseModal}
+          onClick={openAddExerciseModal}
           className="px-4 py-2 overflow-hidden text-sm text-green-500 border border-green-500 hover:bg-green-500 hover:text-white rounded-md cursor-pointer shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 ease-out focus:outline-none"
         >
           Add Exercise
         </button>
-        {showExerciseModal && <AddExerciseModal onClose={closeExerciseModal} />}
+        {showAddExerciseModal && <AddExerciseModal onClose={closeExerciseModal} />}
+
       </div>
       <ul className={styles.exerciseList}>
         {currentExercises.map(exercise => (
@@ -332,12 +412,18 @@ const UserExerciseList = ({ onReturnBack }) => {
                 <>
                   <button
                     className={styles.editButton}
-                    onClick={() => alert('Edit exercise not implemented yet')}
+                    onClick={() => openEditExerciseModal(exercise)}
                     data-tooltip-id={`tooltip-icons-${exercise.id}`}
                     data-tooltip-content="Edit Exercise"
                   >
                     <FaRegEdit />
                   </button>
+                  {showEditExerciseModal && <EditExerciseModal 
+                  onClose={closeExerciseModal} 
+                  exercise={selectedExercise} 
+                  onUpdateExercise={updateCustomExerciseList}
+                  />}
+
                   <button
                     className={styles.removeButton}
                     onClick={() => removeCustomExercise(exercise.id)}
@@ -357,9 +443,9 @@ const UserExerciseList = ({ onReturnBack }) => {
                   <FaTrashAlt />
                 </button>
               )}
-             {tooltipVisible && (
-                    <Tooltip id={`tooltip-icons-${exercise.id}`} place="top" type="dark" effect="solid" style={{ padding: '3px 8px', fontSize: '12px' }} />
-                  )}
+              {tooltipVisible && (
+                <Tooltip id={`tooltip-icons-${exercise.id}`} place="top" type="dark" effect="solid" style={{ padding: '3px 8px', fontSize: '12px' }} />
+              )}
             </div>
           </li>
         ))}
@@ -378,17 +464,29 @@ const UserExerciseList = ({ onReturnBack }) => {
         overlayClassName={styles.overlay}
         contentLabel="Exercise Video Modal"
       >
-        <h2 className={styles.modalTitle}>Video Exercise</h2>
-        <button onClick={closeModal} className={styles.closeButton}>
-          <FaTimes />
-        </button>
-        <video controls className={styles.video}>
-          <source src={videoUrl} type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
+        <Rnd
+          default={{
+            x: (window.innerWidth - 2000) / 2,
+            y: (window.innerHeight - 1000) / 2,
+            width: 800,
+            height: 450,
+          }}
+          minWidth={300}
+          minHeight={200}
+          bounds="window"
+          style={{ background: 'white', padding: '10px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', borderRadius: '8px' }}
+        >
+          <div className={styles.modalContent}>
+            <h2 className={styles.modalTitle}>Video Exercise</h2>
+            <button onClick={closeModal} className={styles.closeButton}>
+              <FaTimes />
+            </button>
+            <div className={styles.videoContainer}>
+              {renderVideoContent(videoUrl)}
+            </div>
+          </div>
+        </Rnd>
       </Modal>
-
-
     </div>
   );
 };

@@ -1,0 +1,1 @@
+Invoke-RestMethod -Uri http://localhost:5000/api/update_gif_urls -Method Get

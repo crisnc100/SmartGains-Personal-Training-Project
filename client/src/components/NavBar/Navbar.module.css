@@ -30,6 +30,7 @@
   object-fit: contain; /* Ensure the image fits within the container */
 }
 
+
 /* Navigation links container */
 .navbarLinksContainer {
   display: flex;
@@ -99,6 +100,7 @@
 .navbarSign button:hover {
   background: #115186;
 }
+
 
 /* Mobile menu toggle */
 .navbarMenu {

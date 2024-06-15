@@ -1,0 +1,11 @@
+.brand{
+    height: auto;
+    width: 20px;
+    cursor: pointer;
+}
+.brand img{
+    height: auto;
+    width: 12rem;
+    transform: scale(1.2); 
+    margin-left: 1rem;
+}

@@ -7,6 +7,7 @@ class DemoPlan:
         self.name = data.get('name')
         self.demo_plan_details = data.get('demo_plan_details')
         self.date = data.get('date', None)  
+        self.completed_marked = data.get('completed_marked', 0)
         self.created_at = data.get('created_at', None)
         self.updated_at = data.get('updated_at', None)
         self.client_id = data.get('client_id')
@@ -19,6 +20,7 @@ class DemoPlan:
             'name': self.name,
             'demo_plan_details': self.demo_plan_details,
             'date': self.date,
+            'completed_marked': self.completed_marked,
             'created_at': str(self.created_at),  
             'updated_at': str(self.updated_at),
             'client_id': self.client_id
@@ -28,11 +30,12 @@ class DemoPlan:
         data = {
             'client_id': self.client_id,
             'name': self.name if self.name else "Quick 3-Day Plan",  # Provided a default name if none provided
-            'demo_plan_details': self.demo_plan_details
+            'demo_plan_details': self.demo_plan_details,
+            'completed_marked': self.completed_marked
         }
         query = """
-        INSERT INTO demo_plans (client_id, name, demo_plan_details, date, created_at, updated_at) 
-        VALUES (%(client_id)s, %(name)s, %(demo_plan_details)s, NOW(), NOW(), NOW());
+        INSERT INTO demo_plans (client_id, name, demo_plan_details, completed_marked, date, created_at, updated_at) 
+        VALUES (%(client_id)s, %(name)s, %(demo_plan_details)s, %(completed_marked)s, NOW(), NOW(), NOW());
         """
         return connectToMySQL('fitness_consultation_schema').query_db(query, data)
 
@@ -125,6 +128,16 @@ class DemoPlan:
         except Exception as e:
             print(f"An error occurred while updating: {e}")
             return False
+    
+    @classmethod
+    def mark_as_completed(cls, plan_id):
+        query = """
+            UPDATE demo_plans
+            SET completed_marked = 1, updated_at = NOW()
+            WHERE id = %(plan_id)s;
+        """
+        data = {'plan_id': plan_id}
+        return connectToMySQL('fitness_consultation_schema').query_db(query, data)
 
 
     

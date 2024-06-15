@@ -53,11 +53,11 @@ const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onD
           {/* Tab Headers */}
           <button onClick={() => setActiveSubTab('demoPlans')} 
                   className={`px-4 py-2 mr-2 text-sm font-semibold ${activeSubTab === 'demoPlans' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-black'}`}>
-            Demo Plans
+            Quick Plans
           </button>
           <button onClick={() => setActiveSubTab('generatedPlans')} 
                   className={`px-4 py-2 mr-2 text-sm font-semibold ${activeSubTab === 'generatedPlans' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-black'}`}>
-            Generated Plans
+            Custom Plans
           </button>
           <button onClick={() => setActiveSubTab('progress')}
                   className={`px-4 py-2 text-sm font-semibold ${activeSubTab === 'progress' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-black'}`}>

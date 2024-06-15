@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactDOMServer from 'react-dom/server';
 import { format, differenceInYears } from 'date-fns';
-import ClipLoader from 'react-spinners/ClipLoader';  // Import the spinner component
+import ClipLoader from 'react-spinners/ClipLoader';  // Imported the spinner component
 
 const DemoPrompt = () => {
   const { clientId } = useParams();

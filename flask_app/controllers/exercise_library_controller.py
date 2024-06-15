@@ -47,6 +47,36 @@ def load_all_exercises():
 
     return 'Exercises loaded into the database', 201
 
+@app.route('/api/update_gif_urls', methods=['GET'])
+def update_gif_urls():
+    url = 'https://exercisedb.p.rapidapi.com/exercises'
+    headers = {
+        'X-RapidAPI-Key': os.getenv('RAPIDAPI_KEY'),
+        'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com'
+    }
+
+    querystring = {"limit": "1400"}  # Adjust the limit as needed
+    response = requests.get(url, headers=headers, params=querystring)
+    data = response.json()
+
+    # Log the response for debugging
+    print(f"API Response: {data}")
+
+    for exercise in data:
+        exercise_name = exercise['name']
+        new_gif_url = exercise['gifUrl']
+
+        existing_exercise = ExerciseLibrary.get_by_name(exercise_name)
+        if existing_exercise:
+            updated_exercise = existing_exercise.serialize()
+            updated_exercise['gif_url'] = new_gif_url
+            ExerciseLibrary.update(updated_exercise)
+
+    return 'GIF URLs updated', 200
+
+
+
+
 
 @app.route('/api/get_all_exercises', methods=['GET'])
 def get_all_exercises():
@@ -95,19 +125,26 @@ def add_new_exercise():
         return jsonify({'error': 'No input data provided'}), 400
     
     try:
+        # Ensure trainer_id is in session
+        if 'trainer_id' not in session:
+            return jsonify({'error': 'Trainer not authenticated'}), 401
+        
+        trainer_id = session['trainer_id']
+        
         new_exercise = {
-            'name': request.form['name'],
-            'body_part': request.form['body_part'],
-            'equipment': request.form['equipment'],
-            'target_muscle': request.form['target_muscle'],
+            'name': request.form.get('name'),
+            'body_part': request.form.get('body_part'),
+            'equipment': request.form.get('equipment'),
+            'target_muscle': request.form.get('target_muscle'),
             'secondary_muscles': request.form.get('secondary_muscles', ''),
             'instructions': request.form.get('instructions', ''),
             'gif_url': request.form.get('gif_url', ''),
             'video_url': request.form.get('video_url', ''),
-            'fitness_level': request.form['fitness_level'],
-            'trainer_id': request.form['trainer_id']
+            'fitness_level': request.form.get('fitness_level'),
+            'trainer_id': trainer_id
         }
 
+        # Handle gif file upload
         if 'gif_file' in request.files and request.files['gif_file'].filename != '':
             gif_file = request.files['gif_file']
             if allowed_file(gif_file.filename):
@@ -116,6 +153,7 @@ def add_new_exercise():
                 gif_file.save(gif_file_path)
                 new_exercise['gif_url'] = f'/uploads/{filename}'
         
+        # Handle video file upload
         if 'video_file' in request.files and request.files['video_file'].filename != '':
             video_file = request.files['video_file']
             if allowed_file(video_file.filename):
@@ -124,8 +162,55 @@ def add_new_exercise():
                 video_file.save(video_file_path)
                 new_exercise['video_url'] = f'/uploads/{filename}'
 
+        # Assuming CustomExercises.save(new_exercise) is your method to save the exercise
         exercise_id = CustomExercises.save(new_exercise)
         return jsonify({'message': 'Exercise added successfully', 'exercise_id': exercise_id}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    
+@app.route('/api/update_custom_exercise/<int:exercise_id>', methods=['PUT'])
+def update_custom_exercise(exercise_id):
+    if not request.form:
+        return jsonify({'error': 'No input data provided'}), 400
+    
+    try:
+        if 'trainer_id' not in session:
+            return jsonify({'error': 'Trainer not authenticated'}), 401
+        
+        trainer_id = session['trainer_id']
+        
+        updated_exercise = {
+            'id': exercise_id,
+            'name': request.form.get('name'),
+            'body_part': request.form.get('body_part'),
+            'equipment': request.form.get('equipment'),
+            'target_muscle': request.form.get('target_muscle'),
+            'secondary_muscles': request.form.get('secondary_muscles', ''),
+            'instructions': request.form.get('instructions', ''),
+            'gif_url': request.form.get('gif_url', ''),
+            'video_url': request.form.get('video_url', ''),
+            'fitness_level': request.form.get('fitness_level')
+        }
+
+        if 'gif_file' in request.files and request.files['gif_file'].filename != '':
+            gif_file = request.files['gif_file']
+            if allowed_file(gif_file.filename):
+                filename = secure_filename(gif_file.filename)
+                gif_file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                gif_file.save(gif_file_path)
+                updated_exercise['gif_url'] = f'/uploads/{filename}'
+        
+        if 'video_file' in request.files and request.files['video_file'].filename != '':
+            video_file = request.files['video_file']
+            if allowed_file(video_file.filename):
+                filename = secure_filename(video_file.filename)
+                video_file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                video_file.save(video_file_path)
+                updated_exercise['video_url'] = f'/uploads/{filename}'
+
+        CustomExercises.update(updated_exercise)
+        return jsonify({'message': 'Exercise updated successfully', 'updatedExercise': updated_exercise}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

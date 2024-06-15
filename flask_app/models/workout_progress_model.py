@@ -13,6 +13,7 @@ class WorkoutProgress:
         self.location = data.get('location')
         self.workout_rating = data.get('workout_rating')
         self.trainer_notes = data.get('trainer_notes', None)
+        self.workout_source = data.get('workout_source')
         self.created_at = data.get('created_at', None)
         self.updated_at = data.get('updated_at', None)
         self.client_id = data.get('client_id')
@@ -31,6 +32,7 @@ class WorkoutProgress:
             'location': self.location,
             'workout_rating': self.workout_rating,
             'trainer_notes': self.trainer_notes,
+            'workout_source': self.workout_source,
             'created_at': str(self.created_at),  
             'updated_at': str(self.updated_at),
             'client_id': self.client_id
@@ -38,8 +40,11 @@ class WorkoutProgress:
         
     @classmethod
     def save(cls, data):
-        query = """INSERT INTO workout_progress (name, date, workout_type, duration_minutes, exercises_log, intensity_level, location, workout_rating, trainer_notes, created_at, updated_at, client_id) 
-        VALUES (%(name)s, %(date)s, %(workout_type)s, %(duration_minutes)s, %(exercises_log)s, %(intensity_level)s, %(location)s, %(workout_rating)s, %(trainer_notes)s, NOW(), NOW(), %(client_id)s);"""
+        query = """INSERT INTO workout_progress (name, date, workout_type, duration_minutes, exercises_log, intensity_level, location, workout_rating, trainer_notes, 
+        workout_source, created_at, updated_at, client_id) 
+        VALUES (%(name)s, %(date)s, %(workout_type)s, %(duration_minutes)s, %(exercises_log)s, 
+        %(intensity_level)s, %(location)s, %(workout_rating)s, %(trainer_notes)s, %(workout_source)s, 
+        NOW(), NOW(), %(client_id)s);"""
         return connectToMySQL('fitness_consultation_schema').query_db(query, data)
     
     #READ
@@ -95,7 +100,8 @@ class WorkoutProgress:
             UPDATE workout_progress
             SET name = %(name)s, date = %(date)s, workout_type = %(workout_type)s, duration_minutes = %(duration_minutes)s, 
             exercises_log = %(exercises_log)s, intensity_level = %(intensity_level)s, 
-            location = %(location)s, workout_rating = %(workout_rating)s, trainer_notes = %(trainer_notes)s, updated_at = NOW()
+            location = %(location)s, workout_rating = %(workout_rating)s, trainer_notes = %(trainer_notes)s, 
+            workout_source = %(workout_source)s, updated_at = NOW()
             WHERE id = %(id)s;
         """
         print("Running Query:\n", query % data)  # Debug statement

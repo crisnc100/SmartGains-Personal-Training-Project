@@ -32,13 +32,65 @@
     justify-content: space-between;
     margin-top: 20px;
   }
-  .quickStats, .notifications {
-    width: 48%;
+  .quickStats, .notifications, .pinnedPlans {
+    flex: 1;
+    margin: 10px;
     padding: 20px;
-    background-color: #f9f9f9;
+    background-color: white;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   }
-  .statsContent, .notificationsContent {
-    font-size: 16px;
+  
+  .pinnedPlans {
+    margin-top: 20px;
   }
+  
+  .pinnedPlansContent {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .pinnedPlanItem {
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .pinnedPlanButton {
+    background: none;
+    border: none;
+    color: #007bff;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  
+  .pinnedPlanButton:hover {
+    color: #0056b3;
+  }
+  
+  .pinnedPlanClient {
+    font-size: 0.9rem;
+    color: #555;
+  }
+  
+  .removeButton {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    margin: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.removeButton:hover {
+    background-color: #e60000;
+}
+
+  

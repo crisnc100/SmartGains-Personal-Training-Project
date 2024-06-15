@@ -105,7 +105,19 @@ class Client:
             clients.append(cls(result))
         return clients
     
-
+    @classmethod
+    def count_by_trainer(cls, trainer_id):
+        query = """
+            SELECT COUNT(*) as total_clients
+            FROM clients
+            WHERE trainer_id = %(trainer_id)s
+        """
+        data = {'trainer_id': trainer_id}
+        results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        if results:
+            return results[0]['total_clients']
+        else:
+            return 0
 
     @classmethod
     def get_nutrition_profiles_by_trainer(cls, trainer_id):
