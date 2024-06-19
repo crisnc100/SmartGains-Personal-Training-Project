@@ -9,6 +9,10 @@ from flask import current_app
 from flask_app import mail
 from flask_mail import Message
 from datetime import datetime
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+
 
 
 
@@ -183,6 +187,7 @@ def add_workout_session():
         'intensity_level',
         'location',
         'workout_rating',
+        'workout_source'
     ]
     for field in required_fields:
         if field not in data or not data[field]:
@@ -411,34 +416,92 @@ def email_session_to_client():
         return jsonify({"success": False, "message": "Failed to send email."}), 500
 
 
-@app.route('/api/mark_plan_completed/<int:client_id>/<int:plan_id>', methods=['POST'])
-def mark_plan_completed(client_id, plan_id):
-    data = request.get_json()
-    progress = data.get('progress', {})
+@app.route('/api/mark_plan_completed/<int:plan_id>', methods=['POST'])
+def mark_plan_completed(plan_id):
+    try:
+        data = request.get_json()
+        client_id = data.get('client_id')
+        if client_id is None:
+            return jsonify({'error': 'Client ID not found. Unable to add workout session for the client.'}), 400
+        if not data:
+            logging.error('No data provided in request')
+            return jsonify({'error': 'Invalid input data'}), 400
+
+        progress = data.get('progress', [])
+        
+        plan_type = data.get('plan_type')  # Add plan_type to the request data to determine the type of plan
+
+        # Initialize review_data with common fields
+        review_data = {
+            'name': data.get('name', 'Workout Plan'),
+            'date': data.get('date', datetime.now().strftime('%Y-%m-%d')),
+            'workout_type': data.get('workout_type', 'Strength Training'),  # Default to 'Strength Training'
+            'duration_minutes': data.get('duration_minutes', 60),
+            'exercises_log': data.get('combined_text'),
+            'intensity_level': data.get('intensity_level', ''),
+            'location': data.get('location', 'Local Gym'),
+            'workout_rating': data.get('workout_rating', 5),
+            'trainer_notes': data.get('trainer_notes', ''),  # Empty for the trainer to fill out
+            'workout_source': 'AI',  # Default to 'AI' for generated plans
+            'client_id': client_id
+        }
+
+        # Add the correct plan ID based on the plan type
+        if plan_type == 'generated':
+            review_data['generated_plan_id'] = plan_id
+        elif plan_type == 'demo':
+            review_data['demo_plan_id'] = plan_id
+        elif plan_type == 'adaptive':
+            review_data['adaptive_plan_id'] = plan_id
+        else:
+            return jsonify({'error': 'Invalid plan type'}), 400
+
+        # Mark the plan as completed
+        success = GeneratedPlan.mark_as_completed(plan_id)
+
+        if not success:
+            logging.error('Failed to mark the plan as completed')
+            return jsonify({'error': 'Failed to mark the plan as completed'}), 500
+
+        # Log the workout session
+        workout_log_id = WorkoutProgress.save(review_data)
+        if not workout_log_id:
+            logging.error('Failed to log the workout session')
+            return jsonify({'error': 'Failed to log the workout session'}), 500
+
+        # Unpin the plan once it's marked as completed
+        unpin_result = GeneratedPlan.unpin_plan(plan_id)
+        if not unpin_result:
+            logging.error('Failed to unpin the plan after marking it as completed')
+
+        return jsonify({'message': 'Plan marked as completed and logged as workout', 'workout_log_id': workout_log_id}), 200
+
+    except Exception as e:
+        logging.error(f'An error occurred: {str(e)}')
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+
     
-    review_data = {
-        'name': data.get('name', 'Workout Plan'),
-        'date': data.get('date', datetime.now().strftime('%Y-%m-%d')),
-        'workout_type': data.get('workout_type', 'Strength Training'),  # Default to 'Strength Training'
-        'duration_minutes': data.get('duration_minutes', 60),
-        'exercises_log': json.dumps(progress),
-        'intensity_level': data.get('intensity_level', 'moderate'),
-        'location': data.get('location', 'Local Gym'),
-        'workout_rating': data.get('workout_rating', 5),
-        'trainer_notes': data.get('trainer_notes', ''),  # Empty for the trainer to fill out
-        'workout_source': 'AI',  # Default to 'AI' for generated plans
-        'client_id': client_id
-    }
 
-    # Mark the plan as completed
-    success = GeneratedPlan.mark_as_completed(plan_id)
+@app.route('/api/get_plan_completion_status/<int:plan_id>', methods=['GET'])
+def get_plan_completion_status(plan_id):
+    try:
+        result = GeneratedPlan.get_completion_status_and_date(plan_id)
+        if not result:
+            return jsonify({"error": "Plan not found"}), 404
 
-    if not success:
-        return jsonify({'error': 'Failed to mark the plan as completed'}), 500
+        completion_date = result['completion_date']
+        if completion_date:
+            completion_date = completion_date.strftime('%Y-%m-%d')
+        else:
+            completion_date = None
 
-    # Log the workout session
-    workout_log_id = WorkoutProgress.save(review_data)
-    if not workout_log_id:
-        return jsonify({'error': 'Failed to log the workout session'}), 500
+        return jsonify({
+            "completion_status": result['completed_marked'],
+            "completion_date": completion_date
+        })
+    except Exception as e:
+        logging.error(f'An error occurred: {str(e)}')
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
-    return jsonify({'message': 'Plan marked as completed and logged as workout', 'workout_log_id': workout_log_id}), 200
+

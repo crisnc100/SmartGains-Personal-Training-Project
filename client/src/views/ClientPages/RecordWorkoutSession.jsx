@@ -79,7 +79,8 @@ const RecordWorkoutSession = () => {
         intensityLevel: '',
         location: '',
         workoutRating: '',
-        trainerNotes: ''
+        trainerNotes: '',
+        workoutSource: 'Manual'
     });
     const [submitClicked, setSubmitClicked] = useState(false); // New state to track form submission
     const [unit, setUnit] = useState('kg'); // State to track unit
@@ -199,6 +200,7 @@ const RecordWorkoutSession = () => {
                 location: formData.location,
                 workout_rating: formData.workoutRating,
                 trainer_notes: formData.trainerNotes,
+                workout_source: formData.workoutSource,
                 client_id: clientId
             };
 

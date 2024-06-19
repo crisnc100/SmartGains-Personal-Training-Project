@@ -152,12 +152,37 @@ def generate_custom_plan(client_id):
 
     # Instructions for how the AI should structure the workout plan
     additional_instructions = """
-    \n\nPlease format the workout plan with clear headers for each part of the workout, including specific 
-    exercises, sets, reps, and rest periods. Detail the intensity of weights where applicable and provide 
-    alternatives for each exercise if the specified equipment is not available. Ensure the language is clear 
-    and concise, suitable for both beginners and experienced individuals, focusing on safety and effective 
-    progression.
-    """
+    \n\nPlease format the workout plan with clear headers for each part of the workout. The format should include 
+    the following sections:
+        
+        # [Client's Name]'s [Workout Name] Workout Plan
+        ## Warm-Up
+        - **Exercise Name**: Description (duration)
+        - **Exercise Name**: Description (duration)
+        - ...
+
+        ## Main Workout
+        ### [Muscle Group/Workout Focus]
+        1. **Exercise Name**
+            - **Sets**: X
+            - **Reps**: X
+            - **Rest**: X seconds
+            - **Intensity**: [Description]
+            - **Alternative**: [Alternative exercise if equipment is not available]
+        2. **Exercise Name**
+            - **Sets**: X
+            - **Reps**: X
+            - **Rest**: X seconds
+            - **Intensity**: [Description]
+            - **Alternative**: [Alternative exercise if equipment is not available]
+        3. ...
+
+        ## Cool Down
+        - **Exercise Name**: Description (duration)
+        - ...
+
+        Ensure the language is clear and concise, suitable for both beginners and experienced individuals, focusing on safety and effective progression. Use bullet points for each attribute (Sets, Reps, Rest, etc.) and maintain consistent formatting throughout the plan.
+        """
 
     final_prompt = trainers_prompt + additional_instructions
 
@@ -206,7 +231,6 @@ def get_recent_custom_plan(client_id):
     if not generated_plan:
         return jsonify({"error": "No custom plan found for the specified client."}), 404
 
-   
     return jsonify({
         "success": True,
         "generated_plan": {
@@ -218,6 +242,7 @@ def get_recent_custom_plan(client_id):
             "generated_plan_details": generated_plan.generated_plan_details
         }
     })
+
 
 
 

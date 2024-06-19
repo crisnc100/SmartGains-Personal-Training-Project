@@ -112,7 +112,7 @@ const ViewQuickPlan = () => {
                         )}
                     </div>
                     <div className="text-lg font-semibold text-gray-700">
-                        Plan Date: <span className="font-normal">{new Date(demoPlan.demo_plan_date).toLocaleDateString()}</span>
+                        Plan Created: <span className="font-normal">{new Date(demoPlan.demo_plan_date).toLocaleDateString()}</span>
                     </div>
                     <div className="flex justify-end space-x-2 mt-4">
                         <button onClick={isEditMode ? saveChanges : toggleEditMode} className="px-4 py-2 border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors duration-300 ease-in-out rounded">

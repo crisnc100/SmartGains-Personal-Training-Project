@@ -9,6 +9,11 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
+import { format, parseISO } from 'date-fns'; // Import date-fns for date formatting
+
+
+
+
 
 const ViewCustomPlan = () => {
     const { planId, clientId } = useParams();
@@ -25,35 +30,58 @@ const ViewCustomPlan = () => {
     const [currentProgress, setCurrentProgress] = useState({});
     const [visibleInputs, setVisibleInputs] = useState({});
     const [intensity, setIntensity] = useState('Moderate');
-    const [exercisesText, setExercisesText] = useState('');
-    const [exerciseLogs, setExerciseLogs] = useState([]);
+    const [combinedText, setCombinedText] = useState('');
+    const [workoutType, setWorkoutType] = useState([]);
+    const [workoutRating, setWorkoutRating] = useState('5');  // Add this state
+    const [completionStatus, setCompletionStatus] = useState(false);
+    const [completionDate, setCompletionDate] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(0);  // Add a state to trigger refresh
+
+
+
 
     useEffect(() => {
         axios.get(`http://localhost:5000/api/get_generated_plan/${planId}`)
             .then(response => {
                 const planData = response.data;
-                console.log('Fetched plan data:', planData);
                 setGeneratedPlan(planData);
                 setEditableData(planData);
-                const exercises = getExercisesFromPlanDetails(planData.generated_plan_details);
-
-                setExercisesText(exercises.exercisesText);
-                setExerciseLogs(exercises.exerciseLogs);
+                setCombinedText(generateCombinedText(planData));
                 setLoading(false);
+                setIntensity(planData.intensity || 'Moderate');
             })
             .catch(error => {
                 console.error('Error fetching data:', error);
                 setError('Failed to fetch data');
                 setLoading(false);
             });
-    }, [planId]);
 
+        axios.get(`http://localhost:5000/api/get_plan_completion_status/${planId}`)
+            .then(response => {
+                const { completion_status, completion_date } = response.data;
+                console.log(`Fetched completion status: ${completion_status}, completion date: ${completion_date}`); // Debug log
+
+                // Convert completion date to local time
+                if (completion_status) {
+                    setCompletionStatus(completion_status);
+                    if (completion_date) {
+                        setCompletionDate(format(parseISO(completion_date), 'MM/dd/yyyy'));
+                    } else {
+                        setCompletionDate(null);
+                    }
+                } else {
+                    setCompletionStatus(null);
+                    setCompletionDate(null);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching completion status:', error);
+                setError('Failed to fetch completion status');
+            });
+    }, [planId, refreshKey]);
 
     const getExercisesFromPlanDetails = (planDetails) => {
-        if (!planDetails) {
-
-            return { warmUp: [], exercises: [] };
-        }
+        if (!planDetails) return { warmUp: [], exercises: [] };
 
         const lines = planDetails.split('\n');
         const warmUp = [];
@@ -64,26 +92,22 @@ const ViewCustomPlan = () => {
         lines.forEach((line, index) => {
             const isWarmUpSection = /## Warm-Up/i.test(line);
             const isExerciseLine = /(\d+\.\s|\*\*Exercise|\*\*Exercise:)/i.test(line);
-            const isDetailLine = /(\*\*Sets|\*\*Reps|\*\*Rest|\*\*Alternative|\*\*Intensity)/i.test(line);
-            const isEndSection = /## Main Workout|## Cool Down|### Notes/i.test(line);
+            const isDetailLine = /(\*\*Sets|\*\*Reps|\*\*Rest|\*\*Alternative|\*\*Intensity|\*\*Weight|\*\*Notes)/i.test(line);
+            const isEndSection = /## Main Workout|## Cool Down|### Notes|###/i.test(line);
 
             if (isWarmUpSection) {
                 currentSection = 'warmUp';
             } else if (isEndSection) {
                 currentSection = null;
-                if (currentExercise) {
-                    exercises.push(currentExercise);
-                    currentExercise = null;
-                }
+                if (currentExercise) exercises.push(currentExercise);
+                currentExercise = null;
             }
 
             if (currentSection === 'warmUp') {
                 warmUp.push(line);
             } else {
                 if (isExerciseLine) {
-                    if (currentExercise) {
-                        exercises.push(currentExercise);
-                    }
+                    if (currentExercise) exercises.push(currentExercise);
                     currentExercise = { text: line, details: [], index };
                 } else if (currentExercise && isDetailLine) {
                     currentExercise.details.push(line);
@@ -91,38 +115,45 @@ const ViewCustomPlan = () => {
             }
         });
 
-        if (currentExercise) {
-            exercises.push(currentExercise);
-        }
-
+        if (currentExercise) exercises.push(currentExercise);
 
         return { warmUp, exercises };
     };
 
-    const generateCombinedText = () => {
-        const { exercises } = getExercisesFromPlanDetails(generatedPlan.generated_plan_details);
+    const generateCombinedText = (plan) => {
+        const { exercises } = getExercisesFromPlanDetails(plan.generated_plan_details);
         let combinedText = '';
-    
+
         exercises.forEach((exercise, index) => {
             combinedText += exercise.text + '\n';
             combinedText += exercise.details.join('\n') + '\n';
             combinedText += `**Weight:** ${currentProgress[exercise.index]?.weight || ''}\n`;
             combinedText += `**Notes:** ${currentProgress[exercise.index]?.notes || ''}\n\n`;
         });
-    
-        return combinedText.trim(); // Trim to remove any trailing new lines
+
+        return combinedText.trim();
     };
 
     const handleCombinedTextChange = (value) => {
-        const lines = value.split('\n');
+        setCombinedText(value);
+    };
+
+    const parseCombinedText = () => {
+        const lines = combinedText.split('\n');
         const newExercises = [];
         let currentExercise = { text: '', details: [] };
         let currentIndex = -1;
-    
+
         lines.forEach(line => {
             if (line.startsWith('**Weight:**')) {
+                if (!currentProgress[currentIndex]) {
+                    currentProgress[currentIndex] = {};
+                }
                 currentProgress[currentIndex].weight = line.replace('**Weight:** ', '');
             } else if (line.startsWith('**Notes:**')) {
+                if (!currentProgress[currentIndex]) {
+                    currentProgress[currentIndex] = {};
+                }
                 currentProgress[currentIndex].notes = line.replace('**Notes:** ', '');
             } else if (/^\d+\.\s|\*\*Exercise|\*\*Exercise:/i.test(line)) {
                 if (currentExercise.text) {
@@ -134,17 +165,12 @@ const ViewCustomPlan = () => {
                 currentExercise.details.push(line);
             }
         });
-    
-        if (currentExercise.text) {
-            newExercises.push(currentExercise);
-        }
-    
-        setExerciseLogs(newExercises);
-        setCurrentProgress({ ...currentProgress }); // Ensure the state is updated with the new progress
-    };
-    
-    
 
+        if (currentExercise.text) newExercises.push(currentExercise);
+
+        setCurrentProgress({ ...currentProgress });
+        return newExercises;
+    };
 
     const toggleEditMode = () => {
         if (!isEditMode) {
@@ -156,14 +182,56 @@ const ViewCustomPlan = () => {
     const cancelEditMode = () => {
         setIsEditMode(false);
         setEditableData(generatedPlan);
+        setCombinedText(generateCombinedText(generatedPlan)); // Reset combined text to original on cancel
     };
 
     const handleInputChange = (event) => {
-        const { value } = event.target;
+        const { name, value } = event.target;
         setEditableData(prevState => ({
             ...prevState,
-            generated_plan_name: value
+            [name]: value
         }));
+    };
+
+    const handleIntensityChange = (event) => {
+        const { value } = event.target;
+        setIntensity(value);
+        setEditableData(prevState => ({
+            ...prevState,
+            intensity: value
+        }));
+    };
+
+    const handleRatingChange = (event) => {
+        const { value } = event.target;
+        setWorkoutRating(value);
+        setEditableData(prevState => ({
+            ...prevState,
+            workoutRating: value
+        }));
+    };
+
+    const workoutTypes = [
+        'Strength Training',
+        'Cardio',
+        'HIIT',
+        'Yoga',
+        'Pilates',
+        'CrossFit',
+        'Hypertrophy Training',
+        'Powerlifting',
+        'Functional Training',
+        'Mobility',
+    ];
+    const handleWorkoutTypeChange = (e) => {
+        const { value, checked } = e.target;
+        setWorkoutType(prevWorkoutType => {
+            if (checked) {
+                return [...prevWorkoutType, value];
+            } else {
+                return prevWorkoutType.filter(type => type !== value);
+            }
+        });
     };
 
     const sendEmail = () => {
@@ -184,8 +252,6 @@ const ViewCustomPlan = () => {
             });
     };
 
-
-
     const openFeedbackModal = () => setShowFeedbackModal(true);
     const closeFeedbackModal = () => setShowFeedbackModal(false);
 
@@ -195,7 +261,6 @@ const ViewCustomPlan = () => {
             generated_plan_details: editableData.generated_plan_details
         })
             .then(response => {
-                console.log("Attempting to update with response:", response.data);
                 setGeneratedPlan({ ...editableData });
                 setIsEditMode(false);
             })
@@ -215,11 +280,11 @@ const ViewCustomPlan = () => {
             return false;
         }
     };
-    
+
     const enterUseMode = async () => {
         try {
             const isPinned = await checkPinStatus();
-    
+
             if (!isPinned) {
                 const response = await axios.post(`http://localhost:5000/api/pin_plan_for_today/${planId}`);
                 if (!response.data.success) {
@@ -227,33 +292,38 @@ const ViewCustomPlan = () => {
                     return;
                 }
             }
-    
-            const exercises = getExercisesFromPlanDetails(generatedPlan.generated_plan_details);
-            console.log('Exercises in Use Mode:', exercises);
-            setExerciseLogs(exercises.exerciseLogs);
+
+            // Save original plan details before entering use mode
+            setEditableData({ ...generatedPlan });
+            setCombinedText(generateCombinedText(generatedPlan));
+
             setIsUseMode(true);
         } catch (error) {
             console.error("Failed to pin the plan for today:", error);
             alert("Failed to pin the plan for today.");
         }
     };
-    
-    const exitUseMode = () => setIsUseMode(false);
 
-    const logProgress = (exerciseIndex, field, value) => {
-        setCurrentProgress(prevState => ({
-            ...prevState,
-            [exerciseIndex]: {
-                ...prevState[exerciseIndex],
-                [field]: value
-            }
-        }));
-        console.log('Current Progress:', currentProgress); // Debug log
+
+    const exitUseMode = () => {
+        setCombinedText(generateCombinedText(generatedPlan)); // Reset to original combined text
+        setIsUseMode(false);
     };
 
-    const openCompleteModal = () => setShowCompleteModal(true);
+
+    const openCompleteModal = () => {
+        setEditableData(prevState => ({
+            ...prevState,
+            generated_plan_date: format(new Date(), 'yyyy-MM-dd')
+        }));
+        setShowCompleteModal(true);
+    };
     const closeCompleteModal = () => setShowCompleteModal(false);
 
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+    }
 
     const markAsCompleted = async () => {
         try {
@@ -264,20 +334,46 @@ const ViewCustomPlan = () => {
                 notes: currentProgress[exercise.index]?.notes || '',
             }));
 
-            await axios.post(`http://localhost:5000/api/mark_plan_completed/${clientId}/${planId}`, {
-                plan_type: 'generated',
-                progress,
+            const response = await axios.post(`http://localhost:5000/api/mark_plan_completed/${planId}`, {
+                client_id: clientId,  // Include client_id in the request body
+                name: editableData.generated_plan_name,
+                date: editableData.generated_plan_date,
+                workout_type: workoutType.join(', '),  // Add workout types here
+                duration_minutes: editableData.duration || 60,
+                combined_text: combinedText,
+                intensity_level: intensity,
+                location: editableData.location || 'Local Gym',
+                workout_rating: workoutRating,
+                trainer_notes: editableData.trainer_notes || '',
+                plan_type: 'generated'  // Specify the plan type here (change as needed)
+
             });
 
+            console.log('Plan marked as completed and logged as workout:', response.data);
             setShowCompleteModal(false);
-            navigate(`/trainer_dashboard/all_clients/${clientId}/current-client`);
+            setCompletionStatus(true);
+            setCompletionDate(response.data.workout_log_id.date); // Assuming the API returns the date
+            alert('Workout completed and successfully logged!');
+            setIsUseMode(false);
+            setRefreshKey(prevKey => prevKey + 1);  // Trigger a state refresh
+
         } catch (error) {
-            console.error('Failed to mark the plan as completed:', error);
+            console.error('Failed to mark the plan as completed:', error.response ? error.response.data : error.message);
             alert('Failed to mark the plan as completed.');
         }
     };
 
 
+    const logProgress = (exerciseIndex, field, value) => {
+        setCurrentProgress(prevState => ({
+            ...prevState,
+            [exerciseIndex]: {
+                ...prevState[exerciseIndex],
+                [field]: value
+            }
+        }));
+        setCombinedText(generateCombinedText({ ...generatedPlan })); // Update combined text whenever progress is logged
+    };
 
     const toggleVisibility = (index) => {
         setVisibleInputs(prevState => ({
@@ -321,7 +417,6 @@ const ViewCustomPlan = () => {
                                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 ></textarea>
                             ) : (
-                                // Ensure `getExercisesFromPlanDetails` is called correctly
                                 (() => {
                                     const { warmUp, exercises } = getExercisesFromPlanDetails(generatedPlan.generated_plan_details);
                                     return (
@@ -402,8 +497,9 @@ const ViewCustomPlan = () => {
                                 Plan Name: {isEditMode ? (
                                     <input
                                         type="text"
+                                        name="generated_plan_name"
                                         value={editableData.generated_plan_name}
-                                        onChange={(e) => handleInputChange(e, 'generated_plan_name')}
+                                        onChange={handleInputChange}
                                         className="ml-2 p-1 border rounded"
                                     />
                                 ) : (
@@ -411,8 +507,13 @@ const ViewCustomPlan = () => {
                                 )}
                             </div>
                             <div className="text-lg font-semibold text-gray-700">
-                                Plan Date: <span className="font-normal">{new Date(generatedPlan.generated_plan_date).toLocaleDateString()}</span>
+                                Plan Created: <span className='font-normal'>{formatDate(generatedPlan.generated_plan_date)}</span>
                             </div>
+                            {completionStatus && (
+                                <div className="text-lg font-semibold text-green-500">
+                                    Completed On: <span style={{ color: 'black' }} className="font-normal">{formatDate(completionDate)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center mt-4">
                                 <div>
                                     <Tooltip title="Rating helps improve the quality of future plans!" placement="top" arrow>
@@ -433,13 +534,9 @@ const ViewCustomPlan = () => {
                                     <button onClick={sendEmail} disabled={emailSending} className="px-4 py-2 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
                                         {emailSending ? 'Sending...' : 'Email to Client'}
                                     </button>
-                                    {!isUseMode ? (
+                                    {!isUseMode && !completionStatus && (
                                         <button onClick={enterUseMode} className="px-4 py-2 border border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
                                             Use for Today's Session
-                                        </button>
-                                    ) : (
-                                        <button onClick={exitUseMode} className="px-4 py-2 border border-gray-500 text-gray-500 hover:bg-gray-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
-                                            Exit Use Mode
                                         </button>
                                     )}
                                     <button onClick={() => navigate(-1)} className="px-4 py-2 text-white bg-gray-400 hover:bg-gray-600 transition-colors duration-300 ease-in-out rounded">
@@ -455,16 +552,12 @@ const ViewCustomPlan = () => {
                                         value={editableData.generated_plan_details}
                                         onChange={(e) => setEditableData({
                                             ...editableData,
-                                            generated_plan_details: e.target.value  // Update editableData on change
+                                            generated_plan_details: e.target.value
                                         })}
                                         className="w-full p-2 border rounded"
                                     />
                                 ) : (
-                                    <div className="text-gray-600 whitespace-pre-wrap">
-                                        {generatedPlan.generated_plan_details.split('\n').map((line, index) => (
-                                            <div key={index}>{line}</div>
-                                        ))}
-                                    </div>
+                                    <p className="text-gray-600 whitespace-pre-wrap">{generatedPlan.generated_plan_details}</p>
                                 )}
                             </div>
                         </div>
@@ -486,8 +579,9 @@ const ViewCustomPlan = () => {
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Workout Name</label>
                                 <input
                                     type="text"
+                                    name="generated_plan_name"
                                     value={editableData.generated_plan_name}
-                                    readOnly
+                                    onChange={handleInputChange}
                                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 />
                             </div>
@@ -495,17 +589,39 @@ const ViewCustomPlan = () => {
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Date Completed</label>
                                 <input
                                     type="date"
-                                    value={new Date().toISOString().split('T')[0]}
-                                    readOnly
+                                    name="generated_plan_date"
+                                    value={editableData.generated_plan_date}
+                                    onChange={handleInputChange}
                                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 />
+                            </div>
+                            <div className='mb-4'>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Workout Type:</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {workoutTypes.map((type) => (
+                                        <div key={type} className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                id={type}
+                                                value={type}
+                                                onChange={handleWorkoutTypeChange}
+                                                checked={workoutType.includes(type)}
+                                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                            />
+                                            <label htmlFor={type} className="ml-2 block text-sm text-gray-700">
+                                                {type}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Duration (minutes)</label>
                                 <input
                                     type="number"
-                                    defaultValue={60}
-                                    readOnly
+                                    name="duration"
+                                    value={editableData.duration || 60}
+                                    onChange={handleInputChange}
                                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 />
                             </div>
@@ -515,8 +631,9 @@ const ViewCustomPlan = () => {
                                     <InputLabel id="intensity-label"></InputLabel>
                                     <Select
                                         labelId="intensity-label"
+                                        name="intensity"
                                         value={intensity}
-                                        readOnly
+                                        onChange={handleIntensityChange}
                                     >
                                         <MenuItem value="Low">Low</MenuItem>
                                         <MenuItem value="Moderate">Moderate</MenuItem>
@@ -527,14 +644,30 @@ const ViewCustomPlan = () => {
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Exercises:</label>
                                 <textarea
-                                    value={generateCombinedText()}
+                                    value={combinedText}
                                     onChange={(e) => handleCombinedTextChange(e.target.value)}
                                     className="w-full p-2 border rounded"
-                                    rows={20} // Adjust the number of rows as necessary
+                                    rows={15}
                                 />
                             </div>
-
-
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Workout Rating (1-10):</label>
+                                <div className="flex space-x-2">
+                                    {[...Array(10).keys()].map((i) => (
+                                        <label key={i} className="inline-flex items-center">
+                                            <input
+                                                type="radio"
+                                                name="workoutRating"
+                                                value={i + 1}
+                                                checked={workoutRating === String(i + 1)}
+                                                onChange={handleRatingChange}
+                                                className="form-radio text-indigo-600"
+                                            />
+                                            <span className="ml-2">{i + 1}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Trainer Notes</label>
                                 <textarea
@@ -566,7 +699,6 @@ const ViewCustomPlan = () => {
             )}
         </div>
     );
-
 };
 
 export default ViewCustomPlan;

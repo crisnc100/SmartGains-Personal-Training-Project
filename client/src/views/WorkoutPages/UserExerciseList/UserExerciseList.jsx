@@ -33,12 +33,11 @@ const capitalizeWords = (str) => str.replace(/\b\w/g, char => char.toUpperCase()
 const getEquipmentCategory = (equipment) => {
   for (const category in equipmentCategories) {
     if (equipmentCategories[category].includes(equipment.toLowerCase())) {
-      return category;
+      return normalizeString(category);
     }
   }
-  return 'Uncategorized';
+  return 'uncategorized';
 };
-
 const normalizeString = (str) => str.toLowerCase();
 
 const UserExerciseList = ({ onReturnBack }) => {

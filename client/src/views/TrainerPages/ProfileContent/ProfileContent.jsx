@@ -142,7 +142,7 @@ const ProfileContent = () => {
           {pinnedPlans.length > 0 ? (
             pinnedPlans.map((plan, index) => (
               <div key={index} className={styles.pinnedPlanItem}>
-                <Link to={`view-custom-plan/${plan.id}`} className={styles.pinnedPlanButton}>
+                <Link to={`view-custom-plan/${plan.id}/${plan.client_id}`} className={styles.pinnedPlanButton}>
                   {extractPlanTitle(plan.generated_plan_details)}
                 </Link>
                 <p className={styles.pinnedPlanClient}>{plan.client_first_name} {plan.client_last_name}</p>

@@ -1,6 +1,7 @@
 from flask_app.config.mysqlconnection import connectToMySQL
 from flask import flash
 from datetime import datetime, timedelta
+import logging
 
 class GeneratedPlan:
     def __init__(self, data):
@@ -39,7 +40,7 @@ class GeneratedPlan:
             'parameters': self.parameters
         }
         query = """
-        INSERT INTO generated_plans (client_id, name, generated_plan_details, parameters, completed_marked, date, created_at, updated_at) 
+        INSERT INTO generated_plans (client_id, name, generated_plan_details, parameters, date, created_at, updated_at) 
         VALUES (%(client_id)s, %(name)s, %(generated_plan_details)s, %(parameters)s, NOW(), NOW(), NOW());
         """
         return connectToMySQL('fitness_consultation_schema').query_db(query, data)
@@ -136,13 +137,30 @@ class GeneratedPlan:
 
     @classmethod
     def mark_as_completed(cls, plan_id):
-        query = """
-            UPDATE generated_plans
-            SET completed_marked = 1, updated_at = NOW()
-            WHERE id = %(plan_id)s;
-        """
-        data = {'plan_id': plan_id}
-        return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        try:
+            logging.debug(f'Attempting to mark plan {plan_id} as completed')
+
+            query = """
+                UPDATE generated_plans
+                SET completed_marked = 1, updated_at = NOW()
+                WHERE id = %(plan_id)s;
+            """
+            data = {'plan_id': plan_id}
+            
+            result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            logging.debug(f'Query executed with result: {result}')
+
+            # Check if the update was successful
+            if result == 0:
+                logging.error(f'No rows updated for plan_id {plan_id}')
+                return False
+
+            logging.debug(f'Plan {plan_id} marked as completed successfully')
+            return True
+
+        except Exception as e:
+            logging.error(f'Error in mark_as_completed: {str(e)}')
+            return False
     
 
     @classmethod
@@ -214,8 +232,31 @@ class GeneratedPlan:
             print(f"Error fetching pinned plans: {e}")
             return []
 
-
+    @classmethod
+    def get_completion_status_and_date(cls, plan_id):
+        query = """
+            SELECT gp.completed_marked, wp.date as completion_date
+            FROM generated_plans gp
+            LEFT JOIN workout_progress wp ON gp.id = wp.generated_plan_id
+            WHERE gp.id = %(plan_id)s
+            ORDER BY wp.date DESC
+            LIMIT 1;
+        """
+        data = {'plan_id': plan_id}
+        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
     
+        logging.debug(f"Query result for plan_id {plan_id}: {result}")
+
+        if result:
+            completion_status_and_date = {
+                'completed_marked': result[0]['completed_marked'],
+                'completion_date': result[0]['completion_date']
+            }
+            logging.debug(f"Completion status and date for plan_id {plan_id}: {completion_status_and_date}")
+            return completion_status_and_date
+        else:
+            return None
+
     
     @classmethod
     def delete(cls, generated_id):
