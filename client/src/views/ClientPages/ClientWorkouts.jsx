@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
+import { format, isValid } from 'date-fns'; // Import date-fns functions
+
 
 
 const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onDeletePlan }) => {
@@ -12,6 +14,26 @@ const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onD
   const viewDetails = (id, type) => {
     navigate(`${type}/${id}`);
   };
+
+  const formatDate = (dateString) => {
+    if (!dateString) {
+        console.error('Invalid dateString:', dateString);
+        return 'Invalid date';
+    }
+
+    const date = new Date(dateString);
+    if (isValid(date)) {
+        // Adjust for timezone offset
+        const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+        const adjustedDate = new Date(date.getTime() + userTimezoneOffset);
+        return format(adjustedDate, 'M/dd/yyyy');
+    } else {
+        console.error('Invalid date:', dateString);
+        return 'Invalid date';
+    }
+};
+
+
 
 
   const deletePlan = (planId, type) => {
@@ -68,7 +90,7 @@ const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onD
         <div>
           {activeSubTab === 'demoPlans' && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-700">Demo Plans</h2>
+              <h2 className="text-lg font-semibold text-gray-700">Quick Plans</h2>
               {clientDemoPlans.map(plan => (
                 <div key={plan.id} className="flex justify-between items-center bg-gray-100 p-2 my-2 rounded hover:bg-gray-200">
                 <p className="text-gray-700 flex-grow">{plan.name} - {new Date(plan.created_at).toLocaleDateString()}</p>
@@ -80,7 +102,7 @@ const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onD
           )}
           {activeSubTab === 'generatedPlans' && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-700">Generated Plans</h2>
+              <h2 className="text-lg font-semibold text-gray-700">Custom Plans</h2>
               {clientPlans.map(plan => (
                 <div key={plan.id} className="flex justify-between items-center bg-gray-100 p-2 my-2 rounded hover:bg-gray-200">
                 <p className="text-gray-700 flex-grow">{plan.name} - {new Date(plan.created_at).toLocaleDateString()}</p>
@@ -95,7 +117,7 @@ const ClientWorkouts = ({ clientDemoPlans, clientPlans, workoutProgressData, onD
               <h2 className="text-lg font-semibold text-gray-700">Workout Progress</h2>
               {workoutProgressData.map(entry => (
                 <div key={entry.id} className="flex justify-between items-center bg-gray-100 p-2 my-2 rounded hover:bg-gray-200">
-                <p className="text-gray-700 flex-grow">{entry.name} - {new Date(entry.date).toLocaleDateString()}</p>
+                <p className="text-gray-700 flex-grow">{entry.name} - {formatDate(entry.date)}</p>
                 <button onClick={() => viewDetails(entry.id, 'progress-session')} className="text-blue-500 hover:text-blue-700">View</button>
                 <button onClick={() => deletePlan(entry.id, 'progress-session')} className="text-red-500 hover:text-red-700 ml-4">Delete</button>
               </div>

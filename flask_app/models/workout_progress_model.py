@@ -124,8 +124,7 @@ class WorkoutProgress:
             UPDATE workout_progress
             SET name = %(name)s, date = %(date)s, workout_type = %(workout_type)s, duration_minutes = %(duration_minutes)s, 
             exercises_log = %(exercises_log)s, intensity_level = %(intensity_level)s, 
-            location = %(location)s, workout_rating = %(workout_rating)s, trainer_notes = %(trainer_notes)s, 
-            workout_source = %(workout_source)s, updated_at = NOW()
+            location = %(location)s, workout_rating = %(workout_rating)s, trainer_notes = %(trainer_notes)s, updated_at = NOW()
             WHERE id = %(id)s;
         """
         print("Running Query:\n", query % data)  # Debug statement

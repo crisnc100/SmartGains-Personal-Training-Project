@@ -53,7 +53,44 @@ def generate_quick_plan(client_id):
 
     
 
-    final_prompt = f"{selected_prompt}\n\nAssessment Type: {assessment_type}\n{assessment_findings}\n\nTrainer's Additional Comments:\n{additional_comments}"
+    final_prompt = f"""
+    {selected_prompt}
+
+    # [Client's Name]'s [Workout Name] Workout Plan
+    ## Client Profile
+    - **Assessment Type**: {assessment_type}
+    {assessment_findings}
+    
+    ## Trainer's Additional Comments
+    {additional_comments}
+
+    ## Day 1: Strength and Power
+    ### Warm-Up
+    - **Exercise Name**: Description (duration)
+
+    ### Main Workout
+    #### Muscle Group/Workout Focus
+    1. **Exercise Name**
+    - **Sets**: X
+    - **Reps**: X
+    - **Rest**: X seconds
+    - **Intensity**: [Description]
+    - **Alternative**: [Alternative exercise if equipment is not available]
+
+    ### Cool Down
+    - **Exercise Name**: Description (duration)
+
+    ## Day 2: High-Intensity Interval Training (HIIT) and Agility
+    ### Warm-Up
+    ...
+
+    ## Day 3: Endurance and Functional Movements
+    ### Warm-Up
+    ...
+
+    ## Additional Notes
+    ...
+    """
     
 
     try:

@@ -68,6 +68,7 @@ const RecordWorkoutSession = () => {
     const { clientId } = useParams();
     const navigate = useNavigate();
     const [selectedExercises, setSelectedExercises] = useState([]);
+    const [currentBodyPart, setCurrentBodyPart] = useState('');
     const [currentExercise, setCurrentExercise] = useState('');
     const [errors, setErrors] = useState({});
     const [formData, setFormData] = useState({
@@ -141,6 +142,20 @@ const RecordWorkoutSession = () => {
 
         setSelectedExercises((prev) => [...prev, { name: exercise, variation, sets: 3, reps: 10, weight: 0 }]);
         setCurrentExercise('');
+    };
+
+    const incrementField = (index, field) => {
+        const updatedExercises = [...selectedExercises];
+        updatedExercises[index][field]++;
+        updateExercise(index, updatedExercises);
+    };
+
+    const decrementField = (index, field) => {
+        const updatedExercises = [...selectedExercises];
+        if (updatedExercises[index][field] > 0) {
+            updatedExercises[index][field]--;
+            updateExercise(index, updatedExercises);
+        }
     };
 
     const updateExercise = (index, field, value) => {
@@ -235,6 +250,11 @@ const RecordWorkoutSession = () => {
         }));
     };
 
+    const handleExerciseClick = (bodyPart, exercise) => {
+        setCurrentBodyPart(bodyPart);
+        setCurrentExercise(exercise);
+    };
+
     const handleChange = e => {
         const { name, value } = e.target;
         setFormData(prevFormData => ({
@@ -277,28 +297,28 @@ const RecordWorkoutSession = () => {
                     {submitClicked && errors.date && <p className="text-red-500 text-sm">{errors.date}</p>}
                 </div>
 
-                 {/* Workout Type */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700">Workout Type:</label>
-                <div className="grid grid-cols-2 gap-2">
-                    {workoutTypes.map((type) => (
-                        <div key={type} className="flex items-center">
-                            <input
-                                type="checkbox"
-                                id={type}
-                                value={type}
-                                onChange={handleWorkoutTypeChange}
-                                checked={formData.workoutType.split(',').includes(type)}
-                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                            />
-                            <label htmlFor={type} className="ml-2 block text-sm text-gray-700">
-                                {type}
-                            </label>
-                        </div>
-                    ))}
+                {/* Workout Type */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Workout Type:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                        {workoutTypes.map((type) => (
+                            <div key={type} className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id={type}
+                                    value={type}
+                                    onChange={handleWorkoutTypeChange}
+                                    checked={formData.workoutType.split(',').includes(type)}
+                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                />
+                                <label htmlFor={type} className="ml-2 block text-sm text-gray-700">
+                                    {type}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                    {submitClicked && errors.workoutType && <p className="text-red-500 text-sm">{errors.workoutType}</p>}
                 </div>
-                {submitClicked && errors.workoutType && <p className="text-red-500 text-sm">{errors.workoutType}</p>}
-            </div>
 
                 {/* Duration input */}
                 <div>
@@ -315,8 +335,7 @@ const RecordWorkoutSession = () => {
 
                 {/* Exercise selector */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Popular Exercises:
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700">Popular Exercises:</label>
                     {Object.keys(initialExercises).map(category => (
                         <details key={category} className="border p-3 rounded-md mb-2 shadow-sm">
                             <summary className="font-bold text-lg cursor-pointer">{category}</summary>
@@ -325,35 +344,33 @@ const RecordWorkoutSession = () => {
                                     <button
                                         key={exercise}
                                         type="button"
-                                        onClick={() => setCurrentExercise(exercise)}
+                                        onClick={() => handleExerciseClick(category, exercise)}
                                         className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded text-sm"
                                     >
                                         {exercise}
                                     </button>
                                 ))}
                             </div>
+                            {currentBodyPart === category && currentExercise && (
+                                <div className="mt-4">
+                                    <label className="block text-sm font-medium text-gray-700">{currentExercise} Variations:</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {initialExercises[category][currentExercise].map(variation => (
+                                            <button
+                                                key={variation}
+                                                type="button"
+                                                onClick={() => handleAddExercise(currentExercise, variation)}
+                                                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-2 rounded text-sm"
+                                            >
+                                                {variation}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </details>
                     ))}
                 </div>
-
-                {/* Exercise variation selector */}
-                {currentExercise && initialExercises[Object.keys(initialExercises).find(category => initialExercises[category][currentExercise])][currentExercise] && (
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700">{currentExercise} Variations:</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {initialExercises[Object.keys(initialExercises).find(category => initialExercises[category][currentExercise])][currentExercise].map(variation => (
-                                <button
-                                    key={variation}
-                                    type="button"
-                                    onClick={() => handleAddExercise(currentExercise, variation)}
-                                    className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-2 rounded text-sm"
-                                >
-                                    {variation}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
                 <div className="flex items-center mt-4">
                     <span className="mr-2 text-gray-700">Units:</span>
                     <Switch
@@ -382,28 +399,83 @@ const RecordWorkoutSession = () => {
 
                 {/* List and edit selected exercises directly in the log */}
                 {selectedExercises.map((item, index) => (
-                    <div key={index} className="flex items-center space-x-2 p-2">
-                        <input type="text" value={`${item.name} (${item.variation})`} className="flex-1" readOnly />
-                        <input
-                            type="number"
-                            value={item.sets}
-                            onChange={e => updateExercise(index, 'sets', e.target.value)}
-                            className="w-16 px-2"
-                        /> sets
-                        <input
-                            type="number"
-                            value={item.reps}
-                            onChange={e => updateExercise(index, 'reps', e.target.value)}
-                            className="w-16 px-2"
-                        /> reps
-                        <input
-                            type="number"
-                            value={item.weight}
-                            onChange={e => updateExercise(index, 'weight', e.target.value)}
-                            className="w-16 px-2"
-                        /> {unit}
+                    <div key={index} className="flex items-center space-x-2 p-2 border-b border-gray-300">
+                        <div className="flex-1 text-gray-700">
+                            {item.name} ({item.variation})
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                type="button"
+                                onClick={() => decrementField(index, 'sets')}
+                                className="bg-gray-200 hover:bg-gray-300 px-2 rounded"
+                            >
+                                -
+                            </button>
+                            <input
+                                type="number"
+                                value={item.sets}
+                                onChange={e => updateExercise(index, 'sets', e.target.value)}
+                                className="w-16 px-2 text-center hidden"
+                            />
+                            <span>{item.sets}</span>
+                            <button
+                                type="button"
+                                onClick={() => incrementField(index, 'sets')}
+                                className="bg-gray-200 hover:bg-gray-300 px-2 rounded"
+                            >
+                                +
+                            </button>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                type="button"
+                                onClick={() => decrementField(index, 'reps')}
+                                className="bg-gray-200 hover:bg-gray-300 px-2 rounded"
+                            >
+                                -
+                            </button>
+                            <input
+                                type="number"
+                                value={item.reps}
+                                onChange={e => updateExercise(index, 'reps', e.target.value)}
+                                className="w-16 px-2 text-center hidden"
+                            />
+                            <span>{item.reps}</span>
+                            <button
+                                type="button"
+                                onClick={() => incrementField(index, 'reps')}
+                                className="bg-gray-200 hover:bg-gray-300 px-2 rounded"
+                            >
+                                +
+                            </button>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                type="button"
+                                onClick={() => decrementField(index, 'weight')}
+                                className="bg-gray-200 hover:bg-gray-300 px-2 rounded"
+                            >
+                                -
+                            </button>
+                            <input
+                                type="number"
+                                value={item.weight}
+                                onChange={e => updateExercise(index, 'weight', e.target.value)}
+                                className="w-16 px-2 text-center"
+                                step="1"
+                                min="0"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => incrementField(index, 'weight')}
+                                className="bg-gray-200 hover:bg-gray-300 px-2 rounded"
+                            >
+                                +
+                            </button>
+                        </div>
+                        <div className="text-gray-700">{unit}</div>
                         <button
-                            type="button" // Ensure this button does not submit the form
+                            type="button"
                             onClick={() => handleDeleteExercise(index)}
                             className="bg-red-500 hover:bg-red-700 text-white py-1 px-2 rounded"
                         >
