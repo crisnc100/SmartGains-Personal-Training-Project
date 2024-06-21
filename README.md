@@ -1,4 +1,4 @@
-# Personal Training Platform Project
+# About SmartGains
 
 This project is a web-based platform for personal trainers to manage their clients, schedule appointments, and create customized fitness and nutrition plans.
 
