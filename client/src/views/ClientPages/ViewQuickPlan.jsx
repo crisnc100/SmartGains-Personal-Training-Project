@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
 import Modal from '@mui/material/Modal';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import { format, parseISO } from 'date-fns';
 
 const ViewQuickPlan = () => {
     const { planId, clientId } = useParams();
@@ -16,6 +20,7 @@ const ViewQuickPlan = () => {
     const [emailSending, setEmailSending] = useState(false);
     const [isUseMode, setIsUseMode] = useState(false);
     const [intensity, setIntensity] = useState('Moderate');
+    const [workoutType, setWorkoutType] = useState([]);
     const [currentDay, setCurrentDay] = useState('Select');
     const [currentProgress, setCurrentProgress] = useState({});
     const [visibleInputs, setVisibleInputs] = useState({});
@@ -24,12 +29,14 @@ const ViewQuickPlan = () => {
     const [workoutRating, setWorkoutRating] = useState('5');
     const [completionStatus, setCompletionStatus] = useState(false);
     const [completionDate, setCompletionDate] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
         axios.get(`http://localhost:5000/api/get_demo_plan/${planId}`)
             .then(response => {
                 const planData = response.data;
                 setDemoPlan(planData);
+                setEditableData(planData);
                 setCombinedText(generateCombinedText(planData));
                 setIntensity(planData.intensity || 'Moderate');
                 setLoading(false);
@@ -39,21 +46,49 @@ const ViewQuickPlan = () => {
                 setError('Failed to fetch data');
                 setLoading(false);
             });
-    }, [planId]);
+
+        axios.get(`http://localhost:5000/api/get_demo_plan_completion_status/${planId}`)
+            .then(response => {
+                const { completion_status, completion_date } = response.data;
+                console.log(`Fetched completion status: ${completion_status}, completion date: ${completion_date}`);
+
+                if (completion_status) {
+                    setCompletionStatus(completion_status);
+                    if (completion_date) {
+                        setCompletionDate(format(parseISO(completion_date), 'MM/dd/yyyy'));
+                    } else {
+                        setCompletionDate(null);
+                    }
+                } else {
+                    setCompletionStatus(null);
+                    setCompletionDate(null);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching completion status:', error);
+                setError('Failed to fetch completion status');
+            });
+    }, [planId, refreshKey]);
 
     const getExercisesFromPlanDetails = (planDetails, day) => {
-        if (!planDetails) return { warmUp: [], exercises: [] };
+        if (!planDetails) return { dayTitle: '', warmUp: [], exercises: [] };
 
         let dayDetails;
+        let dayTitle = '';
+
         if (day === 'Select') {
             return planDetails;
         } else {
             const dayStart = planDetails.indexOf(`## ${day}`);
             const dayEnd = planDetails.indexOf(`## Day `, dayStart + 1);
             dayDetails = planDetails.substring(dayStart, dayEnd !== -1 ? dayEnd : undefined);
+
+            const firstLineEnd = dayDetails.indexOf('\n');
+            dayTitle = dayDetails.substring(0, firstLineEnd).trim();
         }
 
-        const lines = dayDetails.split('\n');
+        const lines = dayDetails.split('\n').slice(1);
+        const daySection = lines.filter(line => line.startsWith('##')).join('\n');
         const warmUp = [];
         const exercises = [];
         let currentSection = null;
@@ -87,136 +122,7 @@ const ViewQuickPlan = () => {
 
         if (currentExercise) exercises.push(currentExercise);
 
-        return { warmUp, exercises };
-    };
-    const toggleEditMode = () => {
-        if (!isEditMode) {
-            setEditableData({ ...demoPlan });
-        }
-        setIsEditMode(!isEditMode);
-    };
-
-    const cancelEditMode = () => {
-        setIsEditMode(false);
-        setEditableData(demoPlan);
-    };
-
-    const handleInputChange = (event) => {
-        const { name, value } = event.target;
-        setEditableData(prevState => ({
-            ...prevState,
-            [name]: value
-        }));
-    };
-
-    const saveChanges = () => {
-        axios.post(`http://localhost:5000/api/update_client_demo_plan/${planId}`, {
-            name: editableData.demo_plan_name,
-            demo_plan_details: editableData.demo_plan_details
-        })
-            .then(response => {
-                setDemoPlan({ ...editableData });
-                setIsEditMode(false);
-            })
-            .catch(error => {
-                console.error("Failed to update the workout plan", error.response ? error.response.data : "No response");
-                setError("Failed to update the workout plan: " + (error.response ? error.response.data.message : "No response data"));
-                setIsEditMode(true);
-            });
-    };
-
-    const sendEmail = () => {
-        setEmailSending(true);
-        axios.post('http://localhost:5000/api/email_plan_to_client', {
-            client_id: clientId,
-            demo_plan_details: demoPlan.demo_plan_details
-        })
-            .then(response => {
-                alert('Email sent successfully!');
-                setEmailSending(false);
-            })
-            .catch(error => {
-                const errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
-                console.error('Failed to send email:', errorMessage);
-                alert('Failed to send email: ' + errorMessage);
-                setEmailSending(false);
-            });
-    };
-
-    const enterUseMode = () => {
-        setIsUseMode(true);
-        setCombinedText(generateCombinedText(demoPlan, currentDay));
-    };
-
-    const exitUseMode = () => {
-        setIsUseMode(false);
-    };
-
-    const openCompleteModal = () => {
-        setEditableData(prevState => ({
-            ...prevState,
-            demo_plan_date: format(new Date(), 'yyyy-MM-dd')
-        }));
-        setShowCompleteModal(true);
-    };
-    const closeCompleteModal = () => setShowCompleteModal(false);
-
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-    };
-
-    const markAsCompleted = async () => {
-        try {
-            const { exercises } = getExercisesFromPlanDetails(demoPlan.demo_plan_details, currentDay);
-            const progress = exercises.map((exercise, index) => ({
-                exercise: exercise.text,
-                weight: currentProgress[exercise.index]?.weight || '',
-                notes: currentProgress[exercise.index]?.notes || '',
-            }));
-
-            const response = await axios.post(`http://localhost:5000/api/mark_plan_completed/${planId}`, {
-                client_id: clientId,
-                name: editableData.demo_plan_name,
-                date: editableData.demo_plan_date,
-                workout_type: 'Quick Plan',
-                duration_minutes: editableData.duration || 60,
-                combined_text: combinedText,
-                intensity_level: 'Moderate',
-                location: editableData.location || 'Local Gym',
-                workout_rating: workoutRating,
-                trainer_notes: editableData.trainer_notes || '',
-                plan_type: 'quick'
-            });
-
-            console.log('Plan marked as completed and logged as workout:', response.data);
-            setShowCompleteModal(false);
-            setCompletionStatus(true);
-            setCompletionDate(response.data.workout_log_id.date);
-            alert('Workout completed and successfully logged!');
-            setIsUseMode(false);
-
-        } catch (error) {
-            console.error('Failed to mark the plan as completed:', error.response ? error.response.data : error.message);
-            alert('Failed to mark the plan as completed.');
-        }
-    };
-
-    const logProgress = (exerciseIndex, field, value) => {
-        setCurrentProgress(prevState => ({
-            ...prevState,
-            [exerciseIndex]: {
-                ...prevState[exerciseIndex],
-                [field]: value
-            }
-        }));
-    };
-
-    const toggleVisibility = (index) => {
-        setVisibleInputs(prevState => ({
-            ...prevState,
-            [index]: !prevState[index]
-        }));
+        return { dayTitle, daySection, warmUp, exercises };
     };
 
     const handleDayChange = (e) => {
@@ -238,6 +144,224 @@ const ViewQuickPlan = () => {
         return combinedText.trim();
     };
 
+    const handleCombinedTextChange = (value) => {
+        setCombinedText(value);
+    };
+
+    const toggleEditMode = () => {
+        if (!isEditMode) {
+            setEditableData({ ...demoPlan });
+        }
+        setIsEditMode(!isEditMode);
+    };
+
+    const cancelEditMode = () => {
+        setIsEditMode(false);
+        setEditableData(demoPlan);
+    };
+
+    const handleInputChange = (event) => {
+        const { name, value } = event.target;
+        setEditableData(prevState => ({
+            ...prevState,
+            [name]: value
+        }));
+    };
+
+    const workoutTypes = [
+        'Strength Training',
+        'Cardio',
+        'HIIT',
+        'Yoga',
+        'Pilates',
+        'CrossFit',
+        'Hypertrophy Training',
+        'Powerlifting',
+        'Functional Training',
+        'Mobility',
+    ];
+    const handleWorkoutTypeChange = (e) => {
+        const { value, checked } = e.target;
+        setWorkoutType(prevWorkoutType => {
+            if (checked) {
+                return [...prevWorkoutType, value];
+            } else {
+                return prevWorkoutType.filter(type => type !== value);
+            }
+        });
+    };
+
+    const handleIntensityChange = (event) => {
+        const { value } = event.target;
+        setIntensity(value);
+        setEditableData(prevState => ({
+            ...prevState,
+            intensity: value
+        }));
+    };
+
+
+    const handleRatingChange = (event) => {
+        const { value } = event.target;
+        setWorkoutRating(value);
+        setEditableData(prevState => ({
+            ...prevState,
+            workoutRating: value
+        }));
+    };
+
+
+    const saveChanges = () => {
+        axios.post(`http://localhost:5000/api/update_client_demo_plan/${planId}`, {
+            name: editableData.demo_plan_name,
+            demo_plan_details: editableData.demo_plan_details
+        })
+            .then(response => {
+                setDemoPlan({ ...editableData });
+                setIsEditMode(false);
+            })
+            .catch(error => {
+                console.error("Failed to update the workout plan", error.response ? error.response.data : "No response");
+                setError("Failed to update the workout plan: " + (error.response ? error.response.data.message : "No response data"));
+                setIsEditMode(true);
+            });
+    };
+
+    const checkPinStatus = async () => {
+        try {
+            const response = await axios.get(`http://localhost:5000/api/check_demo_pin_status/${planId}`);
+            return response.data.is_pinned;
+        } catch (error) {
+            console.error("Failed to check pin status:", error);
+            return false;
+        }
+    };
+
+    const sendEmail = () => {
+        setEmailSending(true);
+        axios.post('http://localhost:5000/api/email_plan_to_client', {
+            client_id: clientId,
+            demo_plan_details: demoPlan.demo_plan_details
+        })
+            .then(response => {
+                alert('Email sent successfully!');
+                setEmailSending(false);
+            })
+            .catch(error => {
+                const errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
+                console.error('Failed to send email:', errorMessage);
+                alert('Failed to send email: ' + errorMessage);
+                setEmailSending(false);
+            });
+    };
+
+    const enterUseMode = async () => {
+        if (currentDay === 'Select') {
+            alert('Please select a day before proceeding.');
+            return;
+        }
+
+        try {
+            const isPinned = await checkPinStatus();
+
+            if (!isPinned) {
+                const response = await axios.post(`http://localhost:5000/api/pin_demo_plan_for_today/${planId}`);
+                if (!response.data.success) {
+                    alert(response.data.message);
+                    return;
+                }
+            }
+
+            setIsUseMode(true);
+            setCombinedText(generateCombinedText(demoPlan, currentDay));
+        } catch (error) {
+            console.error('Error entering use mode:', error);
+            alert('An error occurred while trying to enter use mode.');
+        }
+    };
+
+    const exitUseMode = () => {
+        setIsUseMode(false);
+    };
+
+
+    const openCompleteModal = () => {
+        setEditableData(prevState => ({
+            ...prevState,
+            demo_plan_date: format(new Date(), 'yyyy-MM-dd')
+        }));
+        setShowCompleteModal(true);
+    };
+
+    const closeCompleteModal = () => setShowCompleteModal(false);
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+    };
+
+    const markAsCompleted = async () => {
+        try {
+            const { exercises } = getExercisesFromPlanDetails(demoPlan.demo_plan_details, currentDay);
+            const progress = exercises.map((exercise, index) => ({
+                exercise: exercise.text,
+                weight: currentProgress[exercise.index]?.weight || '',
+                notes: currentProgress[exercise.index]?.notes || '',
+            }));
+
+            const response = await axios.post(`http://localhost:5000/api/mark_plan_completed/${planId}`, {
+                client_id: clientId,
+                name: editableData.demo_plan_name,
+                date: editableData.demo_plan_date,
+                workout_type: workoutType.join(', '),  // Add workout types here
+                duration_minutes: editableData.duration || 60,
+                combined_text: combinedText,
+                intensity_level: intensity,
+                location: editableData.location || 'Local Gym',
+                workout_rating: workoutRating,
+                trainer_notes: editableData.trainer_notes || '',
+                plan_type: 'demo',
+                day_index: currentDay  // Include the current day index
+            });
+
+            console.log('Plan marked as completed and logged as workout:', response.data);
+            setShowCompleteModal(false);
+            setCompletionStatus(true);
+            setCompletionDate(response.data.workout_log_id.date);
+            alert('Workout completed and successfully logged!');
+            setIsUseMode(false);
+            setRefreshKey(oldKey => oldKey + 1);  // Trigger a refresh to fetch updated data
+
+        } catch (error) {
+            console.error('Failed to mark the plan as completed:', error.response ? error.response.data : error.message);
+            alert('Failed to mark the plan as completed.');
+        }
+    };
+
+    const logProgress = (exerciseIndex, field, value) => {
+        setCurrentProgress(prevState => ({
+            ...prevState,
+            [exerciseIndex]: {
+                ...prevState[exerciseIndex],
+                [field]: value
+            }
+        }));
+    
+        // Update combined text when progress changes
+        setCombinedText(generateCombinedText(demoPlan, currentDay));
+    };
+    
+    
+
+    const toggleVisibility = (index) => {
+        setVisibleInputs(prevState => ({
+            ...prevState,
+            [index]: !prevState[index]
+        }));
+    };
+
+   
+
     const renderPlanDetails = (planDetails, isUseMode, currentProgress, logProgress, toggleVisibility, visibleInputs) => {
         if (typeof planDetails === 'string') {
             return planDetails.split('\n').map((line, index) => (
@@ -248,9 +372,12 @@ const ViewQuickPlan = () => {
         } else {
             return (
                 <>
+                    <div className="mb-4">
+                        <div className="mt-4 mb-2 font-semibold">{planDetails.dayTitle}</div>
+                    </div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-2">Warm-Up:</h3>
                     {planDetails.warmUp.map((line, index) => (
-                        <div key={index} className="ml-4 text-gray-600">
+                        <div key={index} className="ml-4 text-gray-600 mb-2">
                             {line}
                         </div>
                     ))}
@@ -261,7 +388,7 @@ const ViewQuickPlan = () => {
                             <div key={index} className="mb-4">
                                 <div>{exercise.text}</div>
                                 {exercise.details.map((detail, detailIndex) => (
-                                    <div key={detailIndex} className="ml-4 text-gray-600">
+                                    <div key={detailIndex} className="ml-4 text-gray-600 mb-2">
                                         {detail}
                                     </div>
                                 ))}
@@ -308,6 +435,7 @@ const ViewQuickPlan = () => {
                     <div className="text-lg font-semibold text-gray-700 mb-2">
                         Client: <span className="font-normal">{demoPlan.client_first_name} {demoPlan.client_last_name}</span>
                     </div>
+
                     <div className="flex space-x-2">
                         <button onClick={exitUseMode} className="px-4 py-2 border border-gray-500 text-gray-500 hover:bg-gray-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
                             Exit Use Mode
@@ -379,9 +507,9 @@ const ViewQuickPlan = () => {
                                     <label className="text-lg font-semibold text-gray-700">Select Day:</label>
                                     <select value={currentDay} onChange={handleDayChange} className="ml-2 p-1 border rounded">
                                         <option value="Select">Select</option>
-                                        <option value="Day 1: Strength and Power">Day 1</option>
-                                        <option value="Day 2: High-Intensity Interval Training (HIIT) and Agility">Day 2</option>
-                                        <option value="Day 3: Endurance and Functional Movements">Day 3</option>
+                                        <option value="Day 1">Day 1</option>
+                                        <option value="Day 2">Day 2</option>
+                                        <option value="Day 3">Day 3</option>
                                     </select>
                                 </div>
                                 <div className="flex space-x-2">
@@ -456,11 +584,57 @@ const ViewQuickPlan = () => {
                                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 />
                             </div>
+                            <div className='mb-4'>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Workout Type:</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {workoutTypes.map((type) => (
+                                        <div key={type} className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                id={type}
+                                                value={type}
+                                                onChange={handleWorkoutTypeChange}
+                                                checked={workoutType.includes(type)}
+                                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                            />
+                                            <label htmlFor={type} className="ml-2 block text-sm text-gray-700">
+                                                {type}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Duration (minutes)</label>
+                                <input
+                                    type="number"
+                                    name="duration"
+                                    value={editableData.duration || 60}
+                                    onChange={handleInputChange}
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Intensity Level</label>
+                                <FormControl fullWidth>
+                                    <InputLabel id="intensity-label"></InputLabel>
+                                    <Select
+                                        labelId="intensity-label"
+                                        name="intensity"
+                                        value={intensity}
+                                        onChange={handleIntensityChange}
+                                    >
+                                        <MenuItem value="Low">Low</MenuItem>
+                                        <MenuItem value="Moderate">Moderate</MenuItem>
+                                        <MenuItem value="High">High</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Exercises:</label>
                                 <textarea
                                     value={combinedText}
-                                    onChange={(e) => setCombinedText(e.target.value)}
+                                    onChange={(e) => handleCombinedTextChange(e.target.value)}
                                     className="w-full p-2 border rounded"
                                     rows={15}
                                 />
@@ -475,13 +649,22 @@ const ViewQuickPlan = () => {
                                                 name="workoutRating"
                                                 value={i + 1}
                                                 checked={workoutRating === String(i + 1)}
-                                                onChange={(e) => setWorkoutRating(e.target.value)}
+                                                onChange={handleRatingChange}
                                                 className="form-radio text-indigo-600"
                                             />
                                             <span className="ml-2">{i + 1}</span>
                                         </label>
                                     ))}
                                 </div>
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Trainer Notes</label>
+                                <textarea
+                                    rows="4"
+                                    placeholder="Enter any additional notes..."
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    onChange={(e) => logProgress('trainerNotes', 'notes', e.target.value)}
+                                ></textarea>
                             </div>
                             <div className="flex items-center justify-between">
                                 <button

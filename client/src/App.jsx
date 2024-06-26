@@ -53,6 +53,7 @@ function App() {
           <Route path='/trainer_dashboard' element={<Dashboard />}>
             <Route index element={<ProfileContent />} /> {/* Nested route */}
             <Route path='view-custom-plan/:planId/:clientId' element={<ViewCustomPlan />} />
+            <Route path='view-quick-plan/:planId/:clientId' element={<ViewQuickPlan />} />
             <Route path='edit-profile' element={<EditProfile />} />
             <Route path='settings' element={<TrainerSettings />} />
             <Route path='calendar' element={<MyCalendar />} />

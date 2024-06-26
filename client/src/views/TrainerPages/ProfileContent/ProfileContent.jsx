@@ -31,7 +31,7 @@ const ProfileContent = () => {
 
   const fetchPinnedPlans = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/get_pinned_plans');
+      const response = await axios.get('http://localhost:5000/api/get_all_pinned_plans');
       if (response.data.success) {
         setPinnedPlans(response.data.pinned_plans);
       } else {
@@ -80,6 +80,15 @@ const ProfileContent = () => {
     } catch (error) {
       console.error('Failed to unpin the plan:', error);
     }
+  };
+
+  const getPlanLink = (plan) => {
+    if (plan.demo_plan_details) {
+      return `view-quick-plan/${plan.id}/${plan.client_id}`;
+    } else if (plan.generated_plan_details) {
+      return `view-custom-plan/${plan.id}/${plan.client_id}`;
+    }
+    return '#';
   };
 
   if (error) {
@@ -142,8 +151,8 @@ const ProfileContent = () => {
           {pinnedPlans.length > 0 ? (
             pinnedPlans.map((plan, index) => (
               <div key={index} className={styles.pinnedPlanItem}>
-                <Link to={`view-custom-plan/${plan.id}/${plan.client_id}`} className={styles.pinnedPlanButton}>
-                  {extractPlanTitle(plan.generated_plan_details)}
+                <Link to={getPlanLink(plan)} className={styles.pinnedPlanButton}>
+                  {extractPlanTitle(plan.demo_plan_details || plan.generated_plan_details)}
                 </Link>
                 <p className={styles.pinnedPlanClient}>{plan.client_first_name} {plan.client_last_name}</p>
                 <button
@@ -164,3 +173,4 @@ const ProfileContent = () => {
 };
 
 export default ProfileContent;
+

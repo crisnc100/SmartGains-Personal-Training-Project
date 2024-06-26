@@ -14,10 +14,12 @@ class WorkoutProgress:
         self.workout_rating = data.get('workout_rating')
         self.trainer_notes = data.get('trainer_notes', None)
         self.workout_source = data.get('workout_source')
+        self.day_index = data.get('day_index', None)
         self.created_at = data.get('created_at', None)
         self.updated_at = data.get('updated_at', None)
         self.client_id = data.get('client_id')
         self.generated_plan_id = data.get('generated_plan_id')
+        self.demo_plan_id = data.get('demo_plan_id')
         self.client_first_name = data.get('client_first_name', None)
         self.client_last_name = data.get('client_last_name', None)
     
@@ -34,10 +36,12 @@ class WorkoutProgress:
             'workout_rating': self.workout_rating,
             'trainer_notes': self.trainer_notes,
             'workout_source': self.workout_source,
+            'day_index': self.day_index,
             'created_at': str(self.created_at),  
             'updated_at': str(self.updated_at),
             'client_id': self.client_id,
-            'generated_plan_id': self.generated_plan_id
+            'generated_plan_id': self.generated_plan_id,
+            'demo_plan_id': self.demo_plan_id
         }
         
     @classmethod
@@ -46,27 +50,27 @@ class WorkoutProgress:
         INSERT INTO workout_progress (
             name, date, workout_type, duration_minutes, exercises_log,
             intensity_level, location, workout_rating, trainer_notes,
-            workout_source, created_at, updated_at, client_id
+            workout_source, day_index, created_at, updated_at, client_id
         """
         values_query = """
             VALUES (
             %(name)s, %(date)s, %(workout_type)s, %(duration_minutes)s, %(exercises_log)s,
             %(intensity_level)s, %(location)s, %(workout_rating)s, %(trainer_notes)s,
-            %(workout_source)s, NOW(), NOW(), %(client_id)s
+            %(workout_source)s, %(day_index)s, NOW(), NOW(), %(client_id)s
         """
-        
+    
         if 'generated_plan_id' in data:
             base_query += ", generated_plan_id"
             values_query += ", %(generated_plan_id)s"
-        
+    
         if 'demo_plan_id' in data:
             base_query += ", demo_plan_id"
             values_query += ", %(demo_plan_id)s"
-        
+    
         if 'adaptive_plan_id' in data:
             base_query += ", adaptive_plan_id"
             values_query += ", %(adaptive_plan_id)s"
-        
+    
         query = base_query + " ) " + values_query + " );"
 
         return connectToMySQL('fitness_consultation_schema').query_db(query, data)

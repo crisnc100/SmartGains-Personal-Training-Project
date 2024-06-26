@@ -24,3 +24,33 @@ def total_clients():
         return jsonify({'success': True, 'total_clients': total_clients})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+    
+
+
+@app.route('/api/get_all_pinned_plans', methods=['GET'])
+def get_all_pinned_plans():
+    try:
+        pinned_generated_plans = GeneratedPlan.get_pinned_plans()
+        pinned_demo_plans = DemoPlan.get_pinned_plans()
+        
+        combined_pinned_plans = pinned_generated_plans + pinned_demo_plans
+        
+        return jsonify({"success": True, "pinned_plans": [plan.serialize() for plan in combined_pinned_plans]})
+    except Exception as e:
+        print(f"Error in get_all_pinned_plans endpoint: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/unpin_plan/<int:plan_id>', methods=['POST'])
+def unpin_any_plan(plan_id):
+    try:
+        result_generated = GeneratedPlan.unpin_plan(plan_id)
+        result_demo = DemoPlan.unpin_plan(plan_id)
+
+        if result_generated or result_demo:
+            return jsonify({"success": True, "message": "Plan unpinned."})
+        else:
+            return jsonify({"success": False, "message": "Failed to unpin the plan."}), 500
+    except Exception as e:
+        print(f"Error in unpin_any_plan endpoint: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
