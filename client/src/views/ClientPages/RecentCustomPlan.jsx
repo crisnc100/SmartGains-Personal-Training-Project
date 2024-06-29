@@ -9,7 +9,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import { format, parseISO } from 'date-fns'; // 
+import { format, parseISO, isValid } from 'date-fns';
 
 const RecentCustomPlan = () => {
     const { clientId } = useParams();
@@ -69,44 +69,77 @@ const RecentCustomPlan = () => {
     useEffect(() => {
         if (planId) {
             axios.get(`http://localhost:5000/api/get_plan_completion_status/${planId}`)
-                .then(response => {
-                    const { completion_status, completion_date } = response.data;
-                    console.log(`Fetched completion status: ${completion_status}, completion date: ${completion_date}`); // Debug log
+            .then(response => {
+                const { completion_status, completion_date, day_completion_status } = response.data;
+                console.log("Fetched completion status:", completion_status);
+                console.log("Fetched completion date:", completion_date);
+                console.log("Fetched day completion status:", day_completion_status);
 
-                    // Convert completion date to local time
-                    if (completion_status) {
-                        setCompletionStatus(completion_status);
-                        if (completion_date) {
-                            setCompletionDate(format(parseISO(completion_date), 'MM/dd/yyyy'));
-                        } else {
-                            setCompletionDate(null);
-                        }
+                setCompletionStatus(completion_status);
+
+                if (completion_date) {
+                    const parsedDate = new Date(completion_date);
+                    if (isValid(parsedDate)) {
+                        const formattedDate = parsedDate.toLocaleDateString('en-US', { timeZone: 'UTC' });
+                        setCompletionDate(formattedDate);
                     } else {
-                        setCompletionStatus(null);
+                        console.error('Invalid date:', completion_date);
                         setCompletionDate(null);
                     }
-                })
-                .catch(error => {
-                    console.error('Error fetching completion status:', error);
-                    setError('Failed to fetch completion status');
-                });
-        }
+                } else {
+                    setCompletionDate(null);
+                }
+
+                setDayCompletionStatus(day_completion_status || {});
+            })
+            .catch(error => {
+                console.error('Error fetching completion status:', error);
+                setError('Failed to fetch completion status');
+            });
+        };
     }, [planId]);
 
-    const getExercisesFromPlanDetails = (planDetails) => {
-        if (!planDetails) return { warmUp: [], exercises: [] };
+    const hasMultipleDays = () => {
+        const dayRegex = /## Day \d+/g;
+        const matches = generatedPlan.generated_plan_details.match(dayRegex);
+        return matches && matches.length > 1;
+    };
 
-        const lines = planDetails.split('\n');
+    const getDaysFromPlanDetails = () => {
+        const dayRegex = /## Day \d+/g;
+        const matches = generatedPlan.generated_plan_details.match(dayRegex);
+        return matches ? matches.map(match => match.replace('## ', '').trim()) : [];
+    };
+
+    const getExercisesFromPlanDetails = (planDetails, day) => {
+        if (!planDetails) return { dayTitle: '', warmUp: [], exercises: [] };
+
+        let dayDetails;
+        let dayTitle = '';
+
+        if (day === 'Select') {
+            return planDetails;
+        } else {
+            const dayStart = planDetails.indexOf(`## ${day}`);
+            const dayEnd = planDetails.indexOf(`## Day `, dayStart + 1);
+            dayDetails = planDetails.substring(dayStart, dayEnd !== -1 ? dayEnd : undefined);
+
+            const firstLineEnd = dayDetails.indexOf('\n');
+            dayTitle = dayDetails.substring(0, firstLineEnd).trim();
+        }
+
+        const lines = dayDetails.split('\n').slice(1);
+        const daySection = lines.filter(line => line.startsWith('##')).join('\n');
         const warmUp = [];
         const exercises = [];
         let currentSection = null;
         let currentExercise = null;
 
         lines.forEach((line, index) => {
-            const isWarmUpSection = /## Warm-Up/i.test(line);
+            const isWarmUpSection = /### Warm-Up/i.test(line);
             const isExerciseLine = /(\d+\.\s|\*\*Exercise|\*\*Exercise:)/i.test(line);
-            const isDetailLine = /(\*\*Sets|\*\*Reps|\*\*Rest|\*\*Alternative|\*\*Intensity|\*\*Weight|\*\*Notes)/i.test(line);
-            const isEndSection = /## Main Workout|## Cool Down|### Notes|###/i.test(line);
+            const isDetailLine = /(\*\*Sets|\*\*Reps|\*\*Rest|\*\*Alternative|\*\*Duration|\*\*Intensity|\*\*Weight|\*\*Notes)/i.test(line);
+            const isEndSection = /### Main Workout|### Cool Down|### Notes|###/i.test(line);
 
             if (isWarmUpSection) {
                 currentSection = 'warmUp';
@@ -130,11 +163,11 @@ const RecentCustomPlan = () => {
 
         if (currentExercise) exercises.push(currentExercise);
 
-        return { warmUp, exercises };
+        return { dayTitle, daySection, warmUp, exercises };
     };
 
-    const generateCombinedText = (plan) => {
-        const { exercises } = getExercisesFromPlanDetails(plan.generated_plan_details);
+    const generateCombinedText = (plan, day) => {
+        const { exercises } = getExercisesFromPlanDetails(plan.generated_plan_details, day);
         let combinedText = '';
 
         exercises.forEach((exercise, index) => {
@@ -147,42 +180,15 @@ const RecentCustomPlan = () => {
         return combinedText.trim();
     };
 
-    const handleCombinedTextChange = (value) => {
-        setCombinedText(value);
+    const handleDayChange = (e) => {
+        setCurrentDay(e.target.value);
+        setCombinedText(generateCombinedText(generatedPlan, e.target.value));
     };
 
-    const parseCombinedText = () => {
-        const lines = combinedText.split('\n');
-        const newExercises = [];
-        let currentExercise = { text: '', details: [] };
-        let currentIndex = -1;
+    const hasCompletedDays = Object.keys(dayCompletionStatus).some(day => dayCompletionStatus[day]);
 
-        lines.forEach(line => {
-            if (line.startsWith('**Weight:**')) {
-                if (!currentProgress[currentIndex]) {
-                    currentProgress[currentIndex] = {};
-                }
-                currentProgress[currentIndex].weight = line.replace('**Weight:** ', '');
-            } else if (line.startsWith('**Notes:**')) {
-                if (!currentProgress[currentIndex]) {
-                    currentProgress[currentIndex] = {};
-                }
-                currentProgress[currentIndex].notes = line.replace('**Notes:** ', '');
-            } else if (/^\d+\.\s|\*\*Exercise|\*\*Exercise:/i.test(line)) {
-                if (currentExercise.text) {
-                    newExercises.push(currentExercise);
-                }
-                currentIndex++;
-                currentExercise = { text: line, details: [] };
-            } else {
-                currentExercise.details.push(line);
-            }
-        });
-
-        if (currentExercise.text) newExercises.push(currentExercise);
-
-        setCurrentProgress({ ...currentProgress });
-        return newExercises;
+    const handleCombinedTextChange = (value) => {
+        setCombinedText(value);
     };
 
     const toggleEditMode = () => {
@@ -195,7 +201,7 @@ const RecentCustomPlan = () => {
     const cancelEditMode = () => {
         setIsEditMode(false);
         setEditableData(generatedPlan);
-        setCombinedText(generateCombinedText(generatedPlan)); // Reset combined text to original on cancel
+        setCombinedText(generateCombinedText(generatedPlan, currentDay)); // Reset combined text to original on cancel
     };
 
     const handleInputChange = (event) => {
@@ -295,6 +301,17 @@ const RecentCustomPlan = () => {
     };
 
     const enterUseMode = async () => {
+        if (hasMultipleDays() && currentDay === 'Select') {
+            alert('Please select a day to continue.');
+            return;
+        }
+        const dayKey = `day_${currentDay.split(' ')[1]}`;
+    
+        if (dayCompletionStatus[dayKey]) {
+            alert('This day has already been completed.');
+            return;
+        }
+
         try {
             const isPinned = await checkPinStatus();
 
@@ -308,7 +325,11 @@ const RecentCustomPlan = () => {
 
             // Save original plan details before entering use mode
             setEditableData({ ...generatedPlan });
-            setCombinedText(generateCombinedText(generatedPlan));
+
+            // If it's a single-day plan, use 'Day 1' as the default day
+            const dayToUse = hasMultipleDays() ? currentDay : 'Day 1';
+            setCurrentDay(dayToUse); // Ensure currentDay is set properly
+            setCombinedText(generateCombinedText(generatedPlan, dayToUse));
 
             setIsUseMode(true);
         } catch (error) {
@@ -317,12 +338,11 @@ const RecentCustomPlan = () => {
         }
     };
 
-
     const exitUseMode = () => {
-        setCombinedText(generateCombinedText(generatedPlan)); // Reset to original combined text
+        setCombinedText(generatedPlan.generated_plan_details); // Reset to the original plan details
+        setCurrentDay('Select'); // Reset current day selection
         setIsUseMode(false);
     };
-
 
     const openCompleteModal = () => {
         setEditableData(prevState => ({
@@ -336,11 +356,11 @@ const RecentCustomPlan = () => {
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-    }
+    };
 
     const markAsCompleted = async () => {
         try {
-            const { exercises } = getExercisesFromPlanDetails(generatedPlan.generated_plan_details);
+            const { exercises } = getExercisesFromPlanDetails(generatedPlan.generated_plan_details, currentDay);
             const progress = exercises.map((exercise, index) => ({
                 exercise: exercise.text,
                 weight: currentProgress[exercise.index]?.weight || '',
@@ -348,17 +368,18 @@ const RecentCustomPlan = () => {
             }));
 
             const response = await axios.post(`http://localhost:5000/api/mark_plan_completed/${planId}`, {
-                client_id: clientId,  // Include client_id in the request body
+                client_id: clientId,
                 name: editableData.generated_plan_name,
                 date: editableData.generated_plan_date,
-                workout_type: workoutType.join(', '),  // Add workout types here
+                workout_type: workoutType.join(', '),
                 duration_minutes: editableData.duration || 60,
                 combined_text: combinedText,
                 intensity_level: intensity,
                 location: editableData.location || 'Local Gym',
                 workout_rating: workoutRating,
                 trainer_notes: editableData.trainer_notes || '',
-                plan_type: 'generated'  // Specify the plan type here (change as needed)
+                plan_type: 'generated',
+                day_index: currentDay  // Include the current day index
             });
 
             console.log('Plan marked as completed and logged as workout:', response.data);
@@ -375,8 +396,6 @@ const RecentCustomPlan = () => {
         }
     };
 
-
-
     const logProgress = (exerciseIndex, field, value) => {
         setCurrentProgress(prevState => ({
             ...prevState,
@@ -385,7 +404,7 @@ const RecentCustomPlan = () => {
                 [field]: value
             }
         }));
-        setCombinedText(generateCombinedText({ ...generatedPlan })); // Update combined text whenever progress is logged
+        setCombinedText(generateCombinedText({ ...generatedPlan }, currentDay)); // Update combined text whenever progress is logged
     };
 
     const toggleVisibility = (index) => {
@@ -393,6 +412,99 @@ const RecentCustomPlan = () => {
             ...prevState,
             [index]: !prevState[index]
         }));
+    };
+
+    const renderPlanDetails = (planDetails, isUseMode, currentProgress, logProgress, toggleVisibility, visibleInputs) => {
+        if (typeof planDetails === 'string') {
+            return planDetails.split('\n').map((line, index) => (
+                <div key={index} className={line.trim().startsWith('#') || line.trim().startsWith('##') ? "mt-4 mb-2 font-semibold" : line.trim() === '' ? "mb-2" : "ml-4 text-gray-600"}>
+                    {line.trim()}
+                </div>
+            ));
+        } else {
+            return (
+                <>
+                    <div className="mb-4">
+                        <div className="text-lg font-semibold text-gray-800 mb-2">{planDetails.dayTitle}</div>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Warm-Up:</h3>
+                    {planDetails.warmUp.map((line, index) => (
+                        <div key={index} className="ml-4 text-gray-600 mb-2">
+                            {line}
+                        </div>
+                    ))}
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Main Workout:</h3>
+                    {planDetails.exercises.map((exercise, index) => {
+                        const isVisible = visibleInputs[index] || false;
+                        return (
+                            <div key={index} className="mb-4">
+                                <div>{exercise.text}</div>
+                                {exercise.details.map((detail, detailIndex) => (
+                                    <div key={detailIndex} className="ml-4 text-gray-600 mb-2">
+                                        {detail}
+                                    </div>
+                                ))}
+                                {isUseMode && (
+                                    <div>
+                                        {isVisible ? (
+                                            <div className="flex space-x-2 mt-2">
+                                                <textarea
+                                                    value={currentProgress[exercise.index]?.weight || ''}
+                                                    placeholder="Weight"
+                                                    onChange={(e) => logProgress(exercise.index, 'weight', e.target.value)}
+                                                    className="w-1/4 p-2 border rounded"
+                                                />
+                                                <textarea
+                                                    value={currentProgress[exercise.index]?.notes || ''}
+                                                    placeholder="Notes"
+                                                    onChange={(e) => logProgress(exercise.index, 'notes', e.target.value)}
+                                                    className="w-full p-2 border rounded"
+                                                />
+                                                <button onClick={() => toggleVisibility(index)} className="text-red-500 hover:text-red-700 transition-colors duration-300 ease-in-out">
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => toggleVisibility(index)}
+                                                className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition duration-300 ease-in-out mt-2"
+                                            >
+                                                Add Log
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </>
+            );
+        }
+    };
+
+    const renderCompletionStatus = () => {
+        if (completionStatus && !hasMultipleDays()) {
+            return (
+                <div className="text-lg font-semibold text-green-500">
+                    Completed On: <span style={{ color: 'black' }} className="font-normal">{completionDate}</span>
+                </div>
+            );
+        } else if (hasMultipleDays() && Object.keys(dayCompletionStatus).length > 0) {
+            return (
+                <div className="mt-4">
+                    <h3 className="text-lg font-semibold text-gray-700">Completion Status:</h3>
+                    {Object.keys(dayCompletionStatus).map((dayKey, index) => (
+                        dayCompletionStatus[dayKey] && (
+                            <div key={index} className="text-sm text-green-600">
+                                {`Day ${index + 1}`} completed on {completionDate}
+                            </div>
+                        )
+                    ))}
+                </div>
+            );
+        } else {
+            return null;
+        }
     };
 
     return (
@@ -430,60 +542,7 @@ const RecentCustomPlan = () => {
                                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 ></textarea>
                             ) : (
-                                (() => {
-                                    const { warmUp, exercises } = getExercisesFromPlanDetails(generatedPlan.generated_plan_details);
-                                    return (
-                                        <>
-                                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Warm-Up:</h3>
-                                            {warmUp.map((line, index) => (
-                                                <div key={index} className="ml-4 text-gray-600">
-                                                    {line}
-                                                </div>
-                                            ))}
-                                            <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">Main Workout:</h3>
-                                            {exercises.map((exercise, index) => {
-                                                const isVisible = visibleInputs[index] || false;
-                                                return (
-                                                    <div key={index} className="mb-4">
-                                                        <div>{exercise.text}</div>
-                                                        {exercise.details.map((detail, detailIndex) => (
-                                                            <div key={detailIndex} className="ml-4 text-gray-600">
-                                                                {detail}
-                                                            </div>
-                                                        ))}
-                                                        {isUseMode && (
-                                                            <div>
-                                                                {isVisible ? (
-                                                                    <div className="flex space-x-2 mt-2">
-                                                                        <textarea
-                                                                            value={currentProgress[exercise.index]?.weight || ''}
-                                                                            placeholder="Weight"
-                                                                            onChange={(e) => logProgress(exercise.index, 'weight', e.target.value)}
-                                                                            className="w-1/4 p-2 border rounded"
-                                                                        />
-                                                                        <textarea
-                                                                            value={currentProgress[exercise.index]?.notes || ''}
-                                                                            placeholder="Notes"
-                                                                            onChange={(e) => logProgress(exercise.index, 'notes', e.target.value)}
-                                                                            className="w-full p-2 border rounded"
-                                                                        />
-                                                                        <button onClick={() => toggleVisibility(index)} className="text-red-500 hover:text-red-700 transition-colors duration-300 ease-in-out">
-                                                                            Remove
-                                                                        </button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <button onClick={() => toggleVisibility(index)} className="text-blue-500 hover:text-blue-700 transition-colors duration-300 ease-in-out mt-2">
-                                                                        Add Log
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </>
-                                    );
-                                })()
+                                renderPlanDetails(getExercisesFromPlanDetails(generatedPlan.generated_plan_details, currentDay), isUseMode, currentProgress, logProgress, toggleVisibility, visibleInputs)
                             )}
                         </div>
                     </div>
@@ -522,9 +581,18 @@ const RecentCustomPlan = () => {
                             <div className="text-lg font-semibold text-gray-700">
                                 Plan Created: <span className='font-normal'>{formatDate(generatedPlan.generated_plan_date)}</span>
                             </div>
-                            {completionStatus && (
-                                <div className="text-lg font-semibold text-green-500">
-                                    Completed On: <span style={{ color: 'black' }} className="font-normal">{formatDate(completionDate)}</span>
+                            <div className='mt-4'>
+                                {renderCompletionStatus()}
+                            </div>
+                            {hasMultipleDays() && (
+                                <div className='mt-6'>
+                                    <label className="text-lg font-semibold text-gray-700">Select Day:</label>
+                                    <select value={currentDay} onChange={handleDayChange} className="ml-2 p-1 border rounded">
+                                        <option value="Select">Select</option>
+                                        {getDaysFromPlanDetails().map((day, index) => (
+                                            <option key={index} value={day}>{day} {dayCompletionStatus[`day_${index + 1}`] && "✔"}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             )}
                             <div className="flex justify-between items-center mt-4">
@@ -570,7 +638,7 @@ const RecentCustomPlan = () => {
                                         className="w-full p-2 border rounded"
                                     />
                                 ) : (
-                                    <p className="text-gray-600 whitespace-pre-wrap">{generatedPlan.generated_plan_details}</p>
+                                    renderPlanDetails(getExercisesFromPlanDetails(generatedPlan.generated_plan_details, currentDay), isUseMode, currentProgress, logProgress, toggleVisibility, visibleInputs)
                                 )}
                             </div>
                         </div>
@@ -578,139 +646,141 @@ const RecentCustomPlan = () => {
                     {showFeedbackModal && <FeedbackModal planId={planId} onClose={closeFeedbackModal} />}
                 </>
             )}
-            {showCompleteModal && (
-                <Modal
-                    open={showCompleteModal}
-                    onClose={closeCompleteModal}
-                    aria-labelledby="simple-modal-title"
-                    aria-describedby="simple-modal-description"
-                >
-                    <div className="bg-white p-8 rounded shadow-lg max-h-screen overflow-y-auto max-w-lg mx-auto my-4">
-                        <h2 className="text-xl font-bold mb-4">Mark Plan as Completed</h2>
-                        <form>
-                            <div className="mb-4">
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Workout Name</label>
-                                <input
-                                    type="text"
-                                    name="generated_plan_name"
-                                    value={editableData.generated_plan_name}
-                                    onChange={handleInputChange}
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Date Completed</label>
-                                <input
-                                    type="date"
-                                    name="generated_plan_date"
-                                    value={editableData.generated_plan_date}
-                                    onChange={handleInputChange}
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                />
-                            </div>
-                            <div className='mb-4'>
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Workout Type:</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {workoutTypes.map((type) => (
-                                        <div key={type} className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                id={type}
-                                                value={type}
-                                                onChange={handleWorkoutTypeChange}
-                                                checked={workoutType.includes(type)}
-                                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                            />
-                                            <label htmlFor={type} className="ml-2 block text-sm text-gray-700">
-                                                {type}
+            {
+                showCompleteModal && (
+                    <Modal
+                        open={showCompleteModal}
+                        onClose={closeCompleteModal}
+                        aria-labelledby="simple-modal-title"
+                        aria-describedby="simple-modal-description"
+                    >
+                        <div className="bg-white p-8 rounded shadow-lg max-h-screen overflow-y-auto max-w-lg mx-auto my-4">
+                            <h2 className="text-xl font-bold mb-4">Mark Plan as Completed</h2>
+                            <form>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Workout Name</label>
+                                    <input
+                                        type="text"
+                                        name="generated_plan_name"
+                                        value={editableData.generated_plan_name}
+                                        onChange={handleInputChange}
+                                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Date Completed</label>
+                                    <input
+                                        type="date"
+                                        name="generated_plan_date"
+                                        value={editableData.generated_plan_date}
+                                        onChange={handleInputChange}
+                                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    />
+                                </div>
+                                <div className='mb-4'>
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Workout Type:</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {workoutTypes.map((type) => (
+                                            <div key={type} className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id={type}
+                                                    value={type}
+                                                    onChange={handleWorkoutTypeChange}
+                                                    checked={workoutType.includes(type)}
+                                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <label htmlFor={type} className="ml-2 block text-sm text-gray-700">
+                                                    {type}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Duration (minutes)</label>
+                                    <input
+                                        type="number"
+                                        name="duration"
+                                        value={editableData.duration || 60}
+                                        onChange={handleInputChange}
+                                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Intensity Level</label>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="intensity-label"></InputLabel>
+                                        <Select
+                                            labelId="intensity-label"
+                                            name="intensity"
+                                            value={intensity}
+                                            onChange={handleIntensityChange}
+                                        >
+                                            <MenuItem value="Low">Low</MenuItem>
+                                            <MenuItem value="Moderate">Moderate</MenuItem>
+                                            <MenuItem value="High">High</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Exercises:</label>
+                                    <textarea
+                                        value={combinedText}
+                                        onChange={(e) => handleCombinedTextChange(e.target.value)}
+                                        className="w-full p-2 border rounded"
+                                        rows={15}
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Workout Rating (1-10):</label>
+                                    <div className="flex space-x-2">
+                                        {[...Array(10).keys()].map((i) => (
+                                            <label key={i} className="inline-flex items-center">
+                                                <input
+                                                    type="radio"
+                                                    name="workoutRating"
+                                                    value={i + 1}
+                                                    checked={workoutRating === String(i + 1)}
+                                                    onChange={handleRatingChange}
+                                                    className="form-radio text-indigo-600"
+                                                />
+                                                <span className="ml-2">{i + 1}</span>
                                             </label>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Duration (minutes)</label>
-                                <input
-                                    type="number"
-                                    name="duration"
-                                    value={editableData.duration || 60}
-                                    onChange={handleInputChange}
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Intensity Level</label>
-                                <FormControl fullWidth>
-                                    <InputLabel id="intensity-label"></InputLabel>
-                                    <Select
-                                        labelId="intensity-label"
-                                        name="intensity"
-                                        value={intensity}
-                                        onChange={handleIntensityChange}
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Trainer Notes</label>
+                                    <textarea
+                                        rows="4"
+                                        placeholder="Enter any additional notes..."
+                                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                        onChange={(e) => logProgress('trainerNotes', 'notes', e.target.value)}
+                                    ></textarea>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={markAsCompleted}
+                                        className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                                     >
-                                        <MenuItem value="Low">Low</MenuItem>
-                                        <MenuItem value="Moderate">Moderate</MenuItem>
-                                        <MenuItem value="High">High</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Exercises:</label>
-                                <textarea
-                                    value={combinedText}
-                                    onChange={(e) => handleCombinedTextChange(e.target.value)}
-                                    className="w-full p-2 border rounded"
-                                    rows={15}
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Workout Rating (1-10):</label>
-                                <div className="flex space-x-2">
-                                    {[...Array(10).keys()].map((i) => (
-                                        <label key={i} className="inline-flex items-center">
-                                            <input
-                                                type="radio"
-                                                name="workoutRating"
-                                                value={i + 1}
-                                                checked={workoutRating === String(i + 1)}
-                                                onChange={handleRatingChange}
-                                                className="form-radio text-indigo-600"
-                                            />
-                                            <span className="ml-2">{i + 1}</span>
-                                        </label>
-                                    ))}
+                                        Log Session
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={closeCompleteModal}
+                                        className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                                    >
+                                        Exit
+                                    </button>
                                 </div>
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Trainer Notes</label>
-                                <textarea
-                                    rows="4"
-                                    placeholder="Enter any additional notes..."
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                    onChange={(e) => logProgress('trainerNotes', 'notes', e.target.value)}
-                                ></textarea>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <button
-                                    type="button"
-                                    onClick={markAsCompleted}
-                                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                                >
-                                    Log Session
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={closeCompleteModal}
-                                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                                >
-                                    Exit
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </Modal>
-            )}
-        </div>
+                            </form>
+                        </div>
+                    </Modal>
+                )
+            }
+        </div >
     );
 };
 

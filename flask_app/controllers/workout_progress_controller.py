@@ -12,215 +12,7 @@ from datetime import datetime
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-
-
-#Quick Plan Logic:
-
-@app.route('/api/get_demo_plan/<int:demo_plan_id>', methods=['GET'])
-def get_demo_plan(demo_plan_id):
-    demo_plan = DemoPlan.get_by_id(demo_plan_id)
-    current_app.logger.debug(f'Demo Plan: {demo_plan}')
-    if not demo_plan:
-        return jsonify({"error": "No demo plan found."}), 404
-
-    return jsonify({
-        "client_first_name": demo_plan.client_first_name,
-        "client_last_name": demo_plan.client_last_name,
-        "demo_plan_name": demo_plan.name,
-        "demo_plan_date": demo_plan.created_at,  
-        "demo_plan_details": demo_plan.demo_plan_details
-    })
-
-
-
-@app.route('/api/update_client_demo_plan/<int:demo_plan_id>', methods=['POST'])
-def update_client_demo_plan(demo_plan_id):
-    data = request.get_json()
-    name = data.get('name')
-    demo_plan_details = data.get('demo_plan_details')
-
-    if not name or not demo_plan_details:
-        return jsonify({"success": False, "message": "Missing or incorrect data: name or demo_plan_details missing"}), 400
-
-    update_result = DemoPlan.update(demo_plan_id, {'name': name, 'demo_plan_details': demo_plan_details})
-
-
-    if update_result:
-        return jsonify({"success": True, "message": "Update successful"})
-    else:
-        return jsonify({"success": False, "message": "Failed to update the workout plan"})
-    
-
-@app.route('/api/delete_demo_plan/<int:plan_id>', methods=['DELETE'])
-def delete_demo_plan(plan_id):
-    try:
-        success = DemoPlan.delete(plan_id)
-        if success:
-            print(f"Demo plan with ID {plan_id} deleted successfully.")
-            return jsonify({"success": True, "message": "Demo Plan deleted successfully."}), 200
-        else:
-            print(f"No demo plan found with ID {plan_id}.")
-            return jsonify({"success": False, "message": "Failed to delete Demo Plan. No such plan exists."}), 404
-    except Exception as e:
-        print(f"An error occurred while deleting the Demo Plan with ID {plan_id}: {str(e)}")
-        return jsonify({"success": False, "message": f"An error occurred while deleting the Demo Plan: {str(e)}"}), 500
-
-@app.route('/api/pin_demo_plan_for_today/<int:plan_id>', methods=['POST'])
-def pin_demo_plan_for_today(plan_id):
-    try:
-        result = DemoPlan.pin_for_today(plan_id)
-        if result:
-            return jsonify({"success": True, "message": "Plan pinned for today."})
-        else:
-            print("Failed to pin the plan.")
-            return jsonify({"success": False, "message": "Failed to pin the plan."}), 500
-    except Exception as e:
-        print(f"Error in pin_plan_for_today endpoint: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
-
-    
-@app.route('/api/check_demo_pin_status/<int:plan_id>', methods=['GET'])
-def check_demo_pin_status(plan_id):
-    try:
-        is_pinned = DemoPlan.check_pin_status(plan_id)
-        return jsonify({"success": True, "is_pinned": is_pinned})
-    except Exception as e:
-        print(f"Error in check_pin_status endpoint: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
-
-@app.route('/api/get_demo_plan_completion_status/<int:plan_id>', methods=['GET'])
-def get_demo_plan_completion_status(plan_id):
-    try:
-        result = DemoPlan.get_completion_status_and_date(plan_id)
-        if not result:
-            return jsonify({"error": "Plan not found"}), 404
-
-        completion_date = result['completion_date']
-        if completion_date:
-            completion_date = completion_date.strftime('%Y-%m-%d')
-        else:
-            completion_date = None
-
-        return jsonify({
-            "completion_status": result['completed_marked'],
-            "completion_date": completion_date
-        })
-    except Exception as e:
-        logging.error(f'An error occurred: {str(e)}')
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
-
-@app.route('/api/update_demo_plan_day_completion/<int:plan_id>/<int:day_index>', methods=['POST'])
-def update_demo_plan_day_completion(plan_id, day_index):
-    try:
-        result = DemoPlan.update_day_completion(plan_id, day_index)
-        if result:
-            return jsonify({"success": True, "message": "Day completion status updated."})
-        else:
-            return jsonify({"success": False, "message": "Failed to update day completion status."}), 500
-    except Exception as e:
-        logging.error(f'An error occurred while updating day completion status: {str(e)}')
-        return jsonify({'error': f'An error occurred while updating day completion status: {str(e)}'}), 500
-
-    
-
-#Custom Plan Logic: <-------> 
-
-@app.route('/api/get_generated_plan/<int:generated_plan_id>', methods=['GET'])
-def get_generated_plan(generated_plan_id):
-    generated_plan = GeneratedPlan.get_by_id(generated_plan_id)
-    current_app.logger.debug(f'Generated Plan: {generated_plan}')
-    if not generated_plan:
-        return jsonify({"error": "No generated plan found."}), 404
-
-    return jsonify({
-        "client_first_name": generated_plan.client_first_name,
-        "client_last_name": generated_plan.client_last_name,
-        "generated_plan_name": generated_plan.name,
-        "generated_plan_date": generated_plan.created_at if generated_plan.date else None,
-        "generated_plan_details": generated_plan.generated_plan_details
-    })
-
-
-@app.route('/api/update_client_generated_plan/<int:generated_plan_id>', methods=['POST'])
-def update_client_generated_plan(generated_plan_id):
-    data = request.get_json()
-    name = data.get('name')
-    generated_plan_details = data.get('generated_plan_details')
-
-    if not name or not generated_plan_details:
-        return jsonify({"success": False, "message": "Missing or incorrect data: name or generated_plan_details missing"}), 400
-
-    update_result = GeneratedPlan.update(generated_plan_id, {'name': name, 'generated_plan_details': generated_plan_details})
-
-
-    if update_result:
-        return jsonify({"success": True, "message": "Update successful"})
-    else:
-        return jsonify({"success": False, "message": "Failed to update the workout plan"})
-    
-
-@app.route('/api/delete_custom_plan/<int:plan_id>', methods=['DELETE'])
-def delete_custom_plan(plan_id):
-    try:
-        success = GeneratedPlan.delete(plan_id)
-        if success:
-            print(f"Custom plan with ID {plan_id} deleted successfully.")
-            return jsonify({"success": True, "message": "Custom Plan deleted successfully."}), 200
-        else:
-            print(f"No custom plan found with ID {plan_id}.")
-            return jsonify({"success": False, "message": "Failed to delete Custom Plan. No such plan exists."}), 404
-    except Exception as e:
-        print(f"An error occurred while deleting Custom Plan with ID {plan_id}: {str(e)}")
-        return jsonify({"success": False, "message": f"An error occurred while deleting the Custom Plan: {str(e)}"}), 500
-
-
-@app.route('/api/pin_plan_for_today/<int:plan_id>', methods=['POST'])
-def pin_plan_for_today(plan_id):
-    try:
-        result = GeneratedPlan.pin_for_today(plan_id)
-        if result:
-            return jsonify({"success": True, "message": "Plan pinned for today."})
-        else:
-            print("Failed to pin the plan.")
-            return jsonify({"success": False, "message": "Failed to pin the plan."}), 500
-    except Exception as e:
-        print(f"Error in pin_plan_for_today endpoint: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
-
-    
-@app.route('/api/check_pin_status/<int:plan_id>', methods=['GET'])
-def check_pin_status(plan_id):
-    try:
-        is_pinned = GeneratedPlan.check_pin_status(plan_id)
-        return jsonify({"success": True, "is_pinned": is_pinned})
-    except Exception as e:
-        print(f"Error in check_pin_status endpoint: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
-
-@app.route('/api/get_plan_completion_status/<int:plan_id>', methods=['GET'])
-def get_plan_completion_status(plan_id):
-    try:
-        result = GeneratedPlan.get_completion_status_and_date(plan_id)
-        if not result:
-            return jsonify({"error": "Plan not found"}), 404
-
-        completion_date = result['completion_date']
-        if completion_date:
-            completion_date = completion_date.strftime('%Y-%m-%d')
-        else:
-            completion_date = None
-
-        return jsonify({
-            "completion_status": result['completed_marked'],
-            "completion_date": completion_date
-        })
-    except Exception as e:
-        logging.error(f'An error occurred: {str(e)}')
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
-
-
-
-
+  
 #Session Progress Logic: <------->
 
 @app.route('/api/add_workout_session', methods=['POST'])
@@ -486,8 +278,6 @@ def mark_plan_completed(plan_id):
             return jsonify({'error': 'Client ID not found. Unable to add workout session for the client.'}), 400
 
         day_index = data.get('day_index', None)
-        if day_index is None:
-            return jsonify({'error': 'Day index not provided'}), 400
 
         plan_type = data.get('plan_type')
         if plan_type not in ['generated', 'demo']:
@@ -511,10 +301,16 @@ def mark_plan_completed(plan_id):
 
         if plan_type == 'demo':
             review_data['demo_plan_id'] = plan_id
-            success = DemoPlan.update_day_completion(plan_id, day_index)
+            if day_index is not None:
+                success = DemoPlan.update_day_completion(plan_id, day_index)
+            else:
+                success = DemoPlan.mark_as_completed(plan_id)
         else:
             review_data['generated_plan_id'] = plan_id
-            success = GeneratedPlan.mark_as_completed(plan_id)
+            if day_index is not None:
+                success = GeneratedPlan.update_day_completion(plan_id, day_index)
+            else:
+                success = GeneratedPlan.mark_as_completed(plan_id)
 
         if not success:
             logging.error(f'Failed to mark the plan as completed for plan_id {plan_id}, plan_type {plan_type}, day_index {day_index}')
@@ -541,6 +337,7 @@ def mark_plan_completed(plan_id):
     except Exception as e:
         logging.error(f'An error occurred: {str(e)}')
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
 
 
 

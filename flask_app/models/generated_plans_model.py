@@ -1,5 +1,5 @@
 from flask_app.config.mysqlconnection import connectToMySQL
-from flask import flash
+from flask import flash, json
 from datetime import datetime, timedelta
 import logging
 
@@ -11,6 +11,7 @@ class GeneratedPlan:
         self.parameters = data.get('parameters')
         self.date = data.get('date', None)
         self.completed_marked = data.get('completed_marked', 0)
+        self.day_completion_status = data.get('day_completion_status') or '{}'
         self.pinned_until = data.get('pinned_until', None)
         self.created_at = data.get('created_at', None)
         self.updated_at = data.get('updated_at', None)
@@ -26,6 +27,7 @@ class GeneratedPlan:
             'parameters': self.parameters,
             'date': self.date,
             'completed_marked': self.completed_marked,
+            'day_completion_status': self.day_completion_status,
             'pinned_until': str(self.pinned_until) if self.pinned_until else None,
             'created_at': str(self.created_at),  
             'updated_at': str(self.updated_at),
@@ -162,6 +164,69 @@ class GeneratedPlan:
             logging.error(f'Error in mark_as_completed: {str(e)}')
             return False
     
+    @classmethod
+    def update_day_completion(cls, plan_id, day_index):
+        try:
+            plan = cls.get_by_id(plan_id)
+            if not plan:
+                logging.error(f'Plan with id {plan_id} not found')
+                return False
+
+            # Extract numeric day index if it's a string like 'Day 1'
+            if isinstance(day_index, str):
+                day_index = int(day_index.split(' ')[1])
+
+            logging.debug(f'Marking day {day_index} as completed for plan {plan_id}')
+
+
+            # Load the existing day completion status
+            day_completion_status = json.loads(plan.day_completion_status)
+            day_completion_status[f'day_{day_index}'] = True
+
+            # Determine the total number of days in the plan
+            day_titles = [day for day in plan.generated_plan_details.split('\n') if day.startswith('## Day')]
+            total_days = len(day_titles)
+
+            # Check if all days are completed
+            all_completed = all(day_completion_status.get(f'day_{i}', False) for i in range(1, total_days + 1))
+            completed_marked = 1 if all_completed else 0
+
+            logging.debug(f'All days completed: {all_completed}, completed_marked: {completed_marked}')
+
+
+            # Update the plan object
+            plan.day_completion_status = json.dumps(day_completion_status)
+            plan.completed_marked = completed_marked
+            plan.updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            # Prepare the update query
+            update_query = """
+                UPDATE generated_plans
+                SET day_completion_status = %(day_completion_status)s,
+                    completed_marked = %(completed_marked)s,
+                    updated_at = NOW()
+                WHERE id = %(id)s
+            """
+            params = {
+                'day_completion_status': plan.day_completion_status,
+                'completed_marked': plan.completed_marked,
+                'id': plan.id
+            }
+
+            # Execute the update query
+            result = connectToMySQL('fitness_consultation_schema').query_db(update_query, params)
+            if result == 0:
+                logging.error(f'No rows affected when updating plan_id {plan_id}')
+                return False
+
+            logging.debug(f'Plan with id {plan_id} successfully updated')
+            return True
+        except Exception as e:
+            logging.error(f'An error occurred while updating day completion: {str(e)}')
+            return False
+
+
+    
 
     @classmethod
     def pin_for_today(cls, plan_id):
@@ -235,27 +300,31 @@ class GeneratedPlan:
     @classmethod
     def get_completion_status_and_date(cls, plan_id):
         query = """
-            SELECT gp.completed_marked, wp.date as completion_date
+            SELECT gp.completed_marked, wp.date as completion_date, wp.day_index
             FROM generated_plans gp
             LEFT JOIN workout_progress wp ON gp.id = wp.generated_plan_id
             WHERE gp.id = %(plan_id)s
-            ORDER BY wp.date DESC
-            LIMIT 1;
+            ORDER BY wp.date DESC;
         """
         data = {'plan_id': plan_id}
-        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
-    
-        logging.debug(f"Query result for plan_id {plan_id}: {result}")
+        results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
 
-        if result:
-            completion_status_and_date = {
-                'completed_marked': result[0]['completed_marked'],
-                'completion_date': result[0]['completion_date']
-            }
-            logging.debug(f"Completion status and date for plan_id {plan_id}: {completion_status_and_date}")
-            return completion_status_and_date
+        logging.debug(f"Query results for plan_id {plan_id}: {results}")
+
+        if results:
+            completion_status_and_dates = {
+                'completed_marked': results[0]['completed_marked'],
+                'completion_dates': {}
+            }   
+            for result in results:
+                day_index = f"day_{result['day_index'].split(' ')[1]}"
+                completion_status_and_dates['completion_dates'][day_index] = result['completion_date'].strftime('%Y-%m-%d')
+        
+            logging.debug(f"Completion status and dates for plan_id {plan_id}: {completion_status_and_dates}")
+            return completion_status_and_dates
         else:
             return None
+
 
     
     @classmethod

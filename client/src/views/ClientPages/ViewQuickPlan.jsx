@@ -7,7 +7,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import { format, parseISO } from 'date-fns';
+import { parse, isValid, format } from 'date-fns';
 
 const ViewQuickPlan = () => {
     const { planId, clientId } = useParams();
@@ -27,8 +27,9 @@ const ViewQuickPlan = () => {
     const [combinedText, setCombinedText] = useState('');
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [workoutRating, setWorkoutRating] = useState('5');
+    const [dayCompletionStatus, setDayCompletionStatus] = useState({});
     const [completionStatus, setCompletionStatus] = useState(false);
-    const [completionDate, setCompletionDate] = useState(null);
+    const [completionDates, setCompletionDates] = useState({});
     const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
@@ -47,28 +48,38 @@ const ViewQuickPlan = () => {
                 setLoading(false);
             });
 
-        axios.get(`http://localhost:5000/api/get_demo_plan_completion_status/${planId}`)
+            axios.get(`http://localhost:5000/api/get_demo_plan_completion_status/${planId}`)
             .then(response => {
-                const { completion_status, completion_date } = response.data;
-                console.log(`Fetched completion status: ${completion_status}, completion date: ${completion_date}`);
+                const { completion_status, completion_dates, day_completion_status } = response.data;
 
-                if (completion_status) {
-                    setCompletionStatus(completion_status);
-                    if (completion_date) {
-                        setCompletionDate(format(parseISO(completion_date), 'MM/dd/yyyy'));
-                    } else {
-                        setCompletionDate(null);
+                if (completion_dates) {
+                    const formattedDates = {};
+                    for (const [day, date] of Object.entries(completion_dates)) {
+                        const parsedDate = new Date(date);
+                        if (isValid(parsedDate)) {
+                            formattedDates[day] = parsedDate.toLocaleDateString('en-US', { timeZone: 'UTC' });
+                        } else {
+                            console.error('Invalid date:', date);
+                            formattedDates[day] = null;
+                        }
                     }
+                    setCompletionDates(formattedDates);
                 } else {
-                    setCompletionStatus(null);
-                    setCompletionDate(null);
+                    setCompletionDates({});
                 }
+
+                setDayCompletionStatus(day_completion_status || {});
+          
+
             })
             .catch(error => {
                 console.error('Error fetching completion status:', error);
                 setError('Failed to fetch completion status');
             });
     }, [planId, refreshKey]);
+
+    const hasCompletedDays = Object.values(dayCompletionStatus).some(status => status);
+
 
     const getExercisesFromPlanDetails = (planDetails, day) => {
         if (!planDetails) return { dayTitle: '', warmUp: [], exercises: [] };
@@ -97,7 +108,7 @@ const ViewQuickPlan = () => {
         lines.forEach((line, index) => {
             const isWarmUpSection = /### Warm-Up/i.test(line);
             const isExerciseLine = /(\d+\.\s|\*\*Exercise|\*\*Exercise:)/i.test(line);
-            const isDetailLine = /(\*\*Sets|\*\*Reps|\*\*Rest|\*\*Alternative|\*\*Intensity|\*\*Weight|\*\*Notes)/i.test(line);
+            const isDetailLine = /(\*\*Sets|\*\*Reps|\*\*Rest|\*\*Alternative|\*\*Duration|\*\*Intensity|\*\*Weight|\*\*Notes)/i.test(line);
             const isEndSection = /### Main Workout|### Cool Down|### Notes|###/i.test(line);
 
             if (isWarmUpSection) {
@@ -261,6 +272,13 @@ const ViewQuickPlan = () => {
             return;
         }
 
+        const dayKey = `day_${currentDay}`;
+
+        if (dayCompletionStatus[dayKey]) {
+            alert('This day has already been completed.');
+            return;
+        }
+
         try {
             const isPinned = await checkPinStatus();
 
@@ -283,6 +301,9 @@ const ViewQuickPlan = () => {
     const exitUseMode = () => {
         setIsUseMode(false);
     };
+
+    const allDaysCompleted = dayCompletionStatus["day_1"] && dayCompletionStatus["day_2"] && dayCompletionStatus["day_3"];
+
 
 
     const openCompleteModal = () => {
@@ -327,7 +348,10 @@ const ViewQuickPlan = () => {
             console.log('Plan marked as completed and logged as workout:', response.data);
             setShowCompleteModal(false);
             setCompletionStatus(true);
-            setCompletionDate(response.data.workout_log_id.date);
+            setCompletionDates(prevDates => ({
+                ...prevDates,
+                [currentDay]: response.data.workout_log_id.date // Assuming the API returns the date for the specific day
+            }));
             alert('Workout completed and successfully logged!');
             setIsUseMode(false);
             setRefreshKey(oldKey => oldKey + 1);  // Trigger a refresh to fetch updated data
@@ -346,12 +370,12 @@ const ViewQuickPlan = () => {
                 [field]: value
             }
         }));
-    
+
         // Update combined text when progress changes
         setCombinedText(generateCombinedText(demoPlan, currentDay));
     };
-    
-    
+
+
 
     const toggleVisibility = (index) => {
         setVisibleInputs(prevState => ({
@@ -360,7 +384,7 @@ const ViewQuickPlan = () => {
         }));
     };
 
-   
+
 
     const renderPlanDetails = (planDetails, isUseMode, currentProgress, logProgress, toggleVisibility, visibleInputs) => {
         if (typeof planDetails === 'string') {
@@ -373,7 +397,7 @@ const ViewQuickPlan = () => {
             return (
                 <>
                     <div className="mb-4">
-                        <div className="mt-4 mb-2 font-semibold">{planDetails.dayTitle}</div>
+                        <div className="text-lg font-semibold text-gray-800 mb-2">{planDetails.dayTitle}</div>
                     </div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-2">Warm-Up:</h3>
                     {planDetails.warmUp.map((line, index) => (
@@ -413,9 +437,14 @@ const ViewQuickPlan = () => {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <button onClick={() => toggleVisibility(index)} className="text-blue-500 hover:text-blue-700 transition-colors duration-300 ease-in-out mt-2">
+                                            <button
+                                                onClick={() => toggleVisibility(index)}
+                                                className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition duration-300 ease-in-out mt-2"
+                                            >
                                                 Add Log
                                             </button>
+
+
                                         )}
                                     </div>
                                 )}
@@ -502,16 +531,31 @@ const ViewQuickPlan = () => {
                             <div className="text-lg font-semibold text-gray-700">
                                 Plan Created: <span className='font-normal'>{formatDate(demoPlan.demo_plan_date)}</span>
                             </div>
+                            {hasCompletedDays && (
+                                <div className="mt-4">
+                                    <h3 className="text-lg font-semibold text-gray-700">Completion Status:</h3>
+                                    {dayCompletionStatus["day_Day 1"] && (
+                                        <div className="text-sm text-green-600">Day 1 completed on {completionDates["Day 1"]}</div>
+                                    )}
+                                    {dayCompletionStatus["day_Day 2"] && (
+                                        <div className="text-sm text-green-600">Day 2 completed on {completionDates["Day 2"]}</div>
+                                    )}
+                                    {dayCompletionStatus["day_Day 3"] && (
+                                        <div className="text-sm text-green-600">Day 3 completed on {completionDates["Day 3"]}</div>
+                                    )}
+                                </div>
+                            )}
                             <div className="flex justify-between items-center mt-4">
                                 <div>
                                     <label className="text-lg font-semibold text-gray-700">Select Day:</label>
                                     <select value={currentDay} onChange={handleDayChange} className="ml-2 p-1 border rounded">
                                         <option value="Select">Select</option>
-                                        <option value="Day 1">Day 1</option>
-                                        <option value="Day 2">Day 2</option>
-                                        <option value="Day 3">Day 3</option>
+                                        <option value="Day 1">Day 1 {dayCompletionStatus["day_Day 1"] && "✔"}</option>
+                                        <option value="Day 2">Day 2 {dayCompletionStatus["day_Day 2"] && "✔"}</option>
+                                        <option value="Day 3">Day 3 {dayCompletionStatus["day_Day 3"] && "✔"}</option>
                                     </select>
                                 </div>
+
                                 <div className="flex space-x-2">
                                     <button onClick={isEditMode ? saveChanges : toggleEditMode} className="px-4 py-2 border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
                                         {isEditMode ? 'Save Changes' : 'Edit Plan'}
@@ -525,7 +569,7 @@ const ViewQuickPlan = () => {
                                         {emailSending ? 'Sending...' : 'Email to Client'}
                                     </button>
                                     {!isUseMode && (
-                                        <button onClick={enterUseMode} className="px-4 py-2 border border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
+                                        <button onClick={enterUseMode} className="px-4 py-2 border border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white transition-colors duration-300 ease-in-out rounded" disabled={dayCompletionStatus[currentDay]}>
                                             Use for Today's Session
                                         </button>
                                     )}

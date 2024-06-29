@@ -144,7 +144,8 @@ class DemoPlan:
                 logging.error(f'Plan with id {plan_id} not found')
                 return False
 
-            day_completion_status = json.loads(plan.day_completion_status)
+            # Update the day completion status
+            day_completion_status = json.loads(plan.day_completion_status) if plan.day_completion_status else {}
             day_completion_status[f'day_{day_index}'] = True
 
             # Check if all days are completed
@@ -173,11 +174,27 @@ class DemoPlan:
                 logging.error(f'No rows affected when updating plan_id {plan_id}')
                 return False
 
+            # Insert or update the workout_progress table
+            progress_query = """
+                INSERT INTO workout_progress (demo_plan_id, day_index, date)
+                VALUES (%(plan_id)s, %(day_index)s, NOW())
+                ON DUPLICATE KEY UPDATE date = NOW()
+            """
+            progress_params = {
+                'plan_id': plan.id,
+                'day_index': f'Day {day_index}'
+            }
+            progress_result = connectToMySQL('fitness_consultation_schema').query_db(progress_query, progress_params)
+            if progress_result == 0:
+                logging.error(f'No rows affected when updating workout_progress for plan_id {plan_id} and day_index {day_index}')
+                return False
+
             logging.debug(f'Plan with id {plan_id} successfully updated')
             return True
         except Exception as e:
             logging.error(f'An error occurred while updating day completion: {str(e)}')
             return False
+
     
     @classmethod
     def pin_for_today(cls, plan_id):
@@ -251,29 +268,29 @@ class DemoPlan:
     @classmethod
     def get_completion_status_and_date(cls, plan_id):
         query = """
-            SELECT dp.completed_marked, wp.date as completion_date
+            SELECT dp.completed_marked, wp.date as completion_date, wp.day_index
             FROM demo_plans dp
             LEFT JOIN workout_progress wp ON dp.id = wp.demo_plan_id
             WHERE dp.id = %(plan_id)s
-            ORDER BY wp.date DESC
-            LIMIT 1;
+            ORDER BY wp.date DESC;
         """
         data = {'plan_id': plan_id}
-        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
-    
-        logging.debug(f"Query result for plan_id {plan_id}: {result}")
+        results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
 
-        if result:
+        logging.debug(f"Query results for plan_id {plan_id}: {results}")
+
+        if results:
+            completion_dates = {row['day_index']: row['completion_date'].strftime('%Y-%m-%d') for row in results if row['completion_date']}
             completion_status_and_date = {
-                'completed_marked': result[0]['completed_marked'],
-                'completion_date': result[0]['completion_date']
+                'completed_marked': results[0]['completed_marked'],
+                'completion_dates': completion_dates
             }
-            logging.debug(f"Completion status and date for plan_id {plan_id}: {completion_status_and_date}")
+            logging.debug(f"Completion status and dates for plan_id {plan_id}: {completion_status_and_date}")
             return completion_status_and_date
         else:
             return None
 
-    
+
     @classmethod
     def delete(cls, demo_id):
         query = "DELETE FROM demo_plans WHERE id = %(id)s;"
