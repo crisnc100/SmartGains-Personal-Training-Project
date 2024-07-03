@@ -7,7 +7,7 @@ const IntakeOptions = () => {
     const navigate = useNavigate();
 
     const handleProceed = () => {
-        navigate(`/trainer_dashboard/add_client/${clientId}/additional-services/intake-form/flexibility-assessment`); // Goes to performance assessments (flexibility assessment)
+        navigate(`/trainer_dashboard/add_client/${clientId}/additional-services/intake-form/assessment-choice`); // Goes to performance assessments (flexibility assessment)
     };
 
     const handleSkip = () => {

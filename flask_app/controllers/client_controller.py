@@ -6,6 +6,8 @@ from flask_app.models.trainer_model import Trainer
 from flask_app.models.consultation_model import Consultation
 from flask_app.models.history_model import History
 from flask_app.models.assessment_model import AdvancedAssessment, BeginnerAssessment, FlexibilityAssessment
+from flask_app.models.client_assessments_model import ClientAssessments
+from flask_app.models.global_assessments_model import GlobalAssessments
 from flask_app.models.demo_plans_model import DemoPlan
 from flask_app.models.workout_progress_model import WorkoutProgress
 from flask_app.models.generated_plans_model import GeneratedPlan
@@ -74,6 +76,7 @@ def existing_clients():
         })
     else:
         return jsonify({'error': 'Data not found'}), 404
+    
 
 @app.route('/api/current_client/<int:client_id>')
 def current_client(client_id): 
@@ -91,6 +94,7 @@ def current_client(client_id):
     advanced_assessment_data = AdvancedAssessment.get_by_client_id(client_id)
     beginner_assessment_data = BeginnerAssessment.get_by_client_id(client_id)
     history_data = History.get_by_client_id(client_id)
+    client_assessment_data = ClientAssessments.get_all_by_client_id(client_id)
     client_demo_plans = [demo_plan.serialize() for demo_plan in DemoPlan.get_by_client_id(client_id)]
     client_plans = [plan.serialize() for plan in GeneratedPlan.get_by_client_id(client_id)]
     workout_progress_data = [progress.serialize() for progress in WorkoutProgress.get_by_client_id(client_id)]
@@ -102,6 +106,7 @@ def current_client(client_id):
         "advanced_assessment_data": advanced_assessment_data.serialize() if advanced_assessment_data else {},
         "beginner_assessment_data": beginner_assessment_data.serialize() if beginner_assessment_data else {},
         "history_data": history_data.serialize() if history_data else {},
+        "client_assessment_data": [assessment.serialize() for assessment in client_assessment_data] if client_assessment_data else [],
         "client_demo_plans": client_demo_plans,
         "client_plans": client_plans,
         "workout_progress_data": workout_progress_data  
@@ -124,22 +129,27 @@ def get_editable_data(client_id):
         client_data = Client.get_one(client_id)
         consultation_data = Consultation.get_by_client_id(client_id)
         history_data = History.get_by_client_id(client_id)
+        client_assessment_data = ClientAssessments.get_all_by_client_id(client_id)
 
         # Created a dictionary only if data exists, else set to None or a default value
         client_dict = client_data.__dict__ if client_data else None
         consultation_dict = consultation_data.__dict__ if consultation_data else None
         history_dict = history_data.__dict__ if history_data else None
+        client_assessment_dict = client_assessment_data.__dict__ if client_assessment_data else None
 
         editable_data = {
             "success": client_data is not None,
             "client_data": client_dict,
             "consultation_data": consultation_dict,
             "history_data": history_dict,
+            "client_assessment_data": client_assessment_dict,
         }
         
         return jsonify(editable_data), 200 if client_data else 404
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+    
+
 
 @app.route('/api/update_client_data/<int:client_id>', methods=['POST'])
 def update_client_data(client_id):
@@ -166,6 +176,13 @@ def update_client_data(client_id):
         History.update({
             "id": history_data['id'],
             **history_data
+        })
+
+    client_assessment_data = updated_data.get('client_assessment_data', {})
+    if client_assessment_data and 'id' in client_assessment_data:
+        ClientAssessments.update({
+            "id": client_assessment_data['id'],
+            **client_assessment_data
         })
     
 

@@ -69,33 +69,33 @@ const RecentCustomPlan = () => {
     useEffect(() => {
         if (planId) {
             axios.get(`http://localhost:5000/api/get_plan_completion_status/${planId}`)
-            .then(response => {
-                const { completion_status, completion_date, day_completion_status } = response.data;
-                console.log("Fetched completion status:", completion_status);
-                console.log("Fetched completion date:", completion_date);
-                console.log("Fetched day completion status:", day_completion_status);
+                .then(response => {
+                    const { completion_status, completion_date, day_completion_status } = response.data;
+                    console.log("Fetched completion status:", completion_status);
+                    console.log("Fetched completion date:", completion_date);
+                    console.log("Fetched day completion status:", day_completion_status);
 
-                setCompletionStatus(completion_status);
+                    setCompletionStatus(completion_status);
 
-                if (completion_date) {
-                    const parsedDate = new Date(completion_date);
-                    if (isValid(parsedDate)) {
-                        const formattedDate = parsedDate.toLocaleDateString('en-US', { timeZone: 'UTC' });
-                        setCompletionDate(formattedDate);
+                    if (completion_date) {
+                        const parsedDate = new Date(completion_date);
+                        if (isValid(parsedDate)) {
+                            const formattedDate = parsedDate.toLocaleDateString('en-US', { timeZone: 'UTC' });
+                            setCompletionDate(formattedDate);
+                        } else {
+                            console.error('Invalid date:', completion_date);
+                            setCompletionDate(null);
+                        }
                     } else {
-                        console.error('Invalid date:', completion_date);
                         setCompletionDate(null);
                     }
-                } else {
-                    setCompletionDate(null);
-                }
 
-                setDayCompletionStatus(day_completion_status || {});
-            })
-            .catch(error => {
-                console.error('Error fetching completion status:', error);
-                setError('Failed to fetch completion status');
-            });
+                    setDayCompletionStatus(day_completion_status || {});
+                })
+                .catch(error => {
+                    console.error('Error fetching completion status:', error);
+                    setError('Failed to fetch completion status');
+                });
         };
     }, [planId]);
 
@@ -306,7 +306,7 @@ const RecentCustomPlan = () => {
             return;
         }
         const dayKey = `day_${currentDay.split(' ')[1]}`;
-    
+
         if (dayCompletionStatus[dayKey]) {
             alert('This day has already been completed.');
             return;
@@ -620,8 +620,8 @@ const RecentCustomPlan = () => {
                                             Use for Today's Session
                                         </button>
                                     )}
-                                    <button onClick={() => navigate(-1)} className="px-4 py-2 text-white bg-gray-400 hover:bg-gray-600 transition-colors duration-300 ease-in-out rounded">
-                                        Return Back
+                                    <button onClick={() => navigate(`/trainer_dashboard/all_clients/${clientId}/current-client`)} className="px-4 py-2 text-white bg-gray-400 hover:bg-gray-600 transition-colors duration-300 ease-in-out rounded">
+                                        Return to Client
                                     </button>
                                 </div>
                             </div>

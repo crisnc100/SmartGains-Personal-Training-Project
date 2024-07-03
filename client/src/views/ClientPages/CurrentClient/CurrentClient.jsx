@@ -600,9 +600,7 @@ const CurrentClient = () => {
                         )}
                         {activeTab === 'assessments' &&
                             <ClientAssessments
-                                flexibilityData={allClientData.flexibility_assessment_data}
-                                beginnerData={allClientData.beginner_assessment_data}
-                                advancedData={allClientData.advanced_assessment_data}
+                                clientAssessmentData = {editableData.client_assessment_data}
                             />
                         }
                         {activeTab === 'workout' && <ClientWorkouts

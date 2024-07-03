@@ -1,47 +1,109 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 
 const AssessmentChoice = () => {
-    const { clientId } = useParams(); 
+    const { clientId } = useParams();
     const navigate = useNavigate();
+    const [assessments, setAssessments] = useState([]);
+    const [filteredAssessments, setFilteredAssessments] = useState([]);
+    const [selectedAssessments, setSelectedAssessments] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedLevel, setSelectedLevel] = useState('All');
+    const recommendedLimit = 6;
 
-    const handleBeginner = () => {
-        navigate(`/trainer_dashboard/add_client/${clientId}/additional-services/intake-form/assessment-choice/beginner`);
+
+    useEffect(() => {
+        // Fetch the list of assessments from the server
+        axios.get('http://localhost:5000/api/get_all_assessments')
+            .then(response => {
+                setAssessments(response.data);
+                setFilteredAssessments(response.data);
+            })
+            .catch(error => {
+                console.error("There was an error fetching the assessments!", error);
+            });
+    }, []);
+
+    useEffect(() => {
+        // Filter assessments based on search term and selected level
+        let filtered = assessments;
+        if (selectedLevel !== 'All') {
+            filtered = filtered.filter(assessment => assessment.level === selectedLevel);
+        }
+        if (searchTerm) {
+            filtered = filtered.filter(assessment =>
+                assessment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                assessment.description.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+        setFilteredAssessments(filtered);
+    }, [searchTerm, selectedLevel, assessments]);
+
+    const toggleSelection = (assessment) => {
+        setSelectedAssessments(prevSelected => {
+            if (prevSelected.includes(assessment)) {
+                return prevSelected.filter(a => a !== assessment);
+            } else {
+                return [...prevSelected, assessment];
+            }
+        });
     };
 
-    const handleAdvanced = () => {
-        navigate(`/trainer_dashboard/add_client/${clientId}/additional-services/intake-form/assessment-choice/advanced`);
+    const handleNext = () => {
+        if (selectedAssessments.length === 0) {
+            alert("Please select at least one assessment.");
+            return;
+        }
+        navigate(`assessment-form`, { state: { selectedAssessments } });
     };
+    
 
     return (
-        <div className="flex flex-col items-center justify-start pt-10 bg-white-100" style={{ minHeight: 'calc(100vh - 2rem)' }}>
-            <h1 className="text-2xl font-bold text-center mb-4" style={{ color: 'black', fontSize:'35px' }}>Performance Assessments</h1>
-            <div className="w-full max-w-4xl p-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Beginner Card */}
-                    <div className="flex flex-col items-center justify-center bg-white shadow-md rounded-lg p-4 h-full border-2 border-black">
-                        <h2 className="text-lg font-semibold text-center" style={{color: 'black', fontSize:'25px'}}>Beginner Level</h2>
-                        <p className="text-gray-600 text-center mt-2">Designed for individuals new to fitness or with limited experience.</p>
-                        <button 
-                            onClick={handleBeginner} 
-                            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                            style={{ transition: 'background-color 0.3s' }}>
-                            Start Beginner Assessment
-                        </button>
-                    </div>
-                    {/* Advanced Card */}
-                    <div className="flex flex-col items-center justify-center bg-white shadow-md rounded-lg p-4 h-full border-2 border-black">
-                        <h2 className="text-lg font-semibold text-center" style={{color: 'black', fontSize:'25px'}}>Advanced Level</h2>
-                        <p className="text-gray-600 text-center mt-2">Designed for experienced individuals seeking a challenging assessment.</p>
-                        <button 
-                            onClick={handleAdvanced} 
-                            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                            style={{ transition: 'background-color 0.3s' }}>
-                            Start Advanced Assessment
-                        </button>
-                    </div>
-                </div>
+        <div className="container mx-auto p-4">
+            <h1 className="text-2xl font-bold mb-4">Select Assessments</h1>
+            <div className="mb-4 flex flex-col sm:flex-row justify-between">
+                <input
+                    type="text"
+                    className="p-2 border rounded w-full sm:w-1/3 mb-2 sm:mb-0"
+                    placeholder="Search assessments..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                />
+                <select
+                    className="p-2 border rounded w-full sm:w-1/3"
+                    value={selectedLevel}
+                    onChange={e => setSelectedLevel(e.target.value)}
+                >
+                    <option value="All">All Levels</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                </select>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredAssessments.map(assessment => (
+                    <div
+                        key={assessment.id}
+                        className={`p-4 border rounded cursor-pointer ${selectedAssessments.includes(assessment) ? 'bg-blue-500 text-white' : 'bg-white text-black'}`}
+                        onClick={() => toggleSelection(assessment)}
+                    >
+                        <h2 className="text-xl font-semibold">{assessment.name}</h2>
+                        <p>{assessment.description}</p>
+                    </div>
+                ))}
+            </div>
+            {selectedAssessments.length > recommendedLimit && (
+                <div className="mt-4 p-4 bg-yellow-200 text-yellow-800 rounded">
+                    Warning: You have selected more than {recommendedLimit} assessments. This might be overwhelming for the client.
+                </div>
+            )}
+            <button
+                className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-700"
+                onClick={handleNext}
+            >
+                Next
+            </button>
         </div>
     );
 }

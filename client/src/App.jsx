@@ -14,11 +14,8 @@ import NutritionProfile from './views/NutritionPages/NutritionProfile';
 import IntakeForm from './views/IntakePages/IntakeForm';
 import MedicalHistory from './views/IntakePages/MedicalHistory';
 import IntakeOptions from './views/IntakePages/IntakeOptions';
-import FlexibilityAssessment from './views/IntakePages/FlexibilityAssessment';
 import DemoPrompt from './views/ClientPages/DemoPrompt';
 import AssessmentChoice from './views/IntakePages/AssessmentChoice';
-import BeginnerAssessment from './views/IntakePages/BeginnerAssessment';
-import AdvancedAssessment from './views/IntakePages/AdvancedAssessment';
 import InitialHighlights from './views/IntakePages/InitialHighlights';
 import CurrentClient from './views/ClientPages/CurrentClient/CurrentClient';
 import EditProfile from './views/TrainerPages/EditProfile/EditProfile';
@@ -34,6 +31,7 @@ import ViewProgressSession from './views/ClientPages/ViewProgressSession';
 import NutritionIntake from './views/NutritionPages/NutritionIntake';
 import TDEECalculator from './views/NutritionPages/TDEECalculator';
 import ExerciseLibrary from './views/WorkoutPages/ExerciseLibrary';
+import AssessmentForm from './views/IntakePages/AssessmentForm';
 
 
 
@@ -61,14 +59,17 @@ function App() {
             <Route path='nutrition-profile/add/:clientId' element={<NutritionIntake />} />
             <Route path='nutrition-profile/add/:clientId/tdee-calculator' element={<TDEECalculator />} />
             <Route path='exercise-library' element={<ExerciseLibrary />} />
+            <Route path='current_client/:clientId/choose-prompt' element={<DemoPrompt />} />
+            <Route path='current_client/:clientId/choose-prompt/success' element={<RecentQuickPlan />} />
             <Route path='all_clients' element={<AllClients />} />
             <Route path='all_clients/:clientId/current-client' element={<CurrentClient />} />
             <Route path='all_clients/:clientId/current-client/intake-form' element={<IntakeForm />} />
             <Route path='all_clients/:clientId/current-client/medical-history' element={<MedicalHistory />} />
             <Route path='all_clients/:clientId/current-client/intake-form/medical-history' element={<MedicalHistory />} />
             <Route path='all_clients/:clientId/current-client/intake-form/intake-options' element={<IntakeOptions />} />
-            <Route path='all_clients/:clientId/current-client/flexibility-assessment' element={<FlexibilityAssessment />} />
             <Route path='all_clients/:clientId/current-client/assessment-choice' element={<AssessmentChoice />} />
+            <Route path='all_clients/:clientId/current-client/assessment-choice/assessment-form' element={<AssessmentForm />} />
+            <Route path='all_clients/:clientId/current-client/assessment-choice/assessment-form/highlights' element={<InitialHighlights />} />
             <Route path='all_clients/:clientId/current-client/quick-plan/:planId' element={<ViewQuickPlan />} />
             <Route path='all_clients/:clientId/current-client/create-quick-plan' element={<DemoPrompt />} />
             <Route path='all_clients/:clientId/current-client/create-quick-plan/success' element={<RecentQuickPlan />} />
@@ -84,13 +85,11 @@ function App() {
             <Route path='add_client/:clientId/additional-services/nutrition-profile' element={<NutritionProfile />} />
             <Route path='add_client/:clientId/additional-services/intake-form/medical-history' element={<MedicalHistory />} />
             <Route path='add_client/:clientId/additional-services/intake-form/intake-options' element={<IntakeOptions />} />
-            <Route path='add_client/:clientId/additional-services/intake-form/flexibility-assessment' element={<FlexibilityAssessment />} />
             <Route path='add_client/:clientId/additional-services/intake-form/choose-prompt' element={<DemoPrompt />} />
             <Route path='add_client/:clientId/additional-services/intake-form/choose-prompt/success' element={<RecentQuickPlan />} />
             <Route path='add_client/:clientId/additional-services/intake-form/assessment-choice' element={<AssessmentChoice />} />
-            <Route path='add_client/:clientId/additional-services/intake-form/assessment-choice/beginner' element={<BeginnerAssessment />} />
-            <Route path='add_client/:clientId/additional-services/intake-form/assessment-choice/advanced' element={<AdvancedAssessment />} />
-            <Route path='add_client/:clientId/additional-services/intake-form/client-highlights' element={<InitialHighlights />} />
+            <Route path='add_client/:clientId/additional-services/intake-form/assessment-choice/assessment-form' element={<AssessmentForm />} />
+            <Route path='add_client/:clientId/additional-services/intake-form/assessment-choice/assessment-form/highlights' element={<InitialHighlights />} />
           </Route>
         </Routes>
       </BrowserRouter>

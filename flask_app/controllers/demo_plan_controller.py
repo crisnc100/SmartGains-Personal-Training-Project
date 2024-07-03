@@ -3,7 +3,8 @@ from flask_app import app
 import os
 from openai import OpenAI, OpenAIError
 from flask_app.models.client_model import Client
-from flask_app.models.assessment_model import BeginnerAssessment, AdvancedAssessment
+from flask_app.models.client_assessments_model import ClientAssessments
+from flask_app.models.global_assessments_model import GlobalAssessments
 from flask_app.models.demo_plans_model import DemoPlan
 from flask_app.models.workout_progress_model import WorkoutProgress
 from flask import current_app
@@ -27,33 +28,21 @@ def generate_quick_plan(client_id):
         return jsonify({"error": "No prompt selected. Please select a prompt."}), 400
   
     # Retrieving data from models
-    beginner_assessment_data = BeginnerAssessment.get_by_client_id(client_id)
-    advanced_assessment_data = AdvancedAssessment.get_by_client_id(client_id)
-  
-    
-    # Check which assessment data is available, clients will only have one of each!
-    if beginner_assessment_data:
-        assessment_type = 'Beginner'
-        assessment_findings = f"""
-        - Basic Technique: {beginner_assessment_data.basic_technique}
-        - Chair Sit-to-Stand Test: {beginner_assessment_data.chair_sit_to_stand} repetitions
-        - Arm Curl Test: {beginner_assessment_data.arm_curl} repetitions
-        - Balance Test Results: {beginner_assessment_data.balance_test_results}
-        - Cardio Test: {beginner_assessment_data.cardio_test}
-        """
-    elif advanced_assessment_data:
-        assessment_type = 'Advanced'
-        assessment_findings = f"""
-        - Advanced Technique: {advanced_assessment_data.advanced_technique}
-        - Max Strength Test: {advanced_assessment_data.strength_max}
-        - Strength Endurance Test: {advanced_assessment_data.strength_endurance}
-        - Circuit Test Results: {advanced_assessment_data.circuit}
-        - Moderate Cardio Test: {advanced_assessment_data.moderate_cardio}
-        """
-    else:
-        assessment_type = 'N/A'
-        assessment_findings = "No detailed assessment findings are available."
+    client_assessment_data = ClientAssessments.get_all_by_client_id(client_id)
+    if not client_assessment_data:
+        return jsonify({"error": "No assessment data found for this client."}), 404
 
+    # Fetch all assessment names from global_assessments
+    assessment_names = GlobalAssessments.get_all_assessment_names()
+
+    # Map assessment IDs to names
+    assessment_name_map = {assessment['id']: assessment['name'] for assessment in assessment_names}
+
+    # Process the assessment data to create the findings string
+    assessment_findings = "\n".join(
+        [f"- {assessment_name_map.get(assessment.assessment_id, 'Assessment')}: {', '.join(f'{k}: {v}' for k, v in json.loads(assessment.input_data).items())}"
+        for assessment in client_assessment_data]
+    )
     
 
     final_prompt = f"""
@@ -61,7 +50,7 @@ def generate_quick_plan(client_id):
 
     # [Client's Name]'s [Workout Name] Workout Plan
     ## Client Profile
-    - **Assessment Type**: {assessment_type}
+    - **Assessment Data**:
     {assessment_findings}
     
     ## Trainer's Additional Comments

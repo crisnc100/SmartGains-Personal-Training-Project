@@ -1,26 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
+import { format } from 'date-fns';
 
-const ClientAssessments = ({ flexibilityData, beginnerData, advancedData }) => {
+const capitalizeFirstLetter = (string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
+const groupAssessmentsByDate = (assessments) => {
+    return assessments.reduce((acc, assessment) => {
+        const date = format(new Date(assessment.created_at), 'MM-dd-yyyy');
+        if (!acc[date]) acc[date] = [];
+        acc[date].push(assessment);
+        return acc;
+    }, {});
+};
+
+const ClientAssessments = ({ clientAssessmentData }) => {
     const navigate = useNavigate();
-    // Check if all assessment data is missing
-    const isDataEmpty = (!flexibilityData || Object.keys(flexibilityData).length === 0) &&
-        (!beginnerData || Object.keys(beginnerData).length === 0) &&
-        (!advancedData || Object.keys(advancedData).length === 0);
-    
-    const isPeformanceEmpty = (!beginnerData || Object.keys(beginnerData).length === 0) &&
-        (!advancedData || Object.keys(advancedData).length === 0);
+    const [expandedDate, setExpandedDate] = useState(null);
+
+    const isDataEmpty = (!clientAssessmentData || clientAssessmentData.length === 0);
 
     if (isDataEmpty) {
         return (
             <div>
-                <p>No data is available</p>
+                <p className="text-gray-600">No data is available</p>
                 <div>
                     <NavLink
-                        to='flexibility-assessment'
+                        to='assessment-choice'
                         className="group box-border relative inline-flex items-center whitespace-nowrap 
-                                justify-center w-auto px-2 py-2 overflow-hidden text-sm text-white font-bold bg-green-500 
-                                hover:bg-green-700 rounded-md cursor-pointer shadow-lg hover:shadow-xl transform 
+                                justify-center w-auto px-4 py-2 overflow-hidden text-sm text-white font-bold bg-blue-500 
+                                hover:bg-blue-700 rounded-md cursor-pointer shadow-lg hover:shadow-xl transform 
                                 hover:translate-y-1 transition-all duration-300 ease-out focus:outline-none">
                         Add Assessments
                     </NavLink>
@@ -29,74 +39,53 @@ const ClientAssessments = ({ flexibilityData, beginnerData, advancedData }) => {
         );
     }
 
-  
-    const renderAssessment = (data, title, properties) => {
-        if (!data || Object.keys(data).length === 0) {
-            return null;  // Return null if theres some specific data type is missing, showing nothing
-        }
+    const toggleExpand = (date) => {
+        setExpandedDate(prevDate => (prevDate === date ? null : date));
+    };
+
+    const groupedAssessments = groupAssessmentsByDate(clientAssessmentData);
+
+    const renderAssessment = (assessment) => {
+        const inputData = JSON.parse(assessment.input_data);
 
         return (
-            <div>
-                <h3 className="font-bold mb-2" style={{ fontSize: '22px' }}>{title}</h3>
-                {properties.map(property => (
-                    <p key={property.key} className="mb-3">
-                        <strong>{property.label}:</strong> {data[property.key]}
+            <div key={assessment.id} className="mb-2 p-4 border rounded-md shadow-md bg-white">
+                <h4 className="font-semibold mb-2 text-lg">{assessment.assessment_name}</h4>
+                {Object.entries(inputData).map(([key, value], index) => (
+                    <p key={index} className="mb-1 text-gray-700">
+                        <strong>{capitalizeFirstLetter(key.replace(/_/g, ' '))}:</strong> {value}
                     </p>
                 ))}
             </div>
         );
     };
 
-    // Defined the properties to display for each type of data
-    const flexibilityProperties = [
-        { key: 'joint_mobility', label: 'Joint Mobility' },
-        { key: 'lower_body_flexibility', label: 'Lower Body Flexibility' },
-        { key: 'shoulder_flexibility', label: 'Shoulder Flexibility' }
-    ];
-
-    const advancedProperties = [
-        { key: 'advanced_technique', label: 'Advanced Technique' },
-        { key: 'circuit', label: 'Circuit Performance' },
-        { key: 'moderate_cardio', label: 'Moderate Cardio' },
-        { key: 'strength_endurance', label: 'Strength Endurance' },
-        { key: 'strength_max', label: 'Maximal Strength' }
-    ];
-
-    const beginnerProperties = [
-        { key: 'basic_technique', label: 'Movement Technique' },
-        { key: 'chair_sit_to_stand', label: 'Chair Sit-To-Stand Test' },
-        { key: 'arm_curl', label: 'Arm Curl Test' },
-        { key: 'balance_test_results', label: 'Balance Test Results' },
-        { key: 'cardio_test', label: 'Cardio Results' }
-    ];
-
     return (
-        <div>
-            {flexibilityData && Object.keys(flexibilityData).length > 0 ? (
-                renderAssessment(flexibilityData, "Initial Flexibility Assessment", flexibilityProperties)
-            ) : (
-                <p>No flexibility data available</p>
-            )}
-            {(beginnerData && Object.keys(beginnerData).length > 0) || (advancedData && Object.keys(advancedData).length > 0) ? (
-                <>
-                    {renderAssessment(beginnerData, "Initial Performance Assessment - Beginner", beginnerProperties)}
-                    {renderAssessment(advancedData, "Initial Performance Assessment - Advanced", advancedProperties)}
-                </>
-            ) : (
-                <div>
-                <p>No data is available</p>
-                <div>
-                    <NavLink
-                        to='assessment-choice'
-                        className="group box-border relative inline-flex items-center whitespace-nowrap 
-                                justify-center w-auto px-2 py-2 overflow-hidden text-sm text-white font-bold bg-green-500 
-                                hover:bg-green-700 rounded-md cursor-pointer shadow-lg hover:shadow-xl transform 
-                                hover:translate-y-1 transition-all duration-300 ease-out focus:outline-none">
-                        Add Peformance Assessment
-                    </NavLink>
+        <div className="p-4">
+            {Object.entries(groupedAssessments).map(([date, assessments]) => (
+                <div key={date} className="mb-6">
+                    <div
+                        className="p-4 bg-gray-100 cursor-pointer flex justify-between items-center rounded-t-md"
+                        onClick={() => toggleExpand(date)}
+                    >
+                        <h3 className="font-bold text-lg">Assessments for {date}</h3>
+                        <span className="text-sm text-blue-500">{expandedDate === date ? 'Hide' : 'Show'}</span>
+                    </div>
+                    {expandedDate === date && (
+                        <div className="p-4 bg-white rounded-b-md shadow-md">
+                            {assessments.map(renderAssessment)}
+                        </div>
+                    )}
                 </div>
+            ))}
+            <div className="mt-4 text-center">
+                <NavLink
+                    to='assessment-choice'
+                    className="inline-flex items-center px-4 py-2 bg-blue-500 text-white font-bold rounded-md shadow hover:bg-blue-700 transition duration-300"
+                >
+                    Add More Assessments
+                </NavLink>
             </div>
-            )}
         </div>
     );
 };

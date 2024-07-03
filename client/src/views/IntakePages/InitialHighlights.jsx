@@ -9,23 +9,34 @@ const calculateAge = (dob) => {
 };
 
 const InitialHighlights = () => {
-    const { clientId } = useParams(); 
+    const { clientId } = useParams();
     const navigate = useNavigate();
     const [allIntakeData, setAllIntakeData] = useState({});
+    const [assessmentNames, setAssessmentNames] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        axios.get(`http://localhost:5000/api/view_exercise_highlights/${clientId}`)
-            .then(response => {
+        const fetchData = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/api/view_exercise_highlights/${clientId}`);
                 setAllIntakeData(response.data);
+                const assessmentsResponse = await axios.get('http://localhost:5000/api/get_all_assessments');
+                const assessments = assessmentsResponse.data;
+                const assessmentNameMap = {};
+                assessments.forEach(assessment => {
+                    assessmentNameMap[assessment.id] = assessment.name;
+                });
+                setAssessmentNames(assessmentNameMap);
                 setLoading(false);
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error fetching data:', error);
                 setError('Failed to fetch data');
                 setLoading(false);
-            });
+            }
+        };
+
+        fetchData();
     }, [clientId]);
 
     if (loading) {
@@ -36,15 +47,22 @@ const InitialHighlights = () => {
         return <div>Error: {error}</div>;
     }
 
-    const displayAdvanced = allIntakeData.advanced_assessment_data && Object.keys(allIntakeData.advanced_assessment_data).length > 0;
-    const assessmentData = displayAdvanced ? allIntakeData.advanced_assessment_data : allIntakeData.beginner_assessment_data;
-
     const handleContinue = () => {
-        navigate(`/trainer_dashboard/add_client/${clientId}/additional-services/intake-form/choose-prompt`);
+        navigate(`/trainer_dashboard/current_client/${clientId}/choose-prompt`);
     };
+
+    const capitalizeFirstLetter = (string) => {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    };
+
 
     return (
         <div className="container mx-auto p-4 bg-white shadow-lg rounded-lg">
+            <div className='flex justify-end space-x-2 mt-4'>
+                <button onClick={() => navigate(`/trainer_dashboard/all_clients/${clientId}/current-client`)} className="px-4 py-2 text-white bg-gray-400 hover:bg-gray-600 transition-colors duration-300 ease-in-out rounded">
+                    Return to Client
+                </button>
+            </div>
             <h1 style={{ color: 'black', fontSize: '35px' }} className="text-3xl font-bold mb-6 text-center">Client Highlights</h1>
             {allIntakeData.client_data && (
                 <div className="mb-6 p-4 bg-gray-100 rounded-md shadow" style={{ color: 'black' }}>
@@ -76,34 +94,19 @@ const InitialHighlights = () => {
                     <p><span style={{ fontWeight: 'bold' }}>Hobbies:</span> {allIntakeData.consultation_data.hobbies}</p>
                 </div>
             )}
-            {allIntakeData.flexibility_assessment_data && (
+            {allIntakeData.client_assessment_data && (
                 <div className="mb-6 p-4 bg-gray-100 rounded-md shadow" style={{ color: 'black' }}>
-                    <h2 className="text-2xl font-semibold mb-2" style={{ fontSize: '26px' }}>Flexibility Assessment</h2>
-                    <p><span style={{ fontWeight: 'bold' }}>Shoulder Flexibility:</span> {allIntakeData.flexibility_assessment_data.shoulder_flexibility}</p>
-                    <p><span style={{ fontWeight: 'bold' }}>Lower Body Flexibility:</span> {allIntakeData.flexibility_assessment_data.lower_body_flexibility}</p>
-                    <p><span style={{ fontWeight: 'bold' }}>Joint Mobility:</span> {allIntakeData.flexibility_assessment_data.joint_mobility}</p>
-                </div>
-            )}
-            {assessmentData && (
-                <div className="mb-6 p-4 bg-gray-100 rounded-md shadow" style={{ color: 'black' }}>
-                    <h2 className="text-2xl font-semibold mb-2" style={{ fontSize: '26px' }}>Functional Assessment</h2>
-                    {displayAdvanced ? (
-                        <>
-                            <p><span style={{ fontWeight: 'bold' }}>Movement Techniques:</span> {assessmentData.advanced_technique}</p>
-                            <p><span style={{ fontWeight: 'bold' }}>Max Strength Results:</span> {assessmentData.strength_max}</p>
-                            <p><span style={{ fontWeight: 'bold' }}>Muscular Strength Endurance Results:</span> {assessmentData.strength_endurance}</p>
-                            <p><span style={{ fontWeight: 'bold' }}>Circuit Results:</span> {assessmentData.circuit}</p>
-                            <p><span style={{ fontWeight: 'bold' }}>Cardio Results:</span> {assessmentData.moderate_cardio}</p>
-                        </>
-                    ) : (
-                        <>
-                            <p><span style={{ fontWeight: 'bold' }}>Movement Techniques:</span> {assessmentData.basic_technique}</p>
-                            <p><span style={{ fontWeight: 'bold' }}>Chair Sit-to-Stand Test:</span> {assessmentData.chair_sit_to_stand}</p>
-                            <p><span style={{ fontWeight: 'bold' }}>Arm Curl Test:</span> {assessmentData.arm_curl}</p>
-                            <p><span style={{ fontWeight: 'bold' }}>Balance Test Results:</span> {assessmentData.balance_test_results}</p>
-                            <p><span style={{ fontWeight: 'bold' }}>Cardio Results:</span> {assessmentData.cardio_test}</p>
-                        </>
-                    )}
+                    <h2 className="text-2xl font-semibold mb-2" style={{ fontSize: '26px' }}>Assessment Data</h2>
+                    {allIntakeData.client_assessment_data.map((assessment, index) => (
+                        <div key={index} className="mb-4 p-4 bg-white rounded-md shadow-md">
+                            <h3 className="text-xl font-semibold mb-2">{assessmentNames[assessment.assessment_id]}</h3>
+                            <ul>
+                                {Object.entries(JSON.parse(assessment.input_data)).map(([key, value], idx) => (
+                                    <li key={idx}><span style={{ fontWeight: 'bold' }}>{capitalizeFirstLetter(key)}:</span> {value}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
                 </div>
             )}
             <div className="mb-6 p-4 bg-gray-100 rounded-md shadow" style={{ color: 'black' }}>
