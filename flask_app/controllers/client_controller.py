@@ -5,7 +5,6 @@ from flask_app.models.client_model import Client
 from flask_app.models.trainer_model import Trainer
 from flask_app.models.consultation_model import Consultation
 from flask_app.models.history_model import History
-from flask_app.models.assessment_model import AdvancedAssessment, BeginnerAssessment, FlexibilityAssessment
 from flask_app.models.client_assessments_model import ClientAssessments
 from flask_app.models.global_assessments_model import GlobalAssessments
 from flask_app.models.demo_plans_model import DemoPlan
@@ -90,9 +89,6 @@ def current_client(client_id):
     
     client_data = Client.get_one(client_id)
     consultation_data = Consultation.get_by_client_id(client_id)
-    flexibility_assessment_data = FlexibilityAssessment.get_by_client_id(client_id)
-    advanced_assessment_data = AdvancedAssessment.get_by_client_id(client_id)
-    beginner_assessment_data = BeginnerAssessment.get_by_client_id(client_id)
     history_data = History.get_by_client_id(client_id)
     client_assessment_data = ClientAssessments.get_all_by_client_id(client_id)
     client_demo_plans = [demo_plan.serialize() for demo_plan in DemoPlan.get_by_client_id(client_id)]
@@ -102,9 +98,6 @@ def current_client(client_id):
     all_client_data = {
         "client_data": client_data.serialize() if client_data else {},
         "consultation_data": consultation_data.serialize() if consultation_data else {},
-        "flexibility_assessment_data": flexibility_assessment_data.serialize() if flexibility_assessment_data else {},
-        "advanced_assessment_data": advanced_assessment_data.serialize() if advanced_assessment_data else {},
-        "beginner_assessment_data": beginner_assessment_data.serialize() if beginner_assessment_data else {},
         "history_data": history_data.serialize() if history_data else {},
         "client_assessment_data": [assessment.serialize() for assessment in client_assessment_data] if client_assessment_data else [],
         "client_demo_plans": client_demo_plans,

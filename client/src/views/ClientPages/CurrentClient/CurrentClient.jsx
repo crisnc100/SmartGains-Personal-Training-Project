@@ -337,6 +337,32 @@ const CurrentClient = () => {
                                             )}
                                         </p>
                                         <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
+                                            <span className={styles.label}>Exercise Time of Day:</span>
+                                            {isEditMode ? (
+                                                <input
+                                                    type="text"
+                                                    value={editableData.consultation_data.exercise_time_day || ''}
+                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'exercise_time_day')}
+                                                    className={styles.editableField}
+                                                />
+                                            ) : (
+                                                ` ${allClientData.consultation_data.exercise_time_day}`
+                                            )}
+                                        </p>
+                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
+                                            <span className={styles.label}>Fitness Level Rating:</span>
+                                            {isEditMode ? (
+                                                <input
+                                                    type="text"
+                                                    value={editableData.consultation_data.self_fitness_level || ''}
+                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'self_fitness_level')}
+                                                    className={styles.editableField}
+                                                />
+                                            ) : (
+                                                ` ${allClientData.consultation_data.self_fitness_level}`
+                                            )}
+                                        </p>
+                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
                                             <span className={styles.label}>Fitness Goals:</span>
                                             {isEditMode ? (
                                                 <input
@@ -350,6 +376,19 @@ const CurrentClient = () => {
                                             )}
                                         </p>
                                         <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
+                                            <span className={styles.label}>Current Motivations:</span>
+                                            {isEditMode ? (
+                                                <input
+                                                    type="text"
+                                                    value={editableData.consultation_data.motivation || ''}
+                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'motivation')}
+                                                    className={styles.editableField}
+                                                />
+                                            ) : (
+                                                ` ${allClientData.consultation_data.motivation}`
+                                            )}
+                                        </p>
+                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
                                             <span className={styles.label}>Progress Measurement:</span>
                                             {isEditMode ? (
                                                 <input
@@ -360,6 +399,19 @@ const CurrentClient = () => {
                                                 />
                                             ) : (
                                                 ` ${allClientData.consultation_data.progress_measurement}`
+                                            )}
+                                        </p>
+                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
+                                            <span className={styles.label}>Barriers and Challenges:</span>
+                                            {isEditMode ? (
+                                                <input
+                                                    type="text"
+                                                    value={editableData.consultation_data.barriers_challenges || ''}
+                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'barriers_challenges')}
+                                                    className={styles.editableField}
+                                                />
+                                            ) : (
+                                                ` ${allClientData.consultation_data.barriers_challenges}`
                                             )}
                                         </p>
                                         <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
@@ -402,42 +454,42 @@ const CurrentClient = () => {
                                             )}
                                         </p>
                                         <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Diet:</span>
+                                            <span className={styles.label}>Warm Up Routine:</span>
                                             {isEditMode ? (
                                                 <input
                                                     type="text"
-                                                    value={editableData.consultation_data.diet_description || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'diet_description')}
+                                                    value={editableData.consultation_data.warm_up_info || ''}
+                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'warm_up_info')}
                                                     className={styles.editableField}
                                                 />
                                             ) : (
-                                                ` ${allClientData.consultation_data.diet_description}`
+                                                ` ${allClientData.consultation_data.warm_up_info}`
                                             )}
                                         </p>
                                         <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Dietary Restrictions:</span>
+                                            <span className={styles.label}>Cool Down Routine:</span>
                                             {isEditMode ? (
                                                 <input
                                                     type="text"
-                                                    value={editableData.consultation_data.dietary_restrictions || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'dietary_restrictions')}
+                                                    value={editableData.consultation_data.cool_down_info || ''}
+                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'cool_down_info')}
                                                     className={styles.editableField}
                                                 />
                                             ) : (
-                                                ` ${allClientData.consultation_data.dietary_restrictions}`
+                                                ` ${allClientData.consultation_data.cool_down_info}`
                                             )}
                                         </p>
                                         <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Processed Food Consumption:</span>
+                                            <span className={styles.label}>Stretching and Mobility Routine:</span>
                                             {isEditMode ? (
                                                 <input
                                                     type="text"
-                                                    value={editableData.consultation_data.processed_food_consumption || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'processed_food_consumption')}
+                                                    value={editableData.consultation_data.stretching_mobility || ''}
+                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'stretching_mobility')}
                                                     className={styles.editableField}
                                                 />
                                             ) : (
-                                                ` ${allClientData.consultation_data.processed_food_consumption}`
+                                                ` ${allClientData.consultation_data.stretching_mobility}`
                                             )}
                                         </p>
                                         <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
@@ -604,6 +656,7 @@ const CurrentClient = () => {
                             />
                         }
                         {activeTab === 'workout' && <ClientWorkouts
+                            clientId={clientId}
                             clientDemoPlans={allClientData.client_demo_plans || []}
                             clientPlans={allClientData.client_plans}
                             workoutProgressData={allClientData.workout_progress_data}

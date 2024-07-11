@@ -144,18 +144,31 @@ class DemoPlan:
                 logging.error(f'Plan with id {plan_id} not found')
                 return False
 
-            # Update the day completion status
+            # Extract numeric day index if it's a string like 'Day 1'
+            if isinstance(day_index, str):
+                day_index = int(day_index.split(' ')[1])
+
+            logging.debug(f'Marking day {day_index} as completed for plan {plan_id}')
+
+            # Load the existing day completion status
             day_completion_status = json.loads(plan.day_completion_status) if plan.day_completion_status else {}
             day_completion_status[f'day_{day_index}'] = True
 
+            # For demo plans, we assume there are always 3 days
+            total_days = 3
+
             # Check if all days are completed
-            all_completed = all(day_completion_status.get(f'day_{i}', False) for i in range(1, 4))
+            all_completed = all(day_completion_status.get(f'day_{i}', False) for i in range(1, total_days + 1))
             completed_marked = 1 if all_completed else 0
 
+            logging.debug(f'All days completed: {all_completed}, completed_marked: {completed_marked}')
+
+            # Update the plan object
             plan.day_completion_status = json.dumps(day_completion_status)
             plan.completed_marked = completed_marked
             plan.updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+            # Prepare the update query
             update_query = """
                 UPDATE demo_plans
                 SET day_completion_status = %(day_completion_status)s,
@@ -169,24 +182,10 @@ class DemoPlan:
                 'id': plan.id
             }
 
+            # Execute the update query
             result = connectToMySQL('fitness_consultation_schema').query_db(update_query, params)
             if result == 0:
                 logging.error(f'No rows affected when updating plan_id {plan_id}')
-                return False
-
-            # Insert or update the workout_progress table
-            progress_query = """
-                INSERT INTO workout_progress (demo_plan_id, day_index, date)
-                VALUES (%(plan_id)s, %(day_index)s, NOW())
-                ON DUPLICATE KEY UPDATE date = NOW()
-            """
-            progress_params = {
-                'plan_id': plan.id,
-                'day_index': f'Day {day_index}'
-            }
-            progress_result = connectToMySQL('fitness_consultation_schema').query_db(progress_query, progress_params)
-            if progress_result == 0:
-                logging.error(f'No rows affected when updating workout_progress for plan_id {plan_id} and day_index {day_index}')
                 return False
 
             logging.debug(f'Plan with id {plan_id} successfully updated')
@@ -289,6 +288,36 @@ class DemoPlan:
             return completion_status_and_date
         else:
             return None
+    
+    @classmethod
+    def get_all_with_completion_status(cls, client_id):
+        query = """
+            SELECT dp.*, wp.date as completion_date, wp.day_index
+            FROM demo_plans dp
+            LEFT JOIN workout_progress wp ON dp.id = wp.generated_plan_id
+            WHERE dp.client_id = %(client_id)s
+            ORDER BY dp.id, wp.date DESC;
+        """
+        data = {'client_id': client_id}
+        results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+
+        plans = {}
+        for row in results:
+            plan_id = row['id']
+            if plan_id not in plans:
+                plans[plan_id] = {
+                    'id': row['id'],
+                    'name': row['name'],
+                    'created_at': row['created_at'],
+                    'completed_marked': row['completed_marked'],
+                    'completion_dates': {},
+                    'day_completion_status': json.loads(row['day_completion_status']) if row['day_completion_status'] else {}
+                }
+            if row['completion_date']:
+                day_index = f"day_{row['day_index'].split(' ')[1]}"
+                plans[plan_id]['completion_dates'][day_index] = row['completion_date'].strftime('%Y-%m-%d')
+
+        return list(plans.values())
 
 
     @classmethod

@@ -31,8 +31,12 @@ const RecentCustomPlan = () => {
     const [workoutRating, setWorkoutRating] = useState('5');  // Add this state
     const [completionStatus, setCompletionStatus] = useState(false);
     const [completionDate, setCompletionDate] = useState(null);
+    const [dayCompletionStatus, setDayCompletionStatus] = useState({});
+    const [currentDay, setCurrentDay] = useState('Select');
     const [refreshKey, setRefreshKey] = useState(0);  // Add a state to trigger refresh
     const navigate = useNavigate();
+    const [originalPlanName, setOriginalPlanName] = useState('');
+
 
     useEffect(() => {
         const fetchPlan = async () => {
@@ -345,13 +349,22 @@ const RecentCustomPlan = () => {
     };
 
     const openCompleteModal = () => {
+        const { dayTitle } = getExercisesFromPlanDetails(generatedPlan.generated_plan_details, currentDay);
+        setOriginalPlanName(editableData.generated_plan_name); // Save the original name
         setEditableData(prevState => ({
             ...prevState,
+            demo_plan_name: dayTitle || "Name the workout",
             generated_plan_date: format(new Date(), 'yyyy-MM-dd')
         }));
         setShowCompleteModal(true);
     };
-    const closeCompleteModal = () => setShowCompleteModal(false);
+    const closeCompleteModal = () => {
+        setEditableData(prevState => ({
+            ...prevState,
+            generated_plan_name: originalPlanName // Revert to the original name
+        }));
+        setShowCompleteModal(false);
+    };
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -484,22 +497,29 @@ const RecentCustomPlan = () => {
 
     const renderCompletionStatus = () => {
         if (completionStatus && !hasMultipleDays()) {
+            const singleDayDate = completionDate['day_1'];
+            console.log("Single day plan date:", singleDayDate);
             return (
                 <div className="text-lg font-semibold text-green-500">
-                    Completed On: <span style={{ color: 'black' }} className="font-normal">{completionDate}</span>
+                    Completed On: <span style={{ color: 'black' }} className="font-normal">{singleDayDate}</span>
                 </div>
             );
         } else if (hasMultipleDays() && Object.keys(dayCompletionStatus).length > 0) {
             return (
                 <div className="mt-4">
                     <h3 className="text-lg font-semibold text-gray-700">Completion Status:</h3>
-                    {Object.keys(dayCompletionStatus).map((dayKey, index) => (
-                        dayCompletionStatus[dayKey] && (
-                            <div key={index} className="text-sm text-green-600">
-                                {`Day ${index + 1}`} completed on {completionDate}
-                            </div>
-                        )
-                    ))}
+                    {Object.keys(dayCompletionStatus).map((dayKey, index) => {
+                        const dayIndex = parseInt(dayKey.split('_')[1]);
+                        const dayDate = completionDate[dayKey];
+                        console.log(`Rendering ${dayKey} with date ${dayDate}`);
+                        return (
+                            dayCompletionStatus[dayKey] && (
+                                <div key={dayKey} className="text-sm text-green-600">
+                                    {`Day ${dayIndex}`} completed on {dayDate}
+                                </div>
+                            )
+                        );
+                    })}
                 </div>
             );
         } else {
@@ -702,7 +722,7 @@ const RecentCustomPlan = () => {
                                     <input
                                         type="number"
                                         name="duration"
-                                        value={editableData.duration || 60}
+                                        value={editableData.duration || ""}
                                         onChange={handleInputChange}
                                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                     />

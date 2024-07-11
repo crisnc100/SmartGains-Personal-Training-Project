@@ -16,28 +16,33 @@ def add_consultation():
     required_fields = [
         'prior_exercise_programs',
         'exercise_habits',
+        'exercise_time_day',
+        'self_fitness_level',
         'fitness_goals',
+        'motivation',
         'progress_measurement',
+        'barriers_challenges',
         'area_specifics',
         'exercise_likes',
         'exercise_dislikes',
-        'diet_description',
-        'dietary_restrictions',
-        'processed_food_consumption',
-        'daily_water_intake',
+        'warm_up_info',
+        'cool_down_info',
+        'stretching_mobility',
         'daily_routine',
         'stress_level',
         'smoking_alcohol_habits',
-        'hobbies'
+        'hobbies',
+        'fitness_goals_other',
+        'motivation_other'
     ]
 
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing one or more required fields'}), 400
 
-    # Convert the fitness_goals list to a comma-separated string if it's a list or tuple
-    fitness_goals = data.get('fitness_goals', [])
-    if isinstance(fitness_goals, (list, tuple)):
-        data['fitness_goals'] = ','.join(fitness_goals)
+    # Convert the fitness_goals and motivation lists to a comma-separated string if they are lists or tuples
+    for field in ['fitness_goals', 'motivation']:
+        if isinstance(data.get(field), (list, tuple)):
+            data[field] = ','.join(data[field])
 
     # Save the consultation data using the model
     consultation_id = Consultation.save(data)

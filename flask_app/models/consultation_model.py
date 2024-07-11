@@ -5,17 +5,22 @@ class Consultation:
         self.id = data['id']
         self.prior_exercise_programs = data['prior_exercise_programs']
         self.exercise_habits = data['exercise_habits']
+        self.exercise_time_day = data['exercise_time_day']
+        self.self_fitness_level = data['self_fitness_level']
         self.fitness_goals = data['fitness_goals']
+        self.motivation = data['motivation']
         self.progress_measurement = data['progress_measurement']
+        self.barriers_challenges = data['barriers_challenges']
         self.area_specifics = data['area_specifics']
         self.exercise_likes = data['exercise_likes']
         self.exercise_dislikes = data['exercise_dislikes']
-        self.diet_description = data['diet_description']
-        self.dietary_restrictions = data['dietary_restrictions']
-        self.processed_food_consumption = data['processed_food_consumption']
+        self.warm_up_info = data['warm_up_info']
+        self.cool_down_info = data['cool_down_info']
+        self.stretching_mobility = data['stretching_mobility']
         self.daily_water_intake = data['daily_water_intake']
         self.daily_routine = data['daily_routine']
         self.stress_level = data['stress_level']
+        self.daily_activity = data['daily_activity']
         self.smoking_alcohol_habits = data['smoking_alcohol_habits']
         self.hobbies = data['hobbies']
         self.created_at = data.get('created_at', None)
@@ -27,14 +32,18 @@ class Consultation:
             'id': self.id,
             'prior_exercise_programs': self.prior_exercise_programs,
             'exercise_habits': self.exercise_habits,
+            'exercise_time_day': self.exercise_time_day,
+            'self_fitness_level': self.self_fitness_level,
             'fitness_goals': self.fitness_goals,
+            'motivation': self.motivation,
             'progress_measurement': self.progress_measurement,
+            'barriers_challenges': self.barriers_challenges,
             'area_specifics': self.area_specifics,
             'exercise_likes': self.exercise_likes,
             'exercise_dislikes': self.exercise_dislikes,
-            'diet_description': self.diet_description,
-            'dietary_restrictions': self.dietary_restrictions,
-            'processed_food_consumption': self.processed_food_consumption,
+            'warm_up_info': self.warm_up_info,
+            'cool_down_info': self.cool_down_info,
+            'stretching_mobility': self.stretching_mobility,
             'daily_water_intake': self.daily_water_intake,
             'daily_routine': self.daily_routine,
             'stress_level': self.stress_level,
@@ -51,9 +60,14 @@ class Consultation:
     def save(cls, data):
         query = """
             INSERT INTO consultation
-            (prior_exercise_programs, exercise_habits, fitness_goals, progress_measurement, area_specifics, exercise_likes, exercise_dislikes, diet_description, dietary_restrictions, processed_food_consumption, daily_water_intake, daily_routine, stress_level, smoking_alcohol_habits, hobbies, created_at, updated_at, client_id) 
+            (prior_exercise_programs, exercise_habits, exercise_time_day, self_fitness_level, fitness_goals, motivation, 
+            progress_measurement, barriers_challenges, area_specifics, exercise_likes, exercise_dislikes, warm_up_info, 
+            cool_down_info, stretching_mobility, daily_water_intake, daily_routine, stress_level, smoking_alcohol_habits, hobbies, 
+            created_at, updated_at, client_id) 
             VALUES 
-            (%(prior_exercise_programs)s, %(exercise_habits)s, %(fitness_goals)s, %(progress_measurement)s, %(area_specifics)s, %(exercise_likes)s, %(exercise_dislikes)s, %(diet_description)s, %(dietary_restrictions)s, %(processed_food_consumption)s, %(daily_water_intake)s, %(daily_routine)s, %(stress_level)s, %(smoking_alcohol_habits)s, %(hobbies)s, NOW(), NOW(), %(client_id)s);
+            (%(prior_exercise_programs)s, %(exercise_habits)s, %(exercise_time_day)s, %(self_fitness_level)s, %(fitness_goals)s, 
+            %(motivation)s, %(progress_measurement)s, %(barriers_challenges)s, %(area_specifics)s, %(exercise_likes)s, %(exercise_dislikes)s, 
+            %(warm_up_info)s, %(cool_down_info)s, %(stretching_mobility)s, %(daily_water_intake)s, %(daily_routine)s, %(stress_level)s, %(smoking_alcohol_habits)s, %(hobbies)s, NOW(), NOW(), %(client_id)s);
         """
         return connectToMySQL('fitness_consultation_schema').query_db(query, data)
     
@@ -109,14 +123,18 @@ class Consultation:
                 UPDATE consultation
                 SET prior_exercise_programs = %(prior_exercise_programs)s,
                     exercise_habits = %(exercise_habits)s,
+                    exercise_time_day = %(exercise_time_day)s,
+                    self_fitness_level = %(self_fitness_level)s,
                     fitness_goals = %(fitness_goals)s,
+                    motivation = %(motivation)s,
                     progress_measurement = %(progress_measurement)s,
+                    barriers_challenges = %(barriers_challenges)s,
                     area_specifics = %(area_specifics)s,
                     exercise_likes = %(exercise_likes)s,
                     exercise_dislikes = %(exercise_dislikes)s,
-                    diet_description = %(diet_description)s,
-                    dietary_restrictions = %(dietary_restrictions)s,
-                    processed_food_consumption = %(processed_food_consumption)s,
+                    warm_up_info = %(warm_up_info)s,
+                    cool_down_info = %(cool_down_info)s,
+                    stretching_mobility = %(stretching_mobility)s,
                     daily_water_intake = %(daily_water_intake)s,
                     daily_routine = %(daily_routine)s,
                     stress_level = %(stress_level)s,

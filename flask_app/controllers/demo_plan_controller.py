@@ -29,8 +29,6 @@ def generate_quick_plan(client_id):
   
     # Retrieving data from models
     client_assessment_data = ClientAssessments.get_all_by_client_id(client_id)
-    if not client_assessment_data:
-        return jsonify({"error": "No assessment data found for this client."}), 404
 
     # Fetch all assessment names from global_assessments
     assessment_names = GlobalAssessments.get_all_assessment_names()
@@ -39,11 +37,13 @@ def generate_quick_plan(client_id):
     assessment_name_map = {assessment['id']: assessment['name'] for assessment in assessment_names}
 
     # Process the assessment data to create the findings string
-    assessment_findings = "\n".join(
-        [f"- {assessment_name_map.get(assessment.assessment_id, 'Assessment')}: {', '.join(f'{k}: {v}' for k, v in json.loads(assessment.input_data).items())}"
-        for assessment in client_assessment_data]
-    )
-    
+    if client_assessment_data:
+        assessment_findings = "\n".join(
+            [f"- {assessment_name_map.get(assessment.assessment_id, 'Assessment')}: {', '.join(f'{k}: {v}' for k, v in json.loads(assessment.input_data).items())}"
+            for assessment in client_assessment_data]
+        )
+    else:
+        assessment_findings = "No assessment data available."
 
     final_prompt = f"""
     {selected_prompt}
@@ -116,7 +116,7 @@ def generate_quick_plan(client_id):
     except Exception as e:
         print(f"Unexpected error: {e}")
         return jsonify({"success": False, "error": "An unexpected error occurred."}), 500
-    
+
 
 @app.route('/api/get_recent_quick_plan/<int:client_id>', methods=['GET'])
 def get_recent_quick_plan(client_id):
@@ -270,3 +270,12 @@ def update_demo_plan_day_completion(plan_id, day_index):
     except Exception as e:
         logging.error(f'An error occurred while updating day completion status: {str(e)}')
         return jsonify({'error': f'An error occurred while updating day completion status: {str(e)}'}), 500
+
+@app.route('/api/get_all_demo_plans_completion_status/<int:client_id>', methods=['GET'])
+def get_all_demo_plans_completion_status(client_id):
+    try:
+        plans = DemoPlan.get_all_with_completion_status(client_id)
+        return jsonify(plans)
+    except Exception as e:
+        logging.error(f'An error occurred: {str(e)}')
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500

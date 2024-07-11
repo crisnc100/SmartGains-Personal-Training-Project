@@ -78,6 +78,7 @@ function App() {
             <Route path='all_clients/:clientId/current-client/create-custom-plan/success' element={<RecentCustomPlan />} />
             <Route path='all_clients/:clientId/current-client/record-workout' element={<RecordWorkoutSession />} />
             <Route path='all_clients/:clientId/current-client/progress-session/:planId' element={<ViewProgressSession />} />
+            <Route path='all_clients/:clientId/current-client/progress-sessions/:planId/:type' element={<ViewProgressSession />} />
             <Route path='add_client' element={<AddClient />} />
             <Route path='add_client/:clientId/additional-services' element={<AdditionalServices />} />
             <Route path='add_client/:clientId/additional-services/intake-form' element={<IntakeForm />} />

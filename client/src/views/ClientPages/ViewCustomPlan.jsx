@@ -34,6 +34,8 @@ const ViewCustomPlan = () => {
     const [refreshKey, setRefreshKey] = useState(0);
     const [currentDay, setCurrentDay] = useState('Select');
     const [dayCompletionStatus, setDayCompletionStatus] = useState({});
+    const [originalPlanName, setOriginalPlanName] = useState('');
+
 
     useEffect(() => {
         axios.get(`http://localhost:5000/api/get_generated_plan/${planId}`)
@@ -326,13 +328,22 @@ const ViewCustomPlan = () => {
     };
 
     const openCompleteModal = () => {
+        const { dayTitle } = getExercisesFromPlanDetails(generatedPlan.generated_plan_details, currentDay);
+        setOriginalPlanName(editableData.generated_plan_name); // Save the original name
         setEditableData(prevState => ({
             ...prevState,
+            generated_plan_name: dayTitle || "Name the workout",
             generated_plan_date: format(new Date(), 'yyyy-MM-dd')
         }));
         setShowCompleteModal(true);
     };
-    const closeCompleteModal = () => setShowCompleteModal(false);
+    const closeCompleteModal = () => {
+        setEditableData(prevState => ({
+            ...prevState,
+            generated_plan_name: originalPlanName // Revert to the original name
+        }));
+        setShowCompleteModal(false);
+    };
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -479,14 +490,14 @@ const ViewCustomPlan = () => {
             return (
                 <div className="mt-4">
                     <h3 className="text-lg font-semibold text-gray-700">Completion Status:</h3>
-                    {Object.keys(dayCompletionStatus).map((day, index) => {
-                        const dayKey = `day_${index + 1}`;
+                    {Object.keys(dayCompletionStatus).map((dayKey, index) => {
+                        const dayIndex = parseInt(dayKey.split('_')[1]);
                         const dayDate = completionDate[dayKey];
-                        console.log(`Rendering day ${day} with index ${index + 1} and date ${dayDate}`);
+                        console.log(`Rendering ${dayKey} with date ${dayDate}`);
                         return (
-                            dayCompletionStatus[day] && (
-                                <div key={index} className="text-sm text-green-600">
-                                    {`Day ${index + 1}`} completed on {dayDate}
+                            dayCompletionStatus[dayKey] && (
+                                <div key={dayKey} className="text-sm text-green-600">
+                                    {`Day ${dayIndex}`} completed on {dayDate}
                                 </div>
                             )
                         );
@@ -497,6 +508,7 @@ const ViewCustomPlan = () => {
             return null;
         }
     };
+    
     
     
 

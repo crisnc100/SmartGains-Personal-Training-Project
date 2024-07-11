@@ -317,13 +317,47 @@ class GeneratedPlan:
                 'completion_dates': {}
             }   
             for result in results:
-                day_index = f"day_{result['day_index'].split(' ')[1]}"
-                completion_status_and_dates['completion_dates'][day_index] = result['completion_date'].strftime('%Y-%m-%d')
+                if result['day_index']:
+                    try:
+                        day_index = f"day_{result['day_index'].split(' ')[1]}"
+                        completion_status_and_dates['completion_dates'][day_index] = result['completion_date'].strftime('%Y-%m-%d') if result['completion_date'] else None
+                    except Exception as e:
+                        logging.error(f"Error processing day_index: {result['day_index']} - {e}")
         
             logging.debug(f"Completion status and dates for plan_id {plan_id}: {completion_status_and_dates}")
             return completion_status_and_dates
         else:
             return None
+    
+    @classmethod
+    def get_all_with_completion_status(cls, client_id):
+        query = """
+            SELECT gp.*, wp.date as completion_date, wp.day_index
+            FROM generated_plans gp
+            LEFT JOIN workout_progress wp ON gp.id = wp.generated_plan_id
+            WHERE gp.client_id = %(client_id)s
+            ORDER BY gp.id, wp.date DESC;
+        """
+        data = {'client_id': client_id}
+        results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+
+        plans = {}
+        for row in results:
+            plan_id = row['id']
+            if plan_id not in plans:
+                plans[plan_id] = {
+                    'id': row['id'],
+                    'name': row['name'],
+                    'created_at': row['created_at'],
+                    'completed_marked': row['completed_marked'],
+                    'completion_dates': {},
+                    'day_completion_status': json.loads(row['day_completion_status']) if row['day_completion_status'] else {}
+                }
+            if row['completion_date']:
+                day_index = f"day_{row['day_index'].split(' ')[1]}"
+                plans[plan_id]['completion_dates'][day_index] = row['completion_date'].strftime('%Y-%m-%d')
+
+        return list(plans.values())
 
 
     

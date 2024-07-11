@@ -31,7 +31,9 @@ const RecentQuickPlan = () => {
     const [dayCompletionStatus, setDayCompletionStatus] = useState({});
     const [completionStatus, setCompletionStatus] = useState(false);
     const [completionDates, setCompletionDates] = useState({});
+    const [originalPlanName, setOriginalPlanName] = useState('');
     const [refreshKey, setRefreshKey] = useState(0);
+    
 
 
     useEffect(() => {
@@ -293,7 +295,8 @@ const RecentQuickPlan = () => {
             return;
         }
 
-        const dayKey = `day_${currentDay}`;
+        const dayKey = `day_${currentDay.split(' ')[1]}`;
+
 
         if (dayCompletionStatus[dayKey]) {
             alert('This day has already been completed.');
@@ -328,14 +331,23 @@ const RecentQuickPlan = () => {
 
 
     const openCompleteModal = () => {
+        const { dayTitle } = getExercisesFromPlanDetails(demoPlan.demo_plan_details, currentDay);
+        setOriginalPlanName(editableData.demo_plan_name); // Save the original name
         setEditableData(prevState => ({
             ...prevState,
+            demo_plan_name: dayTitle || "Name the workout",
             demo_plan_date: format(new Date(), 'yyyy-MM-dd')
         }));
         setShowCompleteModal(true);
     };
 
-    const closeCompleteModal = () => setShowCompleteModal(false);
+    const closeCompleteModal = () => {
+        setEditableData(prevState => ({
+            ...prevState,
+            demo_plan_name: originalPlanName // Revert to the original name
+        }));
+        setShowCompleteModal(false);
+    };
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -555,13 +567,13 @@ const RecentQuickPlan = () => {
                             {hasCompletedDays && (
                                 <div className="mt-4">
                                     <h3 className="text-lg font-semibold text-gray-700">Completion Status:</h3>
-                                    {dayCompletionStatus["day_Day 1"] && (
+                                    {dayCompletionStatus["day_1"] && (
                                         <div className="text-sm text-green-600">Day 1 completed on {completionDates["Day 1"]}</div>
                                     )}
-                                    {dayCompletionStatus["day_Day 2"] && (
+                                    {dayCompletionStatus["day_2"] && (
                                         <div className="text-sm text-green-600">Day 2 completed on {completionDates["Day 2"]}</div>
                                     )}
-                                    {dayCompletionStatus["day_Day 3"] && (
+                                    {dayCompletionStatus["day_3"] && (
                                         <div className="text-sm text-green-600">Day 3 completed on {completionDates["Day 3"]}</div>
                                     )}
                                 </div>
@@ -571,9 +583,9 @@ const RecentQuickPlan = () => {
                                     <label className="text-lg font-semibold text-gray-700">Select Day:</label>
                                     <select value={currentDay} onChange={handleDayChange} className="ml-2 p-1 border rounded">
                                         <option value="Select">Select</option>
-                                        <option value="Day 1">Day 1 {dayCompletionStatus["day_Day 1"] && "✔"}</option>
-                                        <option value="Day 2">Day 2 {dayCompletionStatus["day_Day 2"] && "✔"}</option>
-                                        <option value="Day 3">Day 3 {dayCompletionStatus["day_Day 3"] && "✔"}</option>
+                                        <option value="Day 1">Day 1 {dayCompletionStatus["day_1"] && "✔"}</option>
+                                        <option value="Day 2">Day 2 {dayCompletionStatus["day_2"] && "✔"}</option>
+                                        <option value="Day 3">Day 3 {dayCompletionStatus["day_3"] && "✔"}</option>
                                     </select>
                                 </div>
 
@@ -674,7 +686,7 @@ const RecentQuickPlan = () => {
                                 <input
                                     type="number"
                                     name="duration"
-                                    value={editableData.duration || 60}
+                                    value={editableData.duration || ""}
                                     onChange={handleInputChange}
                                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 />

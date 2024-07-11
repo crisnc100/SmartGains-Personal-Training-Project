@@ -257,7 +257,7 @@ const NutritionIntake = () => {
                                 <label htmlFor="current_diet" className="block text-gray-700">Describe your current diet:</label>
                                 <textarea
                                     name="current_diet"
-                                    value={nutritionForm.diet_description}
+                                    value={nutritionForm.current_diet}
                                     onChange={handleInputChange}
                                     className="w-full p-2 border border-gray-300 rounded mt-1"
                                 />

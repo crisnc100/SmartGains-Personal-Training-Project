@@ -301,10 +301,7 @@ def mark_plan_completed(plan_id):
 
         if plan_type == 'demo':
             review_data['demo_plan_id'] = plan_id
-            if day_index is not None:
-                success = DemoPlan.update_day_completion(plan_id, day_index)
-            else:
-                success = DemoPlan.mark_as_completed(plan_id)
+            success = DemoPlan.update_day_completion(plan_id, day_index)
         else:
             review_data['generated_plan_id'] = plan_id
             if day_index is not None:
@@ -337,6 +334,43 @@ def mark_plan_completed(plan_id):
     except Exception as e:
         logging.error(f'An error occurred: {str(e)}')
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+@app.route('/api/get_grouped_workout_progress/<int:client_id>', methods=['GET'])
+def get_grouped_workout_progress(client_id):
+    try:
+        grouped_progress = WorkoutProgress.get_grouped_progress(client_id)
+        return jsonify(grouped_progress), 200
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+
+@app.route('/api/get_progress_sessions_by_plan/<int:plan_id>', methods=['GET'])
+def get_progress_sessions_by_plan(plan_id):
+    try:
+        # Fetching sessions for demo plans
+        demo_sessions = WorkoutProgress.get_by_demo_plan_id(plan_id)
+        
+        # Fetching sessions for generated plans
+        generated_sessions = WorkoutProgress.get_by_generated_plan_id(plan_id)
+        
+        if not demo_sessions and not generated_sessions:
+            return jsonify({"error": "No workout progress found for this plan."}), 404
+
+        return jsonify({
+            "demo_sessions": [session.serialize() for session in demo_sessions],
+            "generated_sessions": [session.serialize() for session in generated_sessions]
+        })
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return jsonify({"error": "An error occurred while fetching the workout progress sessions."}), 500
+
+
+
+
+
+
 
 
 

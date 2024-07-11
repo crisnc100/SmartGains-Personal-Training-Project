@@ -246,6 +246,16 @@ def get_plan_completion_status(plan_id):
     except Exception as e:
         logging.error(f'An error occurred: {str(e)}')
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+    
+
+@app.route('/api/get_all_generated_plans_completion_status/<int:client_id>', methods=['GET'])
+def get_all_generated_plans_completion_status(client_id):
+    try:
+        plans = GeneratedPlan.get_all_with_completion_status(client_id)
+        return jsonify(plans)
+    except Exception as e:
+        logging.error(f'An error occurred: {str(e)}')
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
 
 
