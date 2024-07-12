@@ -27,7 +27,8 @@ import CustomPrompt from './views/ClientPages/CustomPrompt';
 import RecentCustomPlan from './views/ClientPages/RecentCustomPlan';
 import MyCalendar from './views/TrainerPages/Calendar/MyCalendar';
 import RecordWorkoutSession from './views/ClientPages/RecordWorkoutSession';
-import ViewProgressSession from './views/ClientPages/ViewProgressSession';
+import ViewSingleProgressSession from './views/ClientPages/ViewSingleProgressSession';
+import ViewMultiProgressSession from './views/ClientPages/ViewMultiProgressSession';
 import NutritionIntake from './views/NutritionPages/NutritionIntake';
 import TDEECalculator from './views/NutritionPages/TDEECalculator';
 import ExerciseLibrary from './views/WorkoutPages/ExerciseLibrary';
@@ -77,8 +78,9 @@ function App() {
             <Route path='all_clients/:clientId/current-client/create-custom-plan' element={<CustomPrompt />} />
             <Route path='all_clients/:clientId/current-client/create-custom-plan/success' element={<RecentCustomPlan />} />
             <Route path='all_clients/:clientId/current-client/record-workout' element={<RecordWorkoutSession />} />
-            <Route path='all_clients/:clientId/current-client/progress-session/:planId' element={<ViewProgressSession />} />
-            <Route path='all_clients/:clientId/current-client/progress-sessions/:planId/:type' element={<ViewProgressSession />} />
+            <Route path='all_clients/:clientId/current-client/progress-session/:planId' element={<ViewSingleProgressSession />} />
+            <Route path='all_clients/:clientId/current-client/progress-sessions/:planId/:type' element={<ViewMultiProgressSession />} />
+            <Route path='all_clients/:clientId/current-client/view-plan/:planId' element={<ViewCustomPlan />} />
             <Route path='add_client' element={<AddClient />} />
             <Route path='add_client/:clientId/additional-services' element={<AdditionalServices />} />
             <Route path='add_client/:clientId/additional-services/intake-form' element={<IntakeForm />} />

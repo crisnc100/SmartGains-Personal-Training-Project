@@ -67,8 +67,13 @@ def get_progress_session(progress_id):
         "workout_progress_intensity_level": workout_progress.intensity_level,
         "workout_progress_location": workout_progress.location,
         "workout_progress_workout_rating": workout_progress.workout_rating,
-        "workout_progress_trainer_notes": workout_progress.trainer_notes
+        "workout_progress_trainer_notes": workout_progress.trainer_notes,
+        "generated_plan_id": workout_progress.generated_plan_id,
+        "demo_plan_id": workout_progress.demo_plan_id,
+        "day_index": workout_progress.day_index
     })
+
+
 
 
 
@@ -334,37 +339,67 @@ def mark_plan_completed(plan_id):
     except Exception as e:
         logging.error(f'An error occurred: {str(e)}')
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+    
 
-@app.route('/api/get_grouped_workout_progress/<int:client_id>', methods=['GET'])
-def get_grouped_workout_progress(client_id):
+@app.route('/api/get_single_day_generated_plan_progress/<int:client_id>', methods=['GET'])
+def get_single_day_generated_plan_progress(client_id):
     try:
-        grouped_progress = WorkoutProgress.get_grouped_progress(client_id)
-        return jsonify(grouped_progress), 200
+        progress = WorkoutProgress.get_single_day_generated_plan_progress(client_id)
+        if not progress:
+            return jsonify({"error": "No single-day generated plan progress found."}), 404
+        return jsonify([p.__dict__ for p in progress])
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        current_app.logger.error(f"Error fetching single-day generated plan progress: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/get_multi_day_plans_progress/<int:client_id>', methods=['GET'])
+def get_multi_day_plans_progress(client_id):
+    try:
+        progress = WorkoutProgress.get_multi_day_plans_progress(client_id)
+        if not progress:
+            return jsonify({"error": "No multi-day plans progress found."}), 404
+        return jsonify(progress)
+    except Exception as e:
+        current_app.logger.error(f"Error fetching multi-day plans progress: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 
 
 
 @app.route('/api/get_progress_sessions_by_plan/<int:plan_id>', methods=['GET'])
 def get_progress_sessions_by_plan(plan_id):
     try:
-        # Fetching sessions for demo plans
-        demo_sessions = WorkoutProgress.get_by_demo_plan_id(plan_id)
+        # Fetching sessions for quick plans
+        quick_sessions = WorkoutProgress.get_by_demo_plan_id(plan_id)
         
         # Fetching sessions for generated plans
         generated_sessions = WorkoutProgress.get_by_generated_plan_id(plan_id)
-        
-        if not demo_sessions and not generated_sessions:
+
+        client_info = None
+        if generated_sessions:
+            client_info = {
+                'client_first_name': generated_sessions[0].client_first_name,
+                'client_last_name': generated_sessions[0].client_last_name
+            }
+        elif quick_sessions:
+            client_info = {
+                'client_first_name': quick_sessions[0].client_first_name,
+                'client_last_name': quick_sessions[0].client_last_name
+            }
+
+        if not quick_sessions and not generated_sessions:
             return jsonify({"error": "No workout progress found for this plan."}), 404
 
         return jsonify({
-            "demo_sessions": [session.serialize() for session in demo_sessions],
+            "client_info": client_info,
+            "quick_sessions": [session.serialize() for session in quick_sessions],
             "generated_sessions": [session.serialize() for session in generated_sessions]
         })
     except Exception as e:
         print(f"An error occurred: {e}")
         return jsonify({"error": "An error occurred while fetching the workout progress sessions."}), 500
+
 
 
 

@@ -46,15 +46,39 @@ const ClientWorkouts = ({ clientId, clientDemoPlans, clientPlans, workoutProgres
 
   const fetchGroupedProgress = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/get_grouped_workout_progress/${clientId}`);
-      console.log("Grouped Progress Data: ", response.data);
-      setGroupedProgress(response.data);
+      const singleDayResponse = await axios.get(`http://localhost:5000/api/get_single_day_generated_plan_progress/${clientId}`);
+      const multiDayResponse = await axios.get(`http://localhost:5000/api/get_multi_day_plans_progress/${clientId}`);
+  
+      const singleDayProgress = singleDayResponse.data.reduce((acc, session) => {
+        const key = `generated_${session.generated_plan_id}`;
+        if (!acc[key]) {
+          acc[key] = {
+            plan_id: session.generated_plan_id,
+            plan_type: 'generated',
+            plan_name: session.name, // Use workout progress name as the plan name
+            sessions: []
+          };
+        }
+        acc[key].sessions.push(session);
+        return acc;
+      }, {});
+  
+      const multiDayProgress = multiDayResponse.data;
+  
+  
+      setGroupedProgress({ ...singleDayProgress, ...multiDayProgress });
     } catch (error) {
       console.error('Error fetching grouped workout progress:', error);
     }
-  };
+};
 
-  const viewDetails = (id, type, isClustered) => {
+  
+  
+  
+
+
+  const viewDetails = (id, type, isClustered = false) => {
+    console.log("View Details - ID:", id, "Type:", type, "Is Clustered:", isClustered);
     if (type === 'custom-plan') {
       navigate(`custom-plan/${id}`);
     } else if (type === 'quick-plan') {
@@ -66,6 +90,9 @@ const ClientWorkouts = ({ clientId, clientDemoPlans, clientPlans, workoutProgres
     }
   };
   
+  
+
+
 
   const formatDate = (dateString) => {
     if (!dateString) {
@@ -173,45 +200,72 @@ const ClientWorkouts = ({ clientId, clientDemoPlans, clientPlans, workoutProgres
   };
 
   const renderGroupedProgress = () => {
-    return Object.entries(groupedProgress).map(([planId, plan]) => (
-      <div key={planId} className="p-4 rounded shadow bg-gray-100 hover:bg-gray-200 mb-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2 cursor-pointer" onClick={() => toggleExpand(planId)}>
-          {plan.plan_name}
-        </h3>
-        {expandedPlans[planId] && (
-          <div>
-            {plan.sessions.map((session) => (
-              <div key={session.id} className="mb-2">
-                <p className="text-gray-700">
-                  {session.name} - {formatDate(session.date)}
-                </p>
-                <p className="text-sm text-gray-500">{session.workout_type}</p>
-              </div>
-            ))}
-            <div className="flex items-center mt-2">
-              <button onClick={() => viewDetails(planId, plan.plan_type)} className="text-blue-500 hover:text-blue-700">View Details</button>
-            </div>
-          </div>
-        )}
-      </div>
-    ));
-  };
+    return Object.entries(groupedProgress).map(([planId, plan]) => {
+        const dayCompletionStatus = plan.sessions[0].day_completion_status ? JSON.parse(plan.sessions[0].day_completion_status) : {};
+        const isMultiDayPlan = Object.keys(dayCompletionStatus).length > 1 || plan.sessions[0].completed_marked === 0;
 
-  const renderSingleProgress = () => {
+        if (!isMultiDayPlan) {
+            // Render single-day plans similarly to manual plans
+            return plan.sessions.map(session => (
+                <div key={session.id} className="p-4 rounded shadow bg-gray-100 hover:bg-gray-200 mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{session.name}</h3>
+                    <p className="text-gray-700">{formatDate(session.date)}</p>
+                    <p className="text-sm text-gray-500">{session.workout_type}</p>
+                    <div className="flex items-center mt-2">
+                        <button onClick={() => viewDetails(session.id, 'progress-session')} className="text-blue-500 hover:text-blue-700">View Details</button>
+                        <button onClick={() => deletePlan(session.id, 'progress-session')} className="text-red-500 hover:text-red-700 ml-4">Delete</button>
+                    </div>
+                </div>
+            ));
+        } else {
+            // Render multi-day plans with toggle expand
+            return (
+                <div key={planId} className="p-4 rounded shadow bg-gray-100 hover:bg-gray-200 mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2 cursor-pointer" onClick={() => toggleExpand(planId)}>
+                        {plan.plan_name || plan.sessions[0].name}
+                    </h3>
+                    {expandedPlans[planId] && (
+                        <div>
+                            {plan.sessions.map((session) => (
+                                <div key={session.id} className="mb-2">
+                                    <p className="text-gray-700">
+                                        {session.name} - {formatDate(session.date)}
+                                    </p>
+                                    <p className="text-sm text-gray-500">{session.workout_type}</p>
+                                </div>
+                            ))}
+                            <div className="flex items-center mt-2">
+                                <button onClick={() => viewDetails(plan.plan_id, plan.plan_type, true)} className="text-blue-500 hover:text-blue-700">View Details</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+    });
+};
+
+const renderSingleProgress = () => {
     return workoutProgressData
-      .filter(session => !session.generated_plan_id && !session.demo_plan_id)
-      .map(session => (
-        <div key={session.id} className="p-4 rounded shadow bg-gray-100 hover:bg-gray-200 mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">{session.name}</h3>
-          <p className="text-gray-700">{formatDate(session.date)}</p>
-          <p className="text-sm text-gray-500">{session.workout_type}</p>
-          <div className="flex items-center mt-2">
-            <button onClick={() => viewDetails(session.id, 'progress-session')} className="text-blue-500 hover:text-blue-700">View Details</button>
-            <button onClick={() => deletePlan(session.id, 'progress-session')} className="text-red-500 hover:text-red-700 ml-4">Delete</button>
-          </div>
-        </div>
-      ));
-  };
+        .filter(session => !session.generated_plan_id && !session.demo_plan_id)
+        .map(session => (
+            <div key={session.id} className="p-4 rounded shadow bg-gray-100 hover:bg-gray-200 mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">{session.name}</h3>
+                <p className="text-gray-700">{formatDate(session.date)}</p>
+                <p className="text-sm text-gray-500">{session.workout_type}</p>
+                <div className="flex items-center mt-2">
+                    <button onClick={() => viewDetails(session.id, 'progress-session')} className="text-blue-500 hover:text-blue-700">View Details</button>
+                    <button onClick={() => deletePlan(session.id, 'progress-session')} className="text-red-500 hover:text-red-700 ml-4">Delete</button>
+                </div>
+            </div>
+        ));
+};
+
+  
+  
+  
+  
+  
 
   return (
     <div>
