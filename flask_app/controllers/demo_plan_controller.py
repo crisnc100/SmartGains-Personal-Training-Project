@@ -1,6 +1,7 @@
 from flask import session, request, jsonify, json
 from flask_app import app
 import os
+import re
 from openai import OpenAI, OpenAIError
 from flask_app.models.client_model import Client
 from flask_app.models.client_assessments_model import ClientAssessments
@@ -96,11 +97,19 @@ def generate_quick_plan(client_id):
         )
     
         demo_plan_details = completion.choices[0].message.content.strip()
-        session['demo_plan_details'] = demo_plan_details 
+
+        first_line = demo_plan_details.split('\n')[0]
+        plan_title = first_line.replace('# ', '').strip() if first_line.startswith('#') else "Quick Plan"
+        
+        # Construct the plan name
+        demo_plan_name = f"{plan_title} (Quick)"
+        
+        # Create the plan data
         demo_plan_data = {
             'client_id': client_id,
-            'demo_plan_details': demo_plan_details 
-        }   
+            'name': demo_plan_name,
+            'demo_plan_details': demo_plan_details
+        }
 
 
         demo_plan = DemoPlan(demo_plan_data)

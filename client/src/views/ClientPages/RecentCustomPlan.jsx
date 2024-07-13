@@ -353,7 +353,7 @@ const RecentCustomPlan = () => {
         setOriginalPlanName(editableData.generated_plan_name); // Save the original name
         setEditableData(prevState => ({
             ...prevState,
-            demo_plan_name: dayTitle || "Name the workout",
+            generated_plan_name: dayTitle || "Name the workout",
             generated_plan_date: format(new Date(), 'yyyy-MM-dd')
         }));
         setShowCompleteModal(true);

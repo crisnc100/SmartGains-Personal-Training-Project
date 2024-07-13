@@ -1,5 +1,6 @@
 from flask import session, request, jsonify
 from flask_app import app
+import re
 import json
 import os
 from openai import OpenAI, OpenAIError
@@ -87,11 +88,24 @@ def generate_custom_plan(client_id):
 
         generated_plan_details = completion.choices[0].message.content.strip()
 
+        client = Client.get_one(client_id)
+        if not client:
+            return jsonify({"success": False, "message": "Client not found."}), 404
+
+        workout_name = "Custom"  # Default value if extraction fails
+        workout_name_match = re.search(r"# (.+?)'s (.+?) Workout Plan", generated_plan_details)
+        if workout_name_match:
+            workout_name = workout_name_match.group(2).strip()
+
+        # Construct the plan name
+        generated_plan_name = f"{client.first_name} {client.last_name}'s {workout_name} Workout Plan (Custom)"
+
        
         session['generated_plan_details'] = generated_plan_details
         
         generated_plan_data = {
             'client_id': client_id,
+            'name': generated_plan_name,  # Save the constructed plan name
             'generated_plan_details': generated_plan_details,
             'parameters': json.dumps(parameters)  
         }

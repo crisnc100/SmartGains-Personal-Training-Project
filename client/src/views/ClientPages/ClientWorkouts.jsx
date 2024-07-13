@@ -111,29 +111,34 @@ const ClientWorkouts = ({ clientId, clientDemoPlans, clientPlans, workoutProgres
     }
   };
 
-  const deletePlan = async (planId, type) => {
+  const deletePlan = (planId, type) => {
     if (window.confirm("Are you sure you want to delete this plan?")) {
       let url = '';
-      switch (type) {
+      let updatePlans;
+      switch(type) {
         case 'quick-plan':
           url = `http://localhost:5000/api/delete_demo_plan/${planId}`;
+          updatePlans = clientDemoPlans.filter(plan => plan.id !== planId);
           break;
         case 'custom-plan':
           url = `http://localhost:5000/api/delete_custom_plan/${planId}`;
+          updatePlans = clientPlans.filter(plan => plan.id !== planId);
           break;
         case 'progress-session':
           url = `http://localhost:5000/api/delete_progress_session/${planId}`;
+          updatePlans = workoutProgressData.filter(plan => plan.id !== planId);
           break;
         default:
-          return;
+          return; 
       }
-
-      try {
-        await axios.delete(url);
-        onDeletePlan(planId, type);
-      } catch (error) {
-        console.error(`Failed to delete the ${type} plan:`, error);
-      }
+  
+      axios.delete(url)
+        .then(response => {
+          onDeletePlan(updatePlans, type); 
+        })
+        .catch(error => {
+          console.error(`Failed to delete the ${type} plan:`, error);
+        });
     }
   };
 
