@@ -5,6 +5,7 @@ import { FaEdit, FaEnvelope } from 'react-icons/fa';
 import { format, isValid } from 'date-fns';
 import Button from '@mui/material/Button';
 
+
 const ViewMultiProgressSession = () => {
   const { planId, type, clientId } = useParams();
   const [sessions, setSessions] = useState([]);
@@ -16,6 +17,8 @@ const ViewMultiProgressSession = () => {
   const [emailSending, setEmailSending] = useState(false);
   const [clientInfo, setClientInfo] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [planType, setPlanType] = useState(type);
+
 
   useEffect(() => {
     fetchMultiDayProgressSessions(planId, type);
@@ -46,6 +49,11 @@ const ViewMultiProgressSession = () => {
       setClientInfo(response.data.client_info);
       setSessions(data);
       setLoading(false);
+      setPlanType(type); // Store plan type
+
+      if (data.length > 0) {
+        setEditableData(data[0]); // Set editable data to the first session initially
+      }
     } catch (error) {
       console.error('Error fetching progress data:', error);
       setError('Failed to fetch data');
@@ -53,37 +61,59 @@ const ViewMultiProgressSession = () => {
     }
   };
 
-  const toggleEditMode = (session) => {
+  const toggleEditMode = () => {
     if (!isEditMode) {
-      setEditableData({ ...session });
+      const session = sessions[activeTab];
+      console.log("Entering edit mode with data:", session);
+      setEditableData({ ...session });  // Ensure editableData is correctly set
     }
     setIsEditMode(!isEditMode);
   };
 
+
   const cancelEditMode = () => {
     setIsEditMode(false);
-    setEditableData(null);
+    setEditableData(sessions[activeTab]); // Reset editable data to the current session
   };
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
-    setEditableData(prevState => ({
-      ...prevState,
-      [name]: value
-    }));
+    setEditableData(prevState => {
+      const newState = { ...prevState, [name]: value };
+      console.log("Updated editable data:", newState); // Debug statement
+      return newState;
+    });
   };
 
-  const saveChanges = (sessionId) => {
+  const saveChanges = () => {
+    const session = sessions[activeTab]; // Get the original session data
+
     const formattedData = {
-      ...editableData,
-      workout_progress_date: new Date(editableData.workout_progress_date).toISOString().split('T')[0]
+      workout_progress_name: editableData.name !== undefined ? editableData.name : session.name,
+      workout_progress_date: new Date(editableData.date).toISOString().split('T')[0],
+      workout_progress_workout_type: editableData.workout_type !== undefined ? editableData.workout_type : session.workout_type,
+      workout_progress_duration_minutes: editableData.duration_minutes !== undefined ? editableData.duration_minutes : session.duration_minutes,
+      workout_progress_exercises_log: editableData.exercises_log !== undefined ? editableData.exercises_log : session.exercises_log,
+      workout_progress_intensity_level: editableData.intensity_level !== undefined ? editableData.intensity_level : session.intensity_level,
+      workout_progress_location: editableData.location !== undefined ? editableData.location : session.location,
+      workout_progress_workout_rating: editableData.workout_rating !== undefined ? editableData.workout_rating : session.workout_rating,
+      workout_progress_trainer_notes: editableData.trainer_notes !== undefined ? editableData.trainer_notes : session.trainer_notes
     };
 
-    axios.post(`http://localhost:5000/api/update_progress_session/${sessionId}`, formattedData)
+    console.log("Data prepared for update:", formattedData);  // Debug statement
+
+    axios.post(`http://localhost:5000/api/update_progress_session/${session.id}`, formattedData)
       .then(response => {
-        setSessions(prevSessions => prevSessions.map(session =>
-          session.id === sessionId ? { ...formattedData, id: sessionId } : session
-        ));
+        console.log("Response from backend:", response.data);  // Debug statement
+
+        // Update the sessions state with the new data
+        const updatedSessions = sessions.map(s =>
+          s.id === session.id ? { ...s, ...editableData } : s
+        );
+        setSessions(updatedSessions);
+
+        // Reset the editable data and exit edit mode
+        setEditableData({});
         setIsEditMode(false);
       })
       .catch(error => {
@@ -92,11 +122,23 @@ const ViewMultiProgressSession = () => {
       });
   };
 
-  const sendEmail = (session) => {
+
+
+  const sendEmail = () => {
     setEmailSending(true);
+    const session = sessions[activeTab];  // Ensure we are sending the correct session data
+    console.log("Sending email with session data:", session);  // Add this line for debugging
     axios.post('http://localhost:5000/api/email_session_to_client', {
-      client_id: session.client_id,
-      ...sessions
+      client_id: clientId,
+      workout_progress_name: session.name,
+      workout_progress_date: session.date,
+      workout_progress_workout_type: session.workout_type,
+      workout_progress_duration_minutes: session.duration_minutes,
+      workout_progress_exercises_log: session.exercises_log,
+      workout_progress_intensity_level: session.intensity_level,
+      workout_progress_location: session.location,
+      workout_progress_workout_rating: session.workout_rating,
+      workout_progress_trainer_notes: session.trainer_notes
     })
       .then(response => {
         alert('Email sent successfully!');
@@ -145,7 +187,7 @@ const ViewMultiProgressSession = () => {
       <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
         <h1 className="text-2xl font-bold text-gray-800 mb-4 text-center">Multi-Day Progress Sessions</h1>
         <div className="text-center mb-4">
-          <h2 className="text-lg font-medium text-gray-900" style={{fontSize: '1.3rem'}}>Client: {clientInfo?.client_first_name} {clientInfo?.client_last_name}</h2>
+          <h2 className="text-lg font-medium text-gray-900" style={{ fontSize: '1.3rem' }}>Client: {clientInfo?.client_first_name} {clientInfo?.client_last_name}</h2>
         </div>
         <div className="tabs flex justify-center mb-4 space-x-4">
           {sessions.map((session, index) => (
@@ -162,20 +204,26 @@ const ViewMultiProgressSession = () => {
           {!isEditMode && (
             <>
               <button
-                onClick={() => toggleEditMode(sessions[activeTab])}
+                onClick={toggleEditMode}
                 className="flex items-center px-4 py-2 border border-yellow-500 text-yellow-500 rounded-md hover:bg-yellow-500 hover:text-white transition-colors duration-200"
               >
                 <FaEdit className="mr-2" /> Edit
               </button>
               <button
-                onClick={() => sendEmail(sessions[activeTab])}
+                onClick={sendEmail}
                 className="flex items-center px-4 py-2 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition-colors duration-300 ease-in-out rounded"
                 disabled={emailSending}
               >
                 <FaEnvelope className="mr-2" /> {emailSending ? 'Sending...' : 'Email to Client'}
               </button>
               <Button
-                onClick={() => window.location.href = `/trainer_dashboard/all_clients/${clientId}/current-client/view-plan/${planId}`}
+                onClick={() => {
+                  if (planType === 'generated') {
+                    window.location.href = `custom/view-plan`;
+                  } else if (planType === 'quick') {
+                    window.location.href = `quick/view-plan`;
+                  }
+                }}
                 variant="contained"
                 color="primary"
                 style={{ textTransform: 'none' }}
@@ -187,7 +235,7 @@ const ViewMultiProgressSession = () => {
           {isEditMode && (
             <>
               <button
-                onClick={() => saveChanges(sessions[activeTab].id)}
+                onClick={saveChanges}
                 className="px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-600 hover:text-white transition-colors duration-200"
               >
                 Save Changes

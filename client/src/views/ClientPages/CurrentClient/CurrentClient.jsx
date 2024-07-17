@@ -18,7 +18,7 @@ const CurrentClient = () => {
     const [error, setError] = useState('');
     const [isEditMode, setIsEditMode] = useState(false);
     const [editableData, setEditableData] = useState({});
-    const [activeTab, setActiveTab] = useState('personal');
+    const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'personal');
 
 
     useEffect(() => {
@@ -35,6 +35,11 @@ const CurrentClient = () => {
                 setLoading(false);
             });
     }, [clientId]);
+
+
+    useEffect(() => {
+        localStorage.setItem('activeTab', activeTab);
+    }, [activeTab]);
 
 
     const calculateAge = (dob) => {

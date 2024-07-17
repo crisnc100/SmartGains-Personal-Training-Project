@@ -4,7 +4,7 @@ import axios from 'axios';
 import { FaEdit, FaEnvelope } from 'react-icons/fa';
 
 const ViewSingleProgressSession = () => {
-  const {planId} = useParams();
+ const {planId} = useParams();
   const {clientId} = useParams();
   const [progressSession, setProgressSession] = useState({});
   const [error, setError] = useState('');
@@ -100,7 +100,7 @@ return (
     <h1 className="text-2xl font-bold text-gray-800 mb-4 text-center" style={{ fontSize: '30px' }}>Progress Session</h1>
     <h3 className="text-lg text-gray-700 mb-4 text-center" style={{ fontSize: '22px' }}><span className="font-bold">Client:</span> {progressSession.client_first_name} {progressSession.client_last_name}</h3>
     <div className="flex justify-end space-x-2 mb-4">
-      <button onClick={isEditMode ? saveChanges : toggleEditMode} className="px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-600 hover:text-white transition-colors duration-200">
+      <button onClick={isEditMode ? saveChanges : toggleEditMode} className="flex items-center px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200">
         {isEditMode ? 'Save Changes' : <><FaEdit className="inline mr-2" />Edit Session</>}
       </button>
       {isEditMode && (
@@ -108,9 +108,13 @@ return (
           Cancel
         </button>
       )}
-      <button onClick={sendEmail} disabled={emailSending} className="px-4 py-2 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
-                                {emailSending ? 'Sending...' : 'Email to Client'}
-                            </button>
+      <button
+                onClick={sendEmail}
+                className="flex items-center px-4 py-2 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition-colors duration-300 ease-in-out rounded"
+                disabled={emailSending}
+              >
+                <FaEnvelope className="mr-2" /> {emailSending ? 'Sending...' : 'Email to Client'}
+              </button>
     </div>
     
     <div className="space-y-4" style={{fontSize: '1.2rem'}}>

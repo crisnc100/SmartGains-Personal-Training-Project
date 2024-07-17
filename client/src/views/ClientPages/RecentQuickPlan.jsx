@@ -7,6 +7,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
+import { FaEdit, FaEnvelope } from 'react-icons/fa';
 import { parse, isValid, format } from 'date-fns';
 
 const RecentQuickPlan = () => {
@@ -33,7 +34,7 @@ const RecentQuickPlan = () => {
     const [completionDates, setCompletionDates] = useState({});
     const [originalPlanName, setOriginalPlanName] = useState('');
     const [refreshKey, setRefreshKey] = useState(0);
-    
+
 
 
     useEffect(() => {
@@ -502,8 +503,8 @@ const RecentQuickPlan = () => {
                         <button onClick={exitUseMode} className="px-4 py-2 border border-gray-500 text-gray-500 hover:bg-gray-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
                             Exit Use Mode
                         </button>
-                        <button onClick={isEditMode ? saveChanges : toggleEditMode} className="px-4 py-2 border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
-                            {isEditMode ? 'Save Changes' : 'Edit Plan'}
+                        <button onClick={isEditMode ? saveChanges : toggleEditMode} className="flex items-center px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200">
+                            {isEditMode ? 'Save Changes' : <><FaEdit className="inline mr-2" />Edit Plan</>}
                         </button>
                         {isEditMode && (
                             <button onClick={cancelEditMode} className="px-4 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
@@ -590,16 +591,20 @@ const RecentQuickPlan = () => {
                                 </div>
 
                                 <div className="flex space-x-2">
-                                    <button onClick={isEditMode ? saveChanges : toggleEditMode} className="px-4 py-2 border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
-                                        {isEditMode ? 'Save Changes' : 'Edit Plan'}
+                                    <button onClick={isEditMode ? saveChanges : toggleEditMode} className="flex items-center px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200">
+                                        {isEditMode ? 'Save Changes' : <><FaEdit className="inline mr-2" />Edit Plan</>}
                                     </button>
                                     {isEditMode && (
                                         <button onClick={cancelEditMode} className="px-4 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
                                             Cancel
                                         </button>
                                     )}
-                                    <button onClick={sendEmail} disabled={emailSending} className="px-4 py-2 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition-colors duration-300 ease-in-out rounded">
-                                        {emailSending ? 'Sending...' : 'Email to Client'}
+                                    <button
+                                        onClick={sendEmail}
+                                        className="flex items-center px-4 py-2 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition-colors duration-300 ease-in-out rounded"
+                                        disabled={emailSending}
+                                    >
+                                        <FaEnvelope className="mr-2" /> {emailSending ? 'Sending...' : 'Email to Client'}
                                     </button>
                                     {!isUseMode && (
                                         <button onClick={enterUseMode} className="px-4 py-2 border border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white transition-colors duration-300 ease-in-out rounded" disabled={dayCompletionStatus[currentDay]}>

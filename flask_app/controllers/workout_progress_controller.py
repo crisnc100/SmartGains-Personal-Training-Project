@@ -74,9 +74,6 @@ def get_progress_session(progress_id):
     })
 
 
-
-
-
 @app.route('/api/update_progress_session/<int:progress_id>', methods=['POST'])
 def update_progress_session(progress_id):
     try:
