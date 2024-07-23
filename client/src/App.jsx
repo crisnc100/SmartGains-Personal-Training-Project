@@ -33,7 +33,7 @@ import NutritionIntake from './views/NutritionPages/NutritionIntake';
 import TDEECalculator from './views/NutritionPages/TDEECalculator';
 import ExerciseLibrary from './views/WorkoutPages/ExerciseLibrary';
 import AssessmentForm from './views/IntakePages/AssessmentForm';
-
+import IntakeFormSettings from './views/IntakePages/IntakeFormSettings';
 
 
 
@@ -85,6 +85,7 @@ function App() {
             <Route path='add_client' element={<AddClient />} />
             <Route path='add_client/:clientId/additional-services' element={<AdditionalServices />} />
             <Route path='add_client/:clientId/additional-services/intake-form' element={<IntakeForm />} />
+            <Route path='add_client/:clientId/additional-services/intake-form/customize' element={<IntakeFormSettings />} />
             <Route path='add_client/:clientId/additional-services/generator' element={<DemoPrompt />} />
             <Route path='add_client/:clientId/additional-services/nutrition-profile' element={<NutritionProfile />} />
             <Route path='add_client/:clientId/additional-services/intake-form/medical-history' element={<MedicalHistory />} />

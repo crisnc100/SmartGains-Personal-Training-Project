@@ -1,218 +1,123 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const IntakeForm = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
-
-  const goBack = () => {
-    navigate(-1);
-  };
-
-  const initialFormState = {
-    client_id: clientId,
-    prior_exercise_programs: "",
-    exercise_habits: "",
-    exercise_time_day: "",
-    self_fitness_level: "",
-    fitness_goals: [],
-    motivation: [],
-    progress_measurement: "Weight",
-    barriers_challenges: "",
-    area_specifics: "",
-    exercise_likes: [],
-    exercise_dislikes: [],
-    warm_up_info: "",
-    cool_down_info: "",
-    stretching_mobility: "",
-    daily_routine: "",
-    stress_level: "5",
-    smoking_alcohol_habits: "",
-    hobbies: ""
-  };
-
-  const [intakeForm, setIntakeForm] = useState(initialFormState);
+  const [questions, setQuestions] = useState([]);
+  const [intakeForm, setIntakeForm] = useState({});
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const questionLabels = {
-    prior_exercise_programs: "Have you participated in any fitness programs or worked with a personal trainer before? Please describe.",
-    exercise_habits: "What are your current exercise habits? (Include frequency, duration, and types of exercise)",
-    exercise_time_day: "What time of day do you prefer to work out?",
-    self_fitness_level: "How would you rate your current fitness level?",
-    fitness_goals: "What are your fitness goals?",
-    motivation: "What motivates you to exercise?",
-    progress_measurement: "How do you prefer to measure progress in your fitness journey?",
-    barriers_challenges: "What barriers or challenges do you face when it comes to exercising regularly?",
-    area_specifics: "Are there specific areas of your body you want to focus on?",
-    exercise_likes: "What types of exercise do you enjoy most?",
-    exercise_dislikes: "Are there any types of exercise you dislike or want to avoid?",
-    warm_up_info: "How do you warm up before exercising?",
-    cool_down_info: "How do you cool down after exercising?",
-    stretching_mobility: "Do you incorporate stretching or mobility work into your routine?",
-    daily_routine: "Describe your typical daily routine, including your work schedule, sleep patterns, and stress levels.",
-    stress_level: "On a scale of 1 to 10, how would you rate your stress levels?",
-    smoking_alcohol_habits: "Do you smoke or consume alcohol? If yes, how frequently?",
-    hobbies: "What are your hobbies or activities you enjoy outside of work?"
+  useEffect(() => {
+    const fetchDefaultQuestions = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/get_user_default_questions');
+        setQuestions(response.data);
+        initializeForm(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching default questions:', error);
+      }
+    };
+
+    fetchDefaultQuestions();
+  }, []);
+
+  const initializeForm = (questions) => {
+    const formState = {};
+    questions.forEach(question => {
+      formState[question.id] = question.question_type === 'checkbox' ? [] : '';
+    });
+    setIntakeForm(formState);
   };
 
-  const predefinedOptions = {
-    fitness_goals: ["Weight Loss", "Muscle Gain", "Improved Endurance", "Flexibility", "Overall Fitness", "Other"],
-    motivation: ["Health benefits", "Physical appearance", "Stress relief", "Social interaction", "Competition", "Other"],
-    progress_measurement: ["Weight", "Body Measurements", "Strength Gains", "Endurance Improvements"],
-    self_fitness_level: ["Beginner", "Intermediate", "Advanced"],
-    exercise_time_day: ["Morning", "Afternoon", "Evening", "No Preference"],
-    stress_level: Array.from({ length: 10 }, (_, i) => (i + 1).toString()),
-    stretching_mobility: ["Yes", "No"]
+  const handleInputChange = (event, questionId) => {
+    setIntakeForm({
+      ...intakeForm,
+      [questionId]: event.target.value
+    });
   };
 
-  const handleCheckboxChange = (event) => {
-    const { name, value } = event.target;
+  const handleCheckboxChange = (event, questionId) => {
+    const { value } = event.target;
     setIntakeForm((prevState) => {
-      const updatedArray = prevState[name].includes(value)
-        ? prevState[name].filter(item => item !== value)
-        : [...prevState[name], value];
+      const updatedArray = prevState[questionId].includes(value)
+        ? prevState[questionId].filter(item => item !== value)
+        : [...prevState[questionId], value];
       return {
         ...prevState,
-        [name]: updatedArray
+        [questionId]: updatedArray
       };
     });
   };
 
-  const handleInputChange = (event) => {
-    setIntakeForm({
-      ...intakeForm,
-      [event.target.name]: event.target.value
-    });
-  };
+  const renderInputField = (question) => {
+    const { id, question_text, question_type, options } = question;
+    const value = intakeForm[id];
 
-  const renderInputField = (key) => {
-    if (key === 'client_id') {
-      return null;
-    }
-
-    if (predefinedOptions[key]) {
-      if (Array.isArray(predefinedOptions[key])) {
-        if (predefinedOptions[key].every(option => typeof option === 'string')) {
-          if (key === 'fitness_goals' || key === 'motivation' || key === 'exercise_likes' || key === 'exercise_dislikes') {
-            return (
-              <div className="flex flex-col" style={{ color: 'black' }}>
-                {predefinedOptions[key].map(option => (
-                  <label key={option} className="inline-flex items-center">
-                    <input
-                      type="checkbox"
-                      name={key}
-                      value={option}
-                      checked={intakeForm[key].includes(option)}
-                      onChange={handleCheckboxChange}
-                      className="form-checkbox"
-                      aria-label={option}
-                    />
-                    <span className="ml-2">{option}</span>
-                  </label>
-                ))}
-                {key === "fitness_goals" && intakeForm[key].includes("Other") && (
-                  <input
-                    type="text"
-                    name="fitness_goals_other"
-                    value={intakeForm.fitness_goals_other}
-                    onChange={handleInputChange}
-                    placeholder="Please specify other fitness goals"
-                    className="mt-2 bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                )}
-                {key === "motivation" && intakeForm[key].includes("Other") && (
-                  <input
-                    type="text"
-                    name="motivation_other"
-                    value={intakeForm.motivation_other}
-                    onChange={handleInputChange}
-                    placeholder="Please specify other motivation"
-                    className="mt-2 bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                )}
-              </div>
-            );
-          } else {
-            return (
-              <select
-                name={key}
-                id={key}
-                value={intakeForm[key]}
-                onChange={handleInputChange}
-                className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
-                aria-label={questionLabels[key]}
-              >
-                <option value="">Select an option</option>
-                {predefinedOptions[key].map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            );
-          }
-        }
-      }
+    if (question_type === 'select') {
+      return (
+        <select
+          name={id}
+          id={id}
+          value={value}
+          onChange={(e) => handleInputChange(e, id)}
+          className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
+        >
+          <option value="">Select an option</option>
+          {options.split(',').map(option => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      );
+    } else if (question_type === 'checkbox') {
+      return (
+        <div className="flex flex-col md:flex-row md:flex-wrap" style={{ color: 'black' }}>
+          {options.split(',').map(option => (
+            <label key={option} className="inline-flex items-center md:w-1/3">
+              <input
+                type="checkbox"
+                name={id}
+                value={option}
+                checked={value.includes(option)}
+                onChange={(e) => handleCheckboxChange(e, id)}
+                className="form-checkbox"
+                aria-label={option}
+              />
+              <span className="ml-2">{option}</span>
+            </label>
+          ))}
+        </div>
+      );
     } else {
       return (
         <input
           type="text"
-          id={key}
-          name={key}
-          value={intakeForm[key]}
-          onChange={handleInputChange}
+          id={id}
+          name={id}
+          value={value}
+          onChange={(e) => handleInputChange(e, id)}
           className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
-          aria-label={questionLabels[key]}
         />
       );
     }
   };
 
-  const validateForm = () => {
-    let tempErrors = {};
-    let isValid = true;
-
-    Object.keys(intakeForm).forEach(key => {
-      if (key === 'client_id') return;
-      if (Array.isArray(intakeForm[key])) {
-        if (intakeForm[key].length === 0) {
-          tempErrors[key] = 'This field is required';
-          isValid = false;
-        }
-      } else if (typeof intakeForm[key] !== 'string' || !intakeForm[key].trim()) {
-        tempErrors[key] = 'This field is required';
-        isValid = false;
-      }
-    });
-
-    setErrors(tempErrors);
-    return isValid;
-  };
-
-  const submitHandler = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
-      console.log('Validation failed', errors);
-      return;
-    }
 
     try {
-      console.log("Sending data:", intakeForm);
-      const res = await axios.post('http://localhost:5000/api/add_consultation', intakeForm, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        withCredentials: true
-      });
-      console.log("Response Data:", res.data);
-      navigate('medical-history');
-    } catch (err) {
-      console.error("Submission error:", err);
-      if (err.response) {
-        console.error("Error response data:", err.response.data);
-        console.error("Error status:", err.response.status);
+      const response = await axios.post('http://localhost:5000/api/add_intake_form', { clientId, intakeForm });
+      console.log("Response Data:", response.data);
+      navigate('/trainer_dashboard/ai-recommend-insights');
+    } catch (error) {
+      console.error("Submission error:", error);
+      if (error.response) {
         setErrors(prevErrors => ({
           ...prevErrors,
-          ...err.response.data.errors,
+          ...error.response.data.errors,
         }));
       } else {
         setErrors(prevErrors => ({
@@ -223,31 +128,60 @@ const IntakeForm = () => {
     }
   };
 
+  const goBack = () => {
+    navigate(-1);
+  };
+
+  const groupedQuestions = questions.reduce((acc, question) => {
+    if (!acc[question.category]) {
+      acc[question.category] = [];
+    }
+    acc[question.category].push(question);
+    return acc;
+  }, {});
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div>
-      <div className="flex justify-end space-x-2 mt-4">
+      <div className="flex justify-end space-x-2 mt-2">
         <button onClick={goBack} className="px-4 py-2 text-white bg-gray-400 hover:bg-gray-600 transition-colors duration-300 ease-in-out rounded">
           Return Back
         </button>
       </div>
-      <div className="flex justify-center my-2 px-4">
-        <form onSubmit={submitHandler} className="w-full max-w-2xl">
-          <h1 className="text-2xl font-semibold text-center text-gray-900 mb-6">Consultation Intake Form</h1>
-          <div className="space-y-6">
-            {Object.entries(intakeForm).map(([key, value]) => (
-              <div key={key} className="form-group">
-                <label className="block text-sm font-medium text-gray-900 capitalize no-transform" style={{ fontWeight: 'bold', fontSize: '15px', textTransform: 'none' }} htmlFor={key}>
-                  {questionLabels[key]}
-                </label>
-                {renderInputField(key)}
-                {errors[key] && (
-                  <p className="mt-2 text-sm text-red-600">{errors[key]}</p>
-                )}
-              </div>
-            ))}
+      <div className="flex justify-center px-4">
+        <form onSubmit={handleSubmit} className="w-full max-w-4xl">
+          <div className="text-center mb-4">
+            <h1 className="text-4xl font-semibold text-gray-900">Consultation Intake Form</h1>
+            <button 
+              onClick={() => navigate('customize')}
+              className="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm p-2.5 mt-4 mb-6"
+            >
+              Customize Form
+            </button>
           </div>
+          {Object.keys(groupedQuestions).map(category => (
+            <div key={category} className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 ">{category}:</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {groupedQuestions[category].map(question => (
+                  <div key={question.id} className="form-group">
+                    <label className="block text-sm font-medium text-gray-900 capitalize no-transform mb-2" style={{ fontWeight: 'bold', fontSize: '15px', textTransform: 'none' }} htmlFor={question.id}>
+                      {question.question_text}
+                    </label>
+                    {renderInputField(question)}
+                    {errors[question.id] && (
+                      <p className="mt-2 text-sm text-red-600">{errors[question.id]}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
           <button type="submit" className="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm w-full p-2.5 text-center mt-6">
-            Continue to Medical History
+            Submit and Get AI Insights
           </button>
         </form>
       </div>
