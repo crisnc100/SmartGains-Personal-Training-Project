@@ -56,6 +56,7 @@ def add_consultation():
         return jsonify({'error': 'Failed to add consultation data for client'}), 500
 
 
+
 # Global Questions Endpoints
 @app.route('/api/get_global_questions', methods=['GET'])
 def get_global_questions():
@@ -84,14 +85,32 @@ def get_user_questions():
         user_questions = TrainerIntakeQuestions.get_all_by_trainer(trainer_id)
         global_questions = GlobalFormQuestions.get_all()
 
-        # Combine global questions with user-specific questions
+        # Filter out global questions that are marked as deleted by the trainer
+        user_deleted_question_ids = {uq.global_question_id for uq in user_questions if uq.action == 'delete'}
+        global_questions = [q for q in global_questions if q.id not in user_deleted_question_ids]
+
+        # Combine global questions with user-specific edits and additions
         combined_questions = {q.id: q for q in global_questions}
         for uq in user_questions:
-            combined_questions[uq.id] = uq
+            if uq.action == 'edit' or uq.action == 'add':
+                combined_questions[uq.global_question_id or uq.id] = uq
 
         return jsonify([question.serialize() for question in combined_questions.values()]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route('/api/get_user_question/<int:question_id>', methods=['GET'])
+def get_user_question(question_id):
+    try:
+        trainer_id = session.get('trainer_id')
+        question = TrainerIntakeQuestions.get_by_global_question_id(trainer_id, question_id)
+        if question:
+            return jsonify(question.serialize()), 200
+        else:
+            return jsonify({'error': 'Question not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
     
 @app.route('/api/get_user_default_questions', methods=['GET'])
 def get_user_default_questions():
@@ -113,21 +132,29 @@ def get_user_default_questions():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/add_user_questions', methods=['POST'])
+@app.route('/api/add_user_question', methods=['POST'])
 def add_user_question():
     data = request.get_json()
+    data['trainer_id'] = session.get('trainer_id')
+    data['action'] = 'add'
+    data['global_question_id'] = None  # New question, so no global question ID
+
     try:
-        new_question_id = TrainerIntakeQuestions.save(data)
+        new_question_id = TrainerIntakeQuestions.update_or_create(data)
         return jsonify({'id': new_question_id}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/update_user_questions/<int:question_id>', methods=['PUT'])
+
+@app.route('/api/update_user_question/<int:question_id>', methods=['PUT'])
 def update_user_question(question_id):
     data = request.get_json()
-    data['id'] = question_id
+    data['trainer_id'] = session.get('trainer_id')
+    data['global_question_id'] = question_id
+    data['action'] = 'edit'
+
     try:
-        TrainerIntakeQuestions.update(data)
+        TrainerIntakeQuestions.update_or_create(data)
         return jsonify({'message': 'Question updated successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -174,24 +201,5 @@ def get_all_answers_by_form(form_id):
     try:
         answers = IntakeFormAnswers.get_all_by_form(form_id)
         return jsonify([answer.serialize() for answer in answers]), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# New Endpoint to Get Merged Questions
-@app.route('/api/get_merged_questions/<int:trainer_id>', methods=['GET'])
-def get_merged_questions(trainer_id):
-    try:
-        user_questions = TrainerIntakeQuestions.get_all_by_trainer(trainer_id)
-        global_questions = GlobalFormQuestions.get_all()
-
-        # Combine global questions with user-specific questions
-        combined_questions = []
-        user_question_ids = {uq.id for uq in user_questions}
-        for gq in global_questions:
-            if gq.id not in user_question_ids:
-                combined_questions.append(gq)
-        combined_questions.extend(user_questions)
-
-        return jsonify([question.serialize() for question in combined_questions]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

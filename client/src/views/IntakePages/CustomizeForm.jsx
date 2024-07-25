@@ -2,84 +2,110 @@ import React, { useState, useEffect } from 'react';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import axios from 'axios';
 
-const CustomizeForm = () => {
+const CustomizeForm = ({ onSave }) => {
   const [allQuestions, setAllQuestions] = useState([]);
   const [currentQuestions, setCurrentQuestions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showCurrentQuestions, setShowCurrentQuestions] = useState(true);
+  const [notification, setNotification] = useState({ show: false, message: '' });
 
   useEffect(() => {
-    fetchAllQuestions();
-    fetchCurrentQuestions();
+    const savedCurrentQuestions = JSON.parse(localStorage.getItem('currentQuestions'));
+    if (savedCurrentQuestions) {
+      fetchQuestions(savedCurrentQuestions);
+    } else {
+      fetchQuestions();
+    }
   }, []);
 
-  const fetchAllQuestions = async () => {
+  const fetchQuestions = async (savedCurrentQuestions = null) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/get_global_questions');
-      setAllQuestions(response.data);
-      setCategories(['All', ...new Set(response.data.map(q => q.category))]);
-    } catch (error) {
-      console.error('Error fetching all questions:', error);
-    }
-  };
+      const globalResponse = await axios.get('http://localhost:5000/api/get_global_questions');
+      const globalQuestions = globalResponse.data;
 
-  const fetchCurrentQuestions = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/get_user_default_questions');
-      setCurrentQuestions(response.data);
+      if (savedCurrentQuestions) {
+        const nonDefaultQuestions = globalQuestions.filter(gq => 
+          !savedCurrentQuestions.some(dq => dq.id === gq.id)
+        );
+
+        setAllQuestions(nonDefaultQuestions);
+        setCurrentQuestions(savedCurrentQuestions);
+      } else {
+        const defaultResponse = await axios.get('http://localhost:5000/api/get_user_default_questions');
+        const defaultQuestions = defaultResponse.data;
+
+        const nonDefaultQuestions = globalQuestions.filter(gq => 
+          !defaultQuestions.some(dq => dq.id === gq.id)
+        );
+
+        setAllQuestions(nonDefaultQuestions);
+        setCurrentQuestions(defaultQuestions);
+      }
+
+      setCategories(['All', ...new Set(globalQuestions.map(q => q.category))]);
     } catch (error) {
-      console.error('Error fetching current questions:', error);
+      console.error('Error fetching questions:', error);
     }
   };
 
   const handleDragEnd = (result) => {
-    const { source, destination } = result;
+    const { source, destination, draggableId } = result;
 
-    // Dropped outside the list
     if (!destination) return;
 
-    // Moving within the same list
-    if (source.droppableId === destination.droppableId) {
-      const items = Array.from(
-        source.droppableId === 'all-questions' ? allQuestions : currentQuestions
-      );
-      const [reorderedItem] = items.splice(source.index, 1);
-      items.splice(destination.index, 0, reorderedItem);
+    const sourceIndex = source.index;
+    const destIndex = destination.index;
+    const sourceDroppable = source.droppableId;
+    const destDroppable = destination.droppableId;
 
-      if (source.droppableId === 'all-questions') {
-        setAllQuestions(items);
-      } else {
+    const itemId = parseInt(draggableId.split('-')[1]);
+
+    if (sourceDroppable === destDroppable) {
+      if (sourceDroppable === 'all-questions') {
+        const items = Array.from(filteredQuestions);
+        const [reorderedItem] = items.splice(sourceIndex, 1);
+        items.splice(destIndex, 0, reorderedItem);
+        const updatedAllQuestions = allQuestions.map(q => items.find(fq => fq.id === q.id) || q);
+        setAllQuestions(updatedAllQuestions);
+      } else if (sourceDroppable === 'current-questions') {
+        const items = Array.from(currentQuestions);
+        const [reorderedItem] = items.splice(sourceIndex, 1);
+        items.splice(destIndex, 0, reorderedItem);
         setCurrentQuestions(items);
       }
     } else {
-      // Moving between lists
-      const sourceItems = Array.from(
-        source.droppableId === 'all-questions' ? allQuestions : currentQuestions
-      );
-      const destinationItems = Array.from(
-        destination.droppableId === 'all-questions' ? allQuestions : currentQuestions
-      );
-      const [movedItem] = sourceItems.splice(source.index, 1);
-      destinationItems.splice(destination.index, 0, movedItem);
+      let sourceItems = sourceDroppable === 'all-questions' ? Array.from(filteredQuestions) : Array.from(currentQuestions);
+      let destinationItems = destDroppable === 'all-questions' ? Array.from(filteredQuestions) : Array.from(currentQuestions);
 
-      if (source.droppableId === 'all-questions') {
-        setAllQuestions(sourceItems);
+      const [movedItem] = sourceItems.splice(sourceIndex, 1);
+      destinationItems.splice(destIndex, 0, movedItem);
+
+      if (sourceDroppable === 'all-questions') {
+        const updatedAllQuestions = allQuestions.filter(q => q.id !== itemId);
+        setAllQuestions(updatedAllQuestions);
         setCurrentQuestions(destinationItems);
       } else {
-        setAllQuestions(destinationItems);
         setCurrentQuestions(sourceItems);
+        setAllQuestions([...allQuestions, movedItem]);
       }
     }
+
+    localStorage.setItem('currentQuestions', JSON.stringify(currentQuestions));
   };
 
-  // Filter the questions that are not in the current intake list
   const filteredQuestions = selectedCategory === 'All'
-    ? allQuestions.filter(q => !currentQuestions.some(cq => cq.id === q.id))
-    : allQuestions.filter(question => 
-        question.category === selectedCategory &&
-        !currentQuestions.some(cq => cq.id === question.id)
-      );
+    ? allQuestions
+    : allQuestions.filter(question => question.category === selectedCategory);
+
+  const handleSaveChanges = () => {
+    localStorage.setItem('currentQuestions', JSON.stringify(currentQuestions));
+    setNotification({ show: true, message: 'Changes saved successfully!' });
+
+    setTimeout(() => {
+      setNotification({ show: false, message: '' });
+    }, 3000);
+  };
 
   return (
     <div className="flex flex-col">
@@ -95,7 +121,11 @@ const CustomizeForm = () => {
             <h2 className="text-xl font-bold mb-4">Question Bank</h2>
             <div className="mb-4">
               <label className="mr-2">Filter by category:</label>
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-white border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 {categories.map(category => (
                   <option key={category} value={category}>{category}</option>
                 ))}
@@ -145,7 +175,9 @@ const CustomizeForm = () => {
                                 const newCurrentQuestions = Array.from(currentQuestions);
                                 const [removedQuestion] = newCurrentQuestions.splice(index, 1);
                                 setCurrentQuestions(newCurrentQuestions);
-                                setAllQuestions([...allQuestions, removedQuestion]);
+                                setAllQuestions(prevAllQuestions => [...prevAllQuestions, removedQuestion]);
+
+                                localStorage.setItem('currentQuestions', JSON.stringify(newCurrentQuestions));
                               }}
                             >
                               Remove
@@ -162,6 +194,17 @@ const CustomizeForm = () => {
           )}
         </div>
       </DragDropContext>
+      <button
+        className="self-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mt-4"
+        onClick={handleSaveChanges}
+      >
+        Save Changes
+      </button>
+      {notification.show && (
+        <div className="self-center bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mt-4">
+          {notification.message}
+        </div>
+      )}
     </div>
   );
 };

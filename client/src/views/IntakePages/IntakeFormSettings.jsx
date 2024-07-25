@@ -1,12 +1,13 @@
-// IntakeFormSettings.jsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CustomizeForm from './CustomizeForm';
 import ManageQuestions from './ManageQuestions';
 import DefaultSetup from './DefaultSetup';
-import InitialHighlights from './InitialHighlights';
 import IntakeTemplates from './IntakeTemplates';
+
 const IntakeFormSettings = () => {
   const [activeTab, setActiveTab] = useState('customize');
+  const navigate = useNavigate();
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -16,7 +17,7 @@ const IntakeFormSettings = () => {
         return <ManageQuestions />;
       case 'defaultSettings':
         return <DefaultSetup />;
-    case 'intakeTemplates':
+      case 'intakeTemplates':
         return <IntakeTemplates />;
       default:
         return <CustomizeForm />;
@@ -26,6 +27,12 @@ const IntakeFormSettings = () => {
   return (
     <div className="flex">
       <div className="w-1/4 p-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="bg-blue-500 text-white px-4 py-2 rounded mb-4"
+        >
+          Back
+        </button>
         <ul>
           <li
             className={`cursor-pointer p-2 ${activeTab === 'customize' ? 'bg-gray-200' : ''}`}

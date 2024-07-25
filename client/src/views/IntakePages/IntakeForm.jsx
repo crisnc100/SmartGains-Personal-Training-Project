@@ -11,19 +11,26 @@ const IntakeForm = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDefaultQuestions = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/get_user_default_questions');
-        setQuestions(response.data);
-        initializeForm(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching default questions:', error);
-      }
-    };
-
-    fetchDefaultQuestions();
+    const savedCurrentQuestions = JSON.parse(localStorage.getItem('currentQuestions'));
+    if (savedCurrentQuestions) {
+      setQuestions(savedCurrentQuestions);
+      initializeForm(savedCurrentQuestions);
+      setLoading(false);
+    } else {
+      fetchDefaultQuestions();
+    }
   }, []);
+
+  const fetchDefaultQuestions = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/get_user_default_questions');
+      setQuestions(response.data);
+      initializeForm(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching default questions:', error);
+    }
+  };
 
   const initializeForm = (questions) => {
     const formState = {};
@@ -76,7 +83,7 @@ const IntakeForm = () => {
       return (
         <div className="flex flex-col md:flex-row md:flex-wrap" style={{ color: 'black' }}>
           {options.split(',').map(option => (
-            <label key={option} className="inline-flex items-center md:w-1/3">
+            <label key={option} className="inline-flex items-center md:w-1/2">
               <input
                 type="checkbox"
                 name={id}
