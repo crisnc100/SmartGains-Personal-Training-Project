@@ -16,7 +16,7 @@ This project is a web-based platform for personal trainers to manage their clien
 ## Usage
 1. Start the Flask server: `python server.py`
 2. Start the React Server: `cd client, npm run dev`
-3. Open the web application in your browser: `http://localhost:8000`
+3. Open the web application in your browser: `http://localhost:5173`
 
 ## Contributing
 Contributions are welcome! Please submit pull requests with any improvements or bug fixes.
