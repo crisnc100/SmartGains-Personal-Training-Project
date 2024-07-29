@@ -131,6 +131,14 @@ def get_user_default_questions():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/get_questions_by_template/<template>', methods=['GET'])
+def get_questions_by_template(template):
+    try:
+        questions = GlobalFormQuestions.get_by_template(template)
+        return jsonify([question.serialize() for question in questions]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/add_user_question', methods=['POST'])
 def add_user_question():
@@ -159,12 +167,33 @@ def update_user_question(question_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/delete_user_questions/<int:question_id>', methods=['DELETE'])
+@app.route('/api/delete_user_question/<int:question_id>', methods=['DELETE'])
 def delete_user_question(question_id):
-    trainer_id = request.args.get('trainer_id')
+    if 'trainer_id' not in session:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    trainer_id = session['trainer_id']
+    data = {
+        'trainer_id': trainer_id,
+        'global_question_id': question_id,
+        'action': 'delete'
+    }
+
     try:
-        TrainerIntakeQuestions.delete(question_id, trainer_id)
+        TrainerIntakeQuestions.update_or_create(data)
         return jsonify({'message': 'Question deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/restore_user_questions', methods=['GET'])
+def restore_user_questions():
+    try:
+        if 'trainer_id' not in session:
+            return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+        trainer_id = session['trainer_id']
+        TrainerIntakeQuestions.delete_all_by_trainer(trainer_id)
+        return jsonify({'message': 'All questions restored successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

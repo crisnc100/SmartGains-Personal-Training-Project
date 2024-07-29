@@ -8,6 +8,8 @@ class TrainerIntakeQuestions:
         self.options = data.get('options')
         self.category = data.get('category')
         self.visual_aid_url = data.get('visual_aid_url')
+        self.is_default = data.get('is_default')
+        self.templates = data.get('templates')
         self.action = data.get('action')
         self.created_at = data.get('created_at')
         self.updated_at = data.get('updated_at')
@@ -22,6 +24,8 @@ class TrainerIntakeQuestions:
             'options': self.options,
             'category': self.category,
             'visual_aid_url': self.visual_aid_url,
+            'is_default': self.is_default,
+            'templates': self.templates,
             'action': self.action,
             'created_at': str(self.created_at),
             'updated_at': str(self.updated_at),
@@ -37,16 +41,18 @@ class TrainerIntakeQuestions:
             query = """
                 UPDATE trainer_intake_questions 
                 SET question_text = %(question_text)s, question_type = %(question_type)s, options = %(options)s, 
-                    category = %(category)s, visual_aid_url = %(visual_aid_url)s, updated_at = NOW(), action = %(action)s
+                    category = %(category)s, visual_aid_url = %(visual_aid_url)s, is_default = %(is_default)s, 
+                    templates = %(templates)s, action = %(action)s, updated_at = NOW()
                 WHERE id = %(id)s AND trainer_id = %(trainer_id)s
             """
             data['id'] = existing_question.id
         else:
             query = """
                 INSERT INTO trainer_intake_questions
-                (question_text, question_type, options, category, visual_aid_url, created_at, updated_at, trainer_id, global_question_id, action) 
+                (question_text, question_type, options, category, visual_aid_url, is_default, templates, action, created_at, updated_at, trainer_id, global_question_id) 
                 VALUES 
-                (%(question_text)s, %(question_type)s, %(options)s, %(category)s, %(visual_aid_url)s, NOW(), NOW(), %(trainer_id)s, %(global_question_id)s, %(action)s);
+                (%(question_text)s, %(question_type)s, %(options)s, %(category)s, %(visual_aid_url)s, %(is_default)s, %(templates)s, 
+                %(action)s, NOW(), NOW(), %(trainer_id)s, %(global_question_id)s);
             """
         try:
             return connectToMySQL('fitness_consultation_schema').query_db(query, data)
@@ -103,3 +109,13 @@ class TrainerIntakeQuestions:
         except Exception as e:
             print(f"Error deleting data: {e}")
             return False
+
+    @classmethod
+    def delete_all_by_trainer(cls, trainer_id):
+        query = "DELETE FROM trainer_intake_questions WHERE trainer_id = %(trainer_id)s"
+        data = {"trainer_id": trainer_id}
+        try:
+            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        except Exception as e:
+            print(f"Error deleting data: {e}")
+            return None

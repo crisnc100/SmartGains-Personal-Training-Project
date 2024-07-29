@@ -15,10 +15,10 @@ const IntakeFormSettings = () => {
         return <CustomizeForm />;
       case 'manageQuestions':
         return <ManageQuestions />;
-      case 'defaultSettings':
-        return <DefaultSetup />;
       case 'intakeTemplates':
         return <IntakeTemplates />;
+      case 'defaultSettings':
+        return <DefaultSetup />;
       default:
         return <CustomizeForm />;
     }
@@ -29,7 +29,7 @@ const IntakeFormSettings = () => {
       <div className="w-1/4 p-4">
         <button
           onClick={() => navigate(-1)}
-          className="bg-blue-500 text-white px-4 py-2 rounded mb-4"
+          className="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded mb-4"
         >
           Back
         </button>
@@ -47,16 +47,16 @@ const IntakeFormSettings = () => {
             Manage Questions
           </li>
           <li
-            className={`cursor-pointer p-2 ${activeTab === 'defaultSettings' ? 'bg-gray-200' : ''}`}
-            onClick={() => setActiveTab('defaultSettings')}
-          >
-            Default Setup
-          </li>
-          <li
             className={`cursor-pointer p-2 ${activeTab === 'intakeTemplates' ? 'bg-gray-200' : ''}`}
             onClick={() => setActiveTab('intakeTemplates')}
           >
             Intake Templates
+          </li>
+          <li
+            className={`cursor-pointer p-2 ${activeTab === 'defaultSettings' ? 'bg-gray-200' : ''}`}
+            onClick={() => setActiveTab('defaultSettings')}
+          >
+            Default Setup
           </li>
         </ul>
       </div>

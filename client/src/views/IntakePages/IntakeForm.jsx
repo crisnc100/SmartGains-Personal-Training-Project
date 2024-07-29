@@ -11,14 +11,25 @@ const IntakeForm = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedCurrentQuestions = JSON.parse(localStorage.getItem('currentQuestions'));
+    const savedCurrentQuestions = localStorage.getItem('currentQuestions');
     if (savedCurrentQuestions) {
-      setQuestions(savedCurrentQuestions);
-      initializeForm(savedCurrentQuestions);
-      setLoading(false);
+      try {
+        const parsedQuestions = JSON.parse(savedCurrentQuestions);
+        if (Array.isArray(parsedQuestions)) {
+          setQuestions(parsedQuestions);
+          initializeForm(parsedQuestions);
+        } else {
+          console.error('Parsed questions is not an array:', parsedQuestions);
+          fetchDefaultQuestions();
+        }
+      } catch (error) {
+        console.error('Error parsing saved questions:', error);
+        fetchDefaultQuestions();
+      }
     } else {
       fetchDefaultQuestions();
     }
+    setLoading(false);
   }, []);
 
   const fetchDefaultQuestions = async () => {
