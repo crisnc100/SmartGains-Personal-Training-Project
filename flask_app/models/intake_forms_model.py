@@ -1,9 +1,11 @@
 from flask_app.config.mysqlconnection import connectToMySQL
+from datetime import datetime
 
 class IntakeForms:
     def __init__(self, data):
         self.id = data.get('id')
         self.form_type = data.get('form_type')
+        self.status = data.get('status', 'draft')
         self.client_id = data.get('client_id')
         self.trainer_id = data.get('trainer_id')
         self.created_at = data.get('created_at')
@@ -13,6 +15,7 @@ class IntakeForms:
         return {
             'id': self.id,
             'form_type': self.form_type,
+            'status': self.status,
             'client_id': self.client_id,
             'trainer_id': self.trainer_id,
             'created_at': str(self.created_at),
@@ -24,12 +27,14 @@ class IntakeForms:
     def save(cls, data):
         query = """
             INSERT INTO intake_forms
-            (form_type, client_id, trainer_id, created_at, updated_at) 
+            (form_type, status, client_id, trainer_id, created_at, updated_at) 
             VALUES 
-            (%(form_type)s, %(client_id)s, %(trainer_id)s, NOW(), NOW());
+            (%(form_type)s, %(status)s, %(client_id)s, %(trainer_id)s, NOW(), NOW());
         """
         try:
-            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            connection = connectToMySQL('fitness_consultation_schema')
+            form_id = connection.query_db(query, data)
+            return form_id
         except Exception as e:
             print(f"Error inserting data: {e}")
             return None
@@ -82,6 +87,20 @@ class IntakeForms:
             return forms
         except Exception as e:
             print(f"Error fetching data: {e}")
+            return None
+    
+    # UPDATE
+    @classmethod
+    def update(cls, data):
+        query = """
+            UPDATE intake_forms 
+            SET form_type = %(form_type)s, status = %(status)s, updated_at = NOW()
+            WHERE id = %(id)s
+        """
+        try:
+            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        except Exception as e:
+            print(f"Error updating data: {e}")
             return None
 
     # DELETE

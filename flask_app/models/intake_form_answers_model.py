@@ -1,4 +1,5 @@
 from flask_app.config.mysqlconnection import connectToMySQL
+from datetime import datetime
 
 class IntakeFormAnswers:
     def __init__(self, data):
@@ -21,20 +22,39 @@ class IntakeFormAnswers:
             'updated_at': str(self.updated_at)
         }
 
-    # CREATE
+    # CREATE or UPDATE
     @classmethod
     def save(cls, data):
-        query = """
-            INSERT INTO intake_form_answers
-            (question_source, answer, form_id, question_id, created_at, updated_at) 
-            VALUES 
-            (%(question_source)s, %(answer)s, %(form_id)s, %(question_id)s, NOW(), NOW());
+        query_check = """
+            SELECT id FROM intake_form_answers 
+            WHERE form_id = %(form_id)s AND question_id = %(question_id)s
         """
-        try:
-            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
-        except Exception as e:
-            print(f"Error inserting data: {e}")
-            return None
+        existing_answer = connectToMySQL('fitness_consultation_schema').query_db(query_check, data)
+
+        if existing_answer:
+            query_update = """
+                UPDATE intake_form_answers
+                SET answer = %(answer)s, updated_at = NOW()
+                WHERE id = %(id)s
+            """
+            data['id'] = existing_answer[0]['id']
+            try:
+                return connectToMySQL('fitness_consultation_schema').query_db(query_update, data)
+            except Exception as e:
+                print(f"Error updating data: {e}")
+                return None
+        else:
+            query_insert = """
+                INSERT INTO intake_form_answers
+                (question_source, answer, form_id, question_id, created_at, updated_at)
+                VALUES
+                (%(question_source)s, %(answer)s, %(form_id)s, %(question_id)s, NOW(), NOW());
+            """
+            try:
+                return connectToMySQL('fitness_consultation_schema').query_db(query_insert, data)
+            except Exception as e:
+                print(f"Error inserting data: {e}")
+                return None
 
     # READ ALL BY FORM
     @classmethod
@@ -78,19 +98,7 @@ class IntakeFormAnswers:
             print(f"Error fetching data: {e}")
             return None
 
-    # UPDATE
-    @classmethod
-    def update(cls, data):
-        query = """
-            UPDATE intake_form_answers 
-            SET answer = %(answer)s, updated_at = NOW()
-            WHERE id = %(id)s
-        """
-        try:
-            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
-        except Exception as e:
-            print(f"Error updating data: {e}")
-            return None
+    
 
     # DELETE
     @classmethod

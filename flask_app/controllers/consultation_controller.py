@@ -7,55 +7,6 @@ from flask_app.models.intake_forms_model import IntakeForms
 from flask_app.models.intake_form_answers_model import IntakeFormAnswers
 from flask_app.models.client_model import Client
 
-@app.route('/api/add_consultation', methods=['POST'])
-def add_consultation():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
-    client_id = data.get('client_id')
-    if client_id is None:
-        return jsonify({'error': 'Client ID not found. Unable to add consultation for the client.'}), 400
-
-    required_fields = [
-        'prior_exercise_programs',
-        'exercise_habits',
-        'exercise_time_day',
-        'self_fitness_level',
-        'fitness_goals',
-        'motivation',
-        'progress_measurement',
-        'barriers_challenges',
-        'area_specifics',
-        'exercise_likes',
-        'exercise_dislikes',
-        'warm_up_info',
-        'cool_down_info',
-        'stretching_mobility',
-        'daily_routine',
-        'stress_level',
-        'smoking_alcohol_habits',
-        'hobbies',
-        'fitness_goals_other',
-        'motivation_other'
-    ]
-
-    if not all(field in data for field in required_fields):
-        return jsonify({'error': 'Missing one or more required fields'}), 400
-
-    # Convert the fitness_goals and motivation lists to a comma-separated string if they are lists or tuples
-    for field in ['fitness_goals', 'motivation']:
-        if isinstance(data.get(field), (list, tuple)):
-            data[field] = ','.join(data[field])
-
-    # Save the consultation data using the model
-    consultation_id = Consultation.save(data)
-    if consultation_id:
-        return jsonify({'message': 'Consultation data added for client'}), 200
-    else:
-        return jsonify({'error': 'Failed to add consultation data for client'}), 500
-
-
 
 # Global Questions Endpoints
 @app.route('/api/get_global_questions', methods=['GET'])
@@ -198,14 +149,28 @@ def restore_user_questions():
         return jsonify({'error': str(e)}), 500
 
 # Intake Forms and Answers Endpoints
-@app.route('/api/create_intake_forms', methods=['POST'])
-def create_intake_form():
+@app.route('/api/add_intake_forms', methods=['POST'])
+def add_intake_form():
     data = request.get_json()
+    required_fields = ['form_type', 'client_id']
+    
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    if 'trainer_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data['trainer_id'] = session['trainer_id']
+    data['status'] = 'completed'
+
     try:
         form_id = IntakeForms.save(data)
         return jsonify({'id': form_id}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
 
 @app.route('/api/get_intake_forms/<int:client_id>', methods=['GET'])
 def get_intake_form_by_client(client_id):
@@ -215,15 +180,53 @@ def get_intake_form_by_client(client_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/save_intake_form_answers', methods=['POST'])
-def save_intake_form_answers():
+
+    
+@app.route('/api/auto_save_intake_form', methods=['POST'])
+def auto_save_intake_form():
     data = request.get_json()
+    required_fields = ['client_id', 'form_data', 'answers']
+    
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    if 'trainer_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data['trainer_id'] = session['trainer_id']
+    form_data = data['form_data']
+    form_data['status'] = 'draft'  # Ensure status is 'draft' for auto-save
+    form_data['client_id'] = data['client_id']  # Ensure client_id is included in form_data
+    form_data['trainer_id'] = data['trainer_id']  # Ensure trainer_id is included in form_data
+    answers = data['answers']
+
     try:
-        for answer in data['answers']:
-            IntakeFormAnswers.save(answer)
-        return jsonify({'message': 'Answers saved successfully'}), 201
+        if 'form_id' in form_data and form_data['form_id']:
+            form_id = form_data['form_id']
+            # Update existing form
+            IntakeForms.update(form_data)
+        else:
+            # Create new form
+            form_id = IntakeForms.save(form_data)
+            if not form_id:
+                raise Exception('Failed to create form')
+            form_data['form_id'] = form_id  # Ensure form_id is set in form_data
+
+        print(f"Auto-save: form_id set to {form_id}")
+
+        # Filter and save only non-empty answers
+        for answer in answers:
+            if answer['answer']:  # Only save non-empty answers
+                answer['form_id'] = form_id
+                print(f"Saving answer for question_id {answer['question_id']} with answer: {answer['answer']}")
+                IntakeFormAnswers.save(answer)
+        
+        return jsonify({'form_id': form_id, 'message': 'Auto-save successful'}), 201
     except Exception as e:
+        print(f"Error during auto-save: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/get_intake_form_answers/<int:form_id>', methods=['GET'])
 def get_all_answers_by_form(form_id):
