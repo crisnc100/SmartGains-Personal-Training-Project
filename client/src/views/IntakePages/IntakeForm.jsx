@@ -19,6 +19,10 @@ const IntakeForm = () => {
     const [submitting, setSubmitting] = useState(false); // New state for form submission
     const [isAutoSaving, setIsAutoSaving] = useState(false); // New state
     const [deletedAnswers, setDeletedAnswers] = useState({});
+    const [isGeneratingInsights, setIsGeneratingInsights] = useState(false); // New state for AI insights
+    const [errorMessage, setErrorMessage] = useState(null);
+
+
 
 
 
@@ -26,7 +30,7 @@ const IntakeForm = () => {
         const initializeFormState = async () => {
             const savedFormId = localStorage.getItem(getLocalStorageKey(clientId, 'formId'));
             const savedCurrentQuestions = localStorage.getItem(getLocalStorageKey(clientId, 'currentQuestions'));
-    
+
             if (savedFormId) {
                 setFormId(parseInt(savedFormId, 10));  // Ensure formId is treated as an integer
                 try {
@@ -42,7 +46,7 @@ const IntakeForm = () => {
                         return acc;
                     }, {});
                     setIntakeForm(savedAnswers);
-    
+
                     if (savedCurrentQuestions) {
                         const parsedQuestions = JSON.parse(savedCurrentQuestions);
                         if (Array.isArray(parsedQuestions)) {
@@ -67,10 +71,10 @@ const IntakeForm = () => {
             }
             setLoading(false);
         };
-    
+
         initializeFormState();
     }, [clientId]);
-    
+
 
     const fetchDefaultQuestions = async () => {
         try {
@@ -111,7 +115,7 @@ const IntakeForm = () => {
                 });
                 const newFormId = response.data.id;
                 console.log('New form created with ID:', newFormId);
-    
+
                 if (newFormId) {
                     setFormId(newFormId);
                     localStorage.setItem(getLocalStorageKey(clientId, 'formId'), newFormId);
@@ -124,7 +128,7 @@ const IntakeForm = () => {
                 return;
             }
         }
-    
+
         const updatedForm = {
             ...intakeForm,
             [questionId]: event.target.value
@@ -133,7 +137,7 @@ const IntakeForm = () => {
         localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(updatedForm));
         console.log('Updated form state:', updatedForm);
     };
-    
+
 
     const handleCheckboxChange = (event, questionId) => {
         const { value } = event.target;
@@ -143,7 +147,7 @@ const IntakeForm = () => {
                     ? prevState[questionId].filter(item => item !== value)
                     : [...prevState[questionId], value]
                 : [value]; // Initialize as an array if it's not already
-    
+
             const updatedForm = {
                 ...prevState,
                 [questionId]: updatedArray
@@ -235,7 +239,7 @@ const IntakeForm = () => {
                     }))
                     .filter(answer => answer.answer !== '');
                 localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(intakeForm)); // Save answers to local storage
-    
+
                 const response = await axios.post('http://localhost:5000/api/auto_save_intake_form', {
                     withCredentials: true,
                     client_id: clientId,
@@ -253,17 +257,17 @@ const IntakeForm = () => {
                 setIsAutoSaving(false); // Ensure this runs even if there's an error
             }
         };
-    
+
         const intervalId = setInterval(autoSave, 12000); // Auto-save every 12 seconds
-    
+
         return () => clearInterval(intervalId);
     }, [clientId, formId, intakeForm, questions]);
-    
+
     const gatherFormData = (questions, answers) => {
         console.log('Gathering form data...');
         console.log('Questions:', questions);
         console.log('Answers:', answers);
-    
+
         const formData = questions.map(question => {
             const data = {
                 question: question.question_text,
@@ -272,26 +276,35 @@ const IntakeForm = () => {
             console.log('Form Data Entry:', data);
             return data;
         });
-    
+
         console.log('Final Form Data:', formData);
         return formData;
     };
-    
-    
-    
+
+
+
 
     const handleSubmit = async (e, skipAI = false) => {
         e.preventDefault();
-        setSubmitting(true);
-    
+
+        if (!skipAI) {
+            setIsGeneratingInsights(true);
+        } else {
+            setSubmitting(true);
+        }
+
+        console.log("Submitting with AI Insights:", !skipAI);
+        console.log("Submitting without AI Insights:", skipAI);
+
         try {
             // Step 1: Update the intake form status to 'completed'
+            console.log("Updating form status to 'completed'");
             await axios.post('http://localhost:5000/api/update_intake_form_status', {
                 withCredentials: true,
                 form_id: formId,
                 status: 'completed'
             });
-    
+
             // Step 2: Prepare answers (if there are any unsaved answers)
             const answers = questions
                 .map(question => ({
@@ -301,28 +314,37 @@ const IntakeForm = () => {
                     form_id: formId
                 }))
                 .filter(answer => answer.answer !== '');
-    
+
             if (answers.length > 0) {
-                await axios.post('http://localhost:5000/api/save_intake_form_answers', {
+                console.log("Saving answers:", answers);
+                await axios.post('http://localhost:5000/api/final_intake_save', {
                     withCredentials: true,
                     form_id: formId,
                     answers: answers
                 });
             }
-    
+
             // Step 3: Clear local storage
-            localStorage.removeItem(getLocalStorageKey('currentAnswers'));
-            localStorage.removeItem(getLocalStorageKey('currentQuestions'));
-            localStorage.removeItem(getLocalStorageKey('formId'));
-    
-            // Step 4: Generate AI insights if not skipped
+            console.log("Clearing local storage");
+            localStorage.removeItem(getLocalStorageKey(clientId, 'currentAnswers'));
+            localStorage.removeItem(getLocalStorageKey(clientId, 'currentQuestions'));
+            localStorage.removeItem(getLocalStorageKey(clientId, 'formId'));
+
             if (!skipAI) {
-                const formData = gatherFormData(questions, intakeForm);
-                await axios.post('http://localhost:5000/api/generate_ai_insights', {
-                    withCredentials: true,
-                    data: formData
-                });
-                navigate('success-overview');
+                console.log("Generating AI insights");
+                try {
+                    await axios.post(`http://localhost:5000/api/generate_ai_insights/${clientId}`, {
+                        data: gatherFormData(questions, intakeForm)
+                    }, {
+                        withCredentials: true
+                    });
+                    navigate('success-overview'); // Navigate to the insights page
+                } catch (error) {
+                    console.error("Error generating AI insights:", error);
+                    setErrorMessage('Something went wrong. Please try again later.');
+                } finally {
+                    setIsGeneratingInsights(false);
+                }
             } else {
                 navigate('success-intake_options'); // Skipping AI insights
             }
@@ -340,10 +362,11 @@ const IntakeForm = () => {
                 }));
             }
         } finally {
-            setSubmitting(false);
+            if (skipAI) {
+                setSubmitting(false);
+            }
         }
     };
-    
 
     const goBack = () => {
         navigate(-1);
@@ -424,10 +447,21 @@ const IntakeForm = () => {
                         <button type="button" onClick={(e) => handleSubmit(e, true)} className="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm w-full p-2.5 text-center mt-6 mr-2" disabled={submitting}>
                             {submitting ? "Submitting..." : "Submit"}
                         </button>
-                        <button type="submit" className="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm w-full p-2.5 text-center mt-6 ml-2" disabled={submitting}>
-                            {submitting ? "Submitting..." : "Submit with AI Insights"}
+                        <button type="submit" className="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm w-full p-2.5 text-center mt-6 ml-2" disabled={isGeneratingInsights}>
+                            {isGeneratingInsights ? <ClipLoader size={20} color={"#ffffff"} /> : "Submit with AI Insights"}
                         </button>
                     </div>
+                    {isGeneratingInsights && (
+                        <div className="flex justify-center items-center mt-4">
+                            <ClipLoader size={50} color={"#123abc"} />
+                        </div>
+                    )}
+                    {errorMessage && (
+                        <div className="mt-4 text-red-500 text-center">
+                            {errorMessage}
+                        </div>
+                    )}
+
                 </form>
             </div>
         </div>

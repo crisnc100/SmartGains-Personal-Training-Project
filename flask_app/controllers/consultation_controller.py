@@ -188,14 +188,24 @@ def update_intake_form_status():
     if not form_id or not status:
         return jsonify({'error': 'Missing form_id or status'}), 400
 
+    print(f"Updating form status for form_id: {form_id} to status: {status}")
+
     try:
-        updated = IntakeForms.update({'id': form_id, 'status': status})
-        if not updated:
-            raise Exception('Failed to update form status')
+        # Ensure form_id is treated as an integer
+        update_data = {'id': int(form_id), 'status': status}
+        print(f"Update data prepared: {update_data}")
+
+        # Call the update method
+        IntakeForms.update(update_data)
+        print("Update operation called successfully.")
+
         return jsonify({'message': 'Form status updated successfully'}), 200
     except Exception as e:
         print(f"Error updating form status: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+
 
 
 @app.route('/api/get_intake_forms/<int:client_id>', methods=['GET'])
@@ -253,6 +263,28 @@ def auto_save_intake_form():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+    
+@app.route('/api/final_intake_save', methods=['POST'])
+def final_intake_save():
+    data = request.get_json()
+    form_id = data.get('form_id')
+    answers = data.get('answers')
+
+    if not form_id or not answers:
+        return jsonify({'error': 'Missing form_id or answers'}), 400
+
+    try:
+        for answer in answers:
+            if isinstance(answer['answer'], list):
+                answer['answer'] = ','.join(answer['answer'])  # Convert list to comma-separated string
+            answer['form_id'] = form_id
+            IntakeFormAnswers.save(answer)
+
+        return jsonify({'message': 'Answers saved successfully'}), 200
+    except Exception as e:
+        print(f"Error saving answers: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 
 
@@ -296,7 +328,7 @@ def generate_ai_insights(client_id):
     
 
     additional_instructions = f"""
-    Based on the following responses from the client, {client.name}, please provide insights. Analyze the data to highlight potential issues, suggest appropriate workout plans, recommend assessments to perform, and identify any noticeable trends. Your insights should be personalized, actionable, and relevant to the client's goals and responses.
+    Based on the following responses from the client, {client.first_name} {client.last_name}, please provide insights. Analyze the data to highlight potential issues, suggest appropriate workout plans, recommend assessments to perform, and identify any noticeable trends. Your insights should be personalized, actionable, and relevant to the client's goals and responses.
     """
 
     # Format the input for OpenAI
@@ -308,9 +340,10 @@ def generate_ai_insights(client_id):
         client_ai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         completion = client_ai.chat.completions.create(
             model="gpt-4o-2024-05-13",  # Model (Newest One)
-            messages=[{"role": "system", "content": "You are an AI providing fitness insights."}, {"role": "user", "content": final_prompt}],
+            messages=[{"role": "system", "content": "You are an AI providing fitness insights."}, 
+                      {"role": "user", "content": final_prompt}],
             max_tokens=3000,  # Adjust as needed (how big the responses are)
-            temperature=0  # Control the randomness?
+            temperature=0.7  # Control the randomness?
         )
         insights = completion.choices[0].message.content.strip()
 
@@ -321,4 +354,13 @@ def generate_ai_insights(client_id):
     except Exception as e:
         print(f"Error generating AI insights: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/get_ai_insights', methods=['GET'])
+def get_ai_insights():
+    insights = session.get('ai_insights')
+    if insights:
+        return jsonify({'insights': insights}), 200
+    else:
+        return jsonify({'error': 'No AI insights found'}), 404
 

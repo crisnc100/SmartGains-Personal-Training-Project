@@ -89,19 +89,21 @@ class IntakeForms:
             print(f"Error fetching data: {e}")
             return None
     
-    # UPDATE
+    #Update
     @classmethod
     def update(cls, data):
         query = """
             UPDATE intake_forms 
-            SET form_type = %(form_type)s, status = %(status)s, updated_at = NOW()
+            SET status = %(status)s, updated_at = NOW()
             WHERE id = %(id)s
         """
         try:
-            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            print(f"Running query: {query} with data: {data}")
+            connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            print("Query executed successfully.")
         except Exception as e:
             print(f"Error updating data: {e}")
-            return None
+            raise
 
     # DELETE
     @classmethod
