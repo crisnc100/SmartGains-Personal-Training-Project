@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import axios from 'axios';
+import { useNavigate, useParams } from 'react-router-dom';
+
+
+const getLocalStorageKey = (clientId, key) => `client_${clientId}_${key}`;
 
 const CustomizeForm = ({ onSave }) => {
+  const { clientId } = useParams();
   const [allQuestions, setAllQuestions] = useState([]);
   const [currentQuestions, setCurrentQuestions] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -11,7 +16,7 @@ const CustomizeForm = ({ onSave }) => {
   const [notification, setNotification] = useState({ show: false, message: '' });
 
   useEffect(() => {
-    const savedCurrentQuestions = JSON.parse(localStorage.getItem('currentQuestions'));
+    const savedCurrentQuestions = JSON.parse(localStorage.getItem(getLocalStorageKey(clientId, 'currentQuestions')));
     if (savedCurrentQuestions) {
       fetchQuestions(savedCurrentQuestions);
     } else {
@@ -91,7 +96,7 @@ const CustomizeForm = ({ onSave }) => {
       }
     }
 
-    localStorage.setItem('currentQuestions', JSON.stringify(currentQuestions));
+    localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(currentQuestions));
   };
 
   const filteredQuestions = selectedCategory === 'All'
@@ -99,7 +104,7 @@ const CustomizeForm = ({ onSave }) => {
     : allQuestions.filter(question => question.category === selectedCategory);
 
   const handleSaveChanges = () => {
-    localStorage.setItem('currentQuestions', JSON.stringify(currentQuestions));
+    localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(currentQuestions));
     setNotification({ show: true, message: 'Changes saved successfully!' });
 
     setTimeout(() => {

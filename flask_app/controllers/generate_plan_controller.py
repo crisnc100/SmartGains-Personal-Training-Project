@@ -1,7 +1,6 @@
-from flask import session, request, jsonify
+from flask import session, request, jsonify, json
 from flask_app import app
 import re
-import json
 import os
 from openai import OpenAI, OpenAIError
 from flask_app.models.client_model import Client

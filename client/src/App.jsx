@@ -98,10 +98,9 @@ function App() {
               <Route path='add_client/:clientId/additional-services/intake-form' element={<IntakeForm />} />
               <Route path='add_client/:clientId/additional-services/intake-form/customize' element={<IntakeFormSettings />} />
               <Route path='add_client/:clientId/additional-services/intake-form/success-overview' element={<AIOverview />} />
+              <Route path='add_client/:clientId/additional-services/intake-form/success-intake_options' element={<IntakeOptions />} />
               <Route path='add_client/:clientId/additional-services/generator' element={<DemoPrompt />} />
               <Route path='add_client/:clientId/additional-services/nutrition-profile' element={<NutritionProfile />} />
-              <Route path='add_client/:clientId/additional-services/intake-form/medical-history' element={<MedicalHistory />} />
-              <Route path='add_client/:clientId/additional-services/intake-form/intake-options' element={<IntakeOptions />} />
               <Route path='add_client/:clientId/additional-services/intake-form/choose-prompt' element={<DemoPrompt />} />
               <Route path='add_client/:clientId/additional-services/intake-form/choose-prompt/success' element={<RecentQuickPlan />} />
               <Route path='add_client/:clientId/additional-services/intake-form/assessment-choice' element={<AssessmentChoice />} />

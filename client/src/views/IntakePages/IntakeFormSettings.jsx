@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import CustomizeForm from './CustomizeForm';
 import ManageQuestions from './ManageQuestions';
 import DefaultSetup from './DefaultSetup';
@@ -7,6 +7,7 @@ import IntakeTemplates from './IntakeTemplates';
 
 const IntakeFormSettings = () => {
   const [activeTab, setActiveTab] = useState('customize');
+  const { clientId } = useParams();
   const navigate = useNavigate();
 
   const renderTabContent = () => {

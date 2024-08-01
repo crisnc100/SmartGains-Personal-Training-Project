@@ -1,4 +1,5 @@
 from flask import request, jsonify, session, json
+import os
 from flask_app import app
 from flask_app.models.consultation_model import Consultation
 from flask_app.models.global_form_questions_model import GlobalFormQuestions
@@ -6,6 +7,8 @@ from flask_app.models.trainer_intake_questions_model import TrainerIntakeQuestio
 from flask_app.models.intake_forms_model import IntakeForms
 from flask_app.models.intake_form_answers_model import IntakeFormAnswers
 from flask_app.models.client_model import Client
+from openai import OpenAI, OpenAIError
+
 
 
 # Global Questions Endpoints
@@ -149,10 +152,10 @@ def restore_user_questions():
         return jsonify({'error': str(e)}), 500
 
 # Intake Forms and Answers Endpoints
-@app.route('/api/add_intake_forms', methods=['POST'])
+@app.route('/api/add_intake_form', methods=['POST'])
 def add_intake_form():
     data = request.get_json()
-    required_fields = ['form_type', 'client_id']
+    required_fields = ['client_id', 'form_type']
     
     for field in required_fields:
         if field not in data:
@@ -162,14 +165,37 @@ def add_intake_form():
         return jsonify({'error': 'Unauthorized'}), 401
 
     data['trainer_id'] = session['trainer_id']
-    data['status'] = 'completed'
+    data['status'] = 'draft'  # Ensure status is 'draft' for new forms
 
     try:
         form_id = IntakeForms.save(data)
-        return jsonify({'id': form_id}), 201
+        if not form_id:
+            raise Exception('Failed to create form')
+        print(f"Form created successfully with ID: {form_id}")
+        return jsonify({'id': form_id}), 201  # Ensure 'id' matches the frontend's expected key
     except Exception as e:
+        print(f"Error creating form: {e}")
         return jsonify({'error': str(e)}), 500
 
+    
+
+@app.route('/api/update_intake_form_status', methods=['POST'])
+def update_intake_form_status():
+    data = request.get_json()
+    form_id = data.get('form_id')
+    status = data.get('status')
+
+    if not form_id or not status:
+        return jsonify({'error': 'Missing form_id or status'}), 400
+
+    try:
+        updated = IntakeForms.update({'id': form_id, 'status': status})
+        if not updated:
+            raise Exception('Failed to update form status')
+        return jsonify({'message': 'Form status updated successfully'}), 200
+    except Exception as e:
+        print(f"Error updating form status: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/get_intake_forms/<int:client_id>', methods=['GET'])
@@ -213,25 +239,86 @@ def auto_save_intake_form():
                 raise Exception('Failed to create form')
             form_data['form_id'] = form_id  # Ensure form_id is set in form_data
 
-        print(f"Auto-save: form_id set to {form_id}")
-
         # Filter and save only non-empty answers
         for answer in answers:
-            if answer['answer']:  # Only save non-empty answers
-                answer['form_id'] = form_id
-                print(f"Saving answer for question_id {answer['question_id']} with answer: {answer['answer']}")
-                IntakeFormAnswers.save(answer)
+            if 'answer' in answer:
+                if isinstance(answer['answer'], list):
+                    answer['answer'] = ','.join(answer['answer'])  # Convert list to comma-separated string
+                
+                if answer['answer']:  # Only save non-empty answers
+                    answer['form_id'] = form_id
+                    IntakeFormAnswers.save(answer)
         
         return jsonify({'form_id': form_id, 'message': 'Auto-save successful'}), 201
     except Exception as e:
-        print(f"Error during auto-save: {e}")
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/get_intake_form_answers/<int:form_id>', methods=['GET'])
-def get_all_answers_by_form(form_id):
+
+
+@app.route('/api/get_saved_answers', methods=['GET'])
+def get_saved_answers():
+    client_id = request.args.get('client_id')
+    form_id = request.args.get('form_id')
+
+    if not client_id or not form_id:
+        return jsonify({'error': 'Missing required parameters'}), 400
+
+    if 'trainer_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
     try:
-        answers = IntakeFormAnswers.get_all_by_form(form_id)
-        return jsonify([answer.serialize() for answer in answers]), 200
+        saved_answers = IntakeFormAnswers.get_all_by_form(form_id)
+        # Convert the answers to a JSON-serializable format
+        serialized_answers = [answer.serialize() for answer in saved_answers]
+        return jsonify({'answers': serialized_answers}), 200
     except Exception as e:
+        print(f"Error fetching saved answers: {e}")
         return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/api/generate_ai_insights/<int:client_id>', methods=['POST'])
+def generate_ai_insights(client_id):
+    if not client_id:
+        return jsonify({"error": "Client ID not found. Please log in again."}), 401
+
+    data = request.get_json()
+    questions_answers = data.get('data')
+    
+    # Ensure questions and answers are provided
+    if not questions_answers:
+        return jsonify({'error': 'No data provided'}), 400
+
+    # Retrieve client information to personalize the response
+    client = Client.get_one(client_id)
+    if not client:
+        return jsonify({"success": False, "message": "Client not found."}), 404
+    
+
+    additional_instructions = f"""
+    Based on the following responses from the client, {client.name}, please provide insights. Analyze the data to highlight potential issues, suggest appropriate workout plans, recommend assessments to perform, and identify any noticeable trends. Your insights should be personalized, actionable, and relevant to the client's goals and responses.
+    """
+
+    # Format the input for OpenAI
+    formatted_data = "\n".join([f"Q: {qa['question']}\nA: {qa['answer']}" for qa in questions_answers])
+    final_prompt = formatted_data + additional_instructions
+
+    try:
+    # Making the request to the OpenAI API
+        client_ai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        completion = client_ai.chat.completions.create(
+            model="gpt-4o-2024-05-13",  # Model (Newest One)
+            messages=[{"role": "system", "content": "You are an AI providing fitness insights."}, {"role": "user", "content": final_prompt}],
+            max_tokens=3000,  # Adjust as needed (how big the responses are)
+            temperature=0  # Control the randomness?
+        )
+        insights = completion.choices[0].message.content.strip()
+
+        # Store insights in session
+        session['ai_insights'] = insights
+
+        return jsonify({'message': 'AI insights generated successfully'}), 200
+    except Exception as e:
+        print(f"Error generating AI insights: {e}")
+        return jsonify({'error': str(e)}), 500
+
