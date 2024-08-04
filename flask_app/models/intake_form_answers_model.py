@@ -10,6 +10,8 @@ class IntakeFormAnswers:
         self.question_id = data.get('question_id')
         self.created_at = data.get('created_at')
         self.updated_at = data.get('updated_at')
+        self.question_text = data.get('question_text')  # Add question_text to the initializer
+
     
     def serialize(self):
         return {
@@ -19,7 +21,9 @@ class IntakeFormAnswers:
             'form_id': self.form_id,
             'question_id': self.question_id,
             'created_at': str(self.created_at),
-            'updated_at': str(self.updated_at)
+            'updated_at': str(self.updated_at),
+            'question_text': self.question_text  # Include question_text in serialization
+
         }
 
     # CREATE or UPDATE
@@ -97,6 +101,23 @@ class IntakeFormAnswers:
         except Exception as e:
             print(f"Error fetching data: {e}")
             return None
+    
+    @classmethod
+    def get_all_by_form_with_question_text(cls, form_id):
+        query = """
+            SELECT a.*, q.question_text 
+            FROM intake_form_answers a
+            JOIN global_form_questions q ON a.question_id = q.id
+            WHERE a.form_id = %(form_id)s
+        """
+        data = {'form_id': form_id}
+        try:
+            results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            answers = [cls(row) for row in results]
+            return answers
+        except Exception as e:
+            print(f"Error fetching data: {e}")
+            return []
 
     
 

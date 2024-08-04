@@ -4,6 +4,8 @@ from flask_app.config.mysqlconnection import connectToMySQL
 from flask_app.models.client_model import Client
 from flask_app.models.trainer_model import Trainer
 from flask_app.models.consultation_model import Consultation
+from flask_app.models.intake_forms_model import IntakeForms
+from flask_app.models.intake_form_answers_model import IntakeFormAnswers
 from flask_app.models.history_model import History
 from flask_app.models.client_assessments_model import ClientAssessments
 from flask_app.models.global_assessments_model import GlobalAssessments
@@ -85,11 +87,15 @@ def current_client(client_id):
     if not client_data:
         print(f"No client data found for client_id: {client_id}")
         return jsonify({'error': 'No client data found'}), 404
-
     
-    client_data = Client.get_one(client_id)
-    consultation_data = Consultation.get_by_client_id(client_id)
-    history_data = History.get_by_client_id(client_id)
+    intake_forms = IntakeForms.get_by_client_id(client_id)
+    intake_forms_with_answers = []
+    for form in intake_forms:
+        answers = IntakeFormAnswers.get_all_by_form_with_question_text(form.id)
+        form_data = form.serialize()
+        form_data['answers'] = [answer.serialize() for answer in answers]
+        intake_forms_with_answers.append(form_data)
+
     client_assessment_data = ClientAssessments.get_all_by_client_id(client_id)
     client_demo_plans = [demo_plan.serialize() for demo_plan in DemoPlan.get_by_client_id(client_id)]
     client_plans = [plan.serialize() for plan in GeneratedPlan.get_by_client_id(client_id)]
@@ -97,8 +103,7 @@ def current_client(client_id):
     
     all_client_data = {
         "client_data": client_data.serialize() if client_data else {},
-        "consultation_data": consultation_data.serialize() if consultation_data else {},
-        "history_data": history_data.serialize() if history_data else {},
+        "intake_forms": intake_forms_with_answers,
         "client_assessment_data": [assessment.serialize() for assessment in client_assessment_data] if client_assessment_data else [],
         "client_demo_plans": client_demo_plans,
         "client_plans": client_plans,
@@ -120,21 +125,23 @@ def back_to_clients():
 def get_editable_data(client_id):
     try:
         client_data = Client.get_one(client_id)
-        consultation_data = Consultation.get_by_client_id(client_id)
-        history_data = History.get_by_client_id(client_id)
+        intake_forms = IntakeForms.get_by_client_id(client_id)
+        intake_forms_with_answers = []
+        for form in intake_forms:
+            answers = IntakeFormAnswers.get_all_by_form(form.id)
+            form_data = form.__dict__
+            form_data['answers'] = [answer.__dict__ for answer in answers]
+            intake_forms_with_answers.append(form_data)
         client_assessment_data = ClientAssessments.get_all_by_client_id(client_id)
 
         # Created a dictionary only if data exists, else set to None or a default value
         client_dict = client_data.__dict__ if client_data else None
-        consultation_dict = consultation_data.__dict__ if consultation_data else None
-        history_dict = history_data.__dict__ if history_data else None
         client_assessment_dict = client_assessment_data.__dict__ if client_assessment_data else None
 
         editable_data = {
             "success": client_data is not None,
             "client_data": client_dict,
-            "consultation_data": consultation_dict,
-            "history_data": history_dict,
+            "intake_forms": intake_forms_with_answers,
             "client_assessment_data": client_assessment_dict,
         }
         
@@ -155,21 +162,22 @@ def update_client_data(client_id):
             **updated_data['client_data']
         })
 
-    # Update Consultation information, ensuring that 'consultation_data' and 'id' are present and not None
-    consultation_data = updated_data.get('consultation_data', {})
-    if consultation_data and 'id' in consultation_data:
-        Consultation.update({
-            "id": consultation_data['id'],
-            **consultation_data
-        })
-
-    # Update Medical History, ensuring that 'history_data' and 'id' are present and not None
-    history_data = updated_data.get('history_data', {})
-    if history_data and 'id' in history_data:
-        History.update({
-            "id": history_data['id'],
-            **history_data
-        })
+    # Update Intake Forms and their Answers
+    intake_forms_data = updated_data.get('intake_forms', [])
+    for form_data in intake_forms_data:
+        if form_data and 'id' in form_data:
+            IntakeForms.update({
+                "id": form_data['id'],
+                **form_data
+            })
+            # Update answers for this form
+            answers_data = form_data.get('answers', [])
+            for answer_data in answers_data:
+                if answer_data and 'id' in answer_data:
+                    IntakeFormAnswers.save({
+                        "id": answer_data['id'],
+                        **answer_data
+                    })
 
     client_assessment_data = updated_data.get('client_assessment_data', {})
     if client_assessment_data and 'id' in client_assessment_data:
@@ -177,7 +185,6 @@ def update_client_data(client_id):
             "id": client_assessment_data['id'],
             **client_assessment_data
         })
-    
 
     return jsonify({"success": True})
 

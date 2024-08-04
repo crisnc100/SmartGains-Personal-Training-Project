@@ -21,8 +21,7 @@ const IntakeForm = () => {
     const [deletedAnswers, setDeletedAnswers] = useState({});
     const [isGeneratingInsights, setIsGeneratingInsights] = useState(false); // New state for AI insights
     const [errorMessage, setErrorMessage] = useState(null);
-
-
+    const [createFormTimeout, setCreateFormTimeout] = useState(null);
 
 
 
@@ -105,39 +104,48 @@ const IntakeForm = () => {
 
 
     const handleInputChange = async (event, questionId) => {
-        if (!formId) {
-            try {
-                console.log('Creating a new intake form');
-                const response = await axios.post('http://localhost:5000/api/add_intake_form', {
-                    withCredentials: true,
-                    form_type: 'initial consultation',
-                    client_id: clientId,
-                });
-                const newFormId = response.data.id;
-                console.log('New form created with ID:', newFormId);
-
-                if (newFormId) {
-                    setFormId(newFormId);
-                    localStorage.setItem(getLocalStorageKey(clientId, 'formId'), newFormId);
-                } else {
-                    console.error('Failed to get new form ID from response');
-                    return;
-                }
-            } catch (error) {
-                console.error('Error creating new form:', error);
-                return;
-            }
-        }
-
+        const newValue = event.target.value;
+    
         const updatedForm = {
             ...intakeForm,
-            [questionId]: event.target.value
+            [questionId]: newValue
         };
         setIntakeForm(updatedForm);
         localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(updatedForm));
         console.log('Updated form state:', updatedForm);
+    
+        if (!formId && !createFormTimeout) {
+            const timeoutId = setTimeout(async () => {
+                try {
+                    console.log('Creating a new intake form');
+                    const response = await axios.post('http://localhost:5000/api/add_intake_form', {
+                        withCredentials: true,
+                        form_type: 'initial consultation',
+                        client_id: clientId,
+                    });
+    
+                    console.log('Form creation response:', response); // Log the full response
+                    const newFormId = response.data.form_id; // Access form_id from response data
+                    console.log('New form created with ID:', newFormId);
+    
+                    if (newFormId) {
+                        setFormId(newFormId);
+                        localStorage.setItem(getLocalStorageKey(clientId, 'formId'), newFormId);
+                        // Start auto-save mechanism after form is created
+                        startAutoSave(newFormId);
+                    } else {
+                        console.error('Failed to get new form ID from response');
+                    }
+                } catch (error) {
+                    console.error('Error creating new form:', error);
+                } finally {
+                    setCreateFormTimeout(null); // Clear the timeout state
+                }
+            }, 12000);
+    
+            setCreateFormTimeout(timeoutId); // Store the timeout ID
+        }
     };
-
 
     const handleCheckboxChange = (event, questionId) => {
         const { value } = event.target;
@@ -160,7 +168,7 @@ const IntakeForm = () => {
 
     const renderInputField = (question) => {
         const { id, question_text, question_type, options } = question;
-        const value = intakeForm[id];
+        const value = intakeForm[id] || '';
 
         if (question_type === 'select') {
             return (
@@ -186,7 +194,7 @@ const IntakeForm = () => {
                                 type="checkbox"
                                 name={id}
                                 value={option}
-                                checked={value.includes(option)}
+                                checked={value.includes(option)} // Check if the option is included in the value array
                                 onChange={(e) => handleCheckboxChange(e, id)}
                                 className="form-checkbox"
                                 aria-label={option}
@@ -222,11 +230,11 @@ const IntakeForm = () => {
         }
     };
 
-    useEffect(() => {
+
+    const startAutoSave = (formId) => {
         const autoSave = async () => {
             if (!formId) {
                 console.log('No formId found. Skipping auto-save.');
-
                 return; // Skip auto-save if formId is not set
             }
             setIsAutoSaving(true);
@@ -239,7 +247,7 @@ const IntakeForm = () => {
                     }))
                     .filter(answer => answer.answer !== '');
                 localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(intakeForm)); // Save answers to local storage
-
+    
                 const response = await axios.post('http://localhost:5000/api/auto_save_intake_form', {
                     withCredentials: true,
                     client_id: clientId,
@@ -257,11 +265,19 @@ const IntakeForm = () => {
                 setIsAutoSaving(false); // Ensure this runs even if there's an error
             }
         };
-
+    
         const intervalId = setInterval(autoSave, 12000); // Auto-save every 12 seconds
-
+    
         return () => clearInterval(intervalId);
-    }, [clientId, formId, intakeForm, questions]);
+    };
+    
+    // Call this function when formId is set
+    useEffect(() => {
+        if (formId) {
+            const cleanup = startAutoSave(formId);
+            return cleanup; // Clear interval when component unmounts or dependencies change
+        }
+    }, [formId, clientId, intakeForm, questions]);
 
     const gatherFormData = (questions, answers) => {
         console.log('Gathering form data...');

@@ -19,6 +19,8 @@ const CurrentClient = () => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [editableData, setEditableData] = useState({});
     const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'personal');
+    const [expandedForms, setExpandedForms] = useState({});
+
 
 
     useEffect(() => {
@@ -68,6 +70,20 @@ const CurrentClient = () => {
                 [field]: value
             }
         }));
+    };
+    const toggleFormExpansion = (formId) => {
+        setExpandedForms(prevState => ({
+            ...prevState,
+            [formId]: !prevState[formId]
+        }));
+    };
+
+    const capitalizeFirstLetter = (string) => {
+        return string
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
     };
 
     const handleDeletePlan = (updatedPlans, type) => {
@@ -178,7 +194,7 @@ const CurrentClient = () => {
                             />
                         ) : (
                             <>
-                                {allClientData.client_data.dob ? format(formatDateToLocal(allClientData.client_data.dob), 'MMMM d, yyyy') : ''} 
+                                {allClientData.client_data.dob ? format(formatDateToLocal(allClientData.client_data.dob), 'MMMM d, yyyy') : ''}
                                 {allClientData.client_data.dob && ` (${calculateAge(allClientData.client_data.dob)} years old)`}
                             </>
                         )}
@@ -247,7 +263,6 @@ const CurrentClient = () => {
                         <div className="mb-4 flex space-x-2 overflow-x-auto">
                             <TabButton label="Personal Details" tabName="personal" />
                             <TabButton label="Exercise Intake" tabName="exercise" />
-                            <TabButton label="Medical History" tabName="medical" />
                             <TabButton label="Assessments" tabName="assessments" />
                             <TabButton label="Workouts" tabName="workout" />
                             <TabButton label="Nutrition" tabName="nutrition" />
@@ -298,376 +313,66 @@ const CurrentClient = () => {
                         </div>}
                         {activeTab === 'exercise' && (
                             <div>
-                                {!allClientData.consultation_data || Object.keys(allClientData.consultation_data).length === 0 ? (
-                                    <div>
-                                        <p>No data is available</p>
-                                        <div>
-                                            <NavLink
-                                                to='intake-form'
-                                                className="group box-border relative inline-flex items-center whitespace-nowrap 
-                                                justify-center w-auto px-2 py-2 overflow-hidden text-sm text-white font-bold bg-blue-500 
-                                                hover:bg-blue-700 rounded-md cursor-pointer shadow-lg hover:shadow-xl transform 
-                                                hover:translate-y-1 transition-all duration-300 ease-out focus:outline-none">
-                                                Add Intake Form
-                                            </NavLink>
-                                        </div>
-
+                                {(!allClientData.intake_forms || allClientData.intake_forms.length === 0) ? (
+                                    <div className="text-center">
+                                        <p className="text-gray-600">No data is available</p>
+                                        <NavLink
+                                            to='intake-form'
+                                            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white font-bold rounded-md shadow hover:bg-blue-700 transition duration-300"
+                                        >
+                                            Add Intake Form
+                                        </NavLink>
                                     </div>
                                 ) : (
-                                    <>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Prior Exercise Programs:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.prior_exercise_programs || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'prior_exercise_programs')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.prior_exercise_programs}`
+                                    allClientData.intake_forms.map((form, formIndex) => (
+                                        <div key={form.id} className="mb-6">
+                                            <div
+                                                className="p-4 bg-gray-100 cursor-pointer flex justify-between items-center rounded-t-md"
+                                                onClick={() => toggleFormExpansion(form.id)}
+                                            >
+                                                <h3 className="font-bold text-xl">{capitalizeFirstLetter(form.form_type)}</h3>
+                                                <p className='text-xl'>{format(new Date(form.created_at), 'MM-dd-yyyy')}</p>
+                                            </div>
+                                            {expandedForms[form.id] && (
+                                                <div className="p-4 bg-white rounded-b-md shadow-md">
+                                                    {form.answers.map((answer, answerIndex) => (
+                                                        <div key={answer.id} className="mb-4 p-2 border rounded-md bg-gray-50">
+                                                            <p className="font-semibold text-gray-700 mb-1">{answer.question_text}</p>
+                                                            {isEditMode ? (
+                                                                <input
+                                                                    type="text"
+                                                                    name="answer"
+                                                                    value={editableData.intake_forms[formIndex].answers[answerIndex].answer || ''}
+                                                                    onChange={(e) => handleInputChange(e, formIndex, answerIndex)}
+                                                                    className={styles.editableField}
+
+                                                                />
+                                                            ) : (
+                                                                <p className="text-gray-800">{answer.answer}</p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Exercise Habits:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.exercise_habits || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'exercise_habits')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.exercise_habits}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Exercise Time of Day:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.exercise_time_day || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'exercise_time_day')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.exercise_time_day}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Fitness Level Rating:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.self_fitness_level || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'self_fitness_level')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.self_fitness_level}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Fitness Goals:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.fitness_goals || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'fitness_goals')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.fitness_goals}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Current Motivations:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.motivation || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'motivation')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.motivation}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Progress Measurement:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.progress_measurement || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'progress_measurement')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.progress_measurement}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Barriers and Challenges:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.barriers_challenges || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'barriers_challenges')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.barriers_challenges}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Areas of Improvement:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.area_specifics || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'area_specifics')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.area_specifics}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Exercise Likes:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.exercise_likes || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'exercise_likes')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.exercise_likes}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Exercise Dislikes:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.exercise_dislikes || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'exercise_dislikes')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.exercise_dislikes}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Warm Up Routine:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.warm_up_info || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'warm_up_info')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.warm_up_info}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Cool Down Routine:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.cool_down_info || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'cool_down_info')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.cool_down_info}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Stretching and Mobility Routine:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.stretching_mobility || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'stretching_mobility')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.stretching_mobility}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Daily Water Intake:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.daily_water_intake || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'daily_water_intake')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.daily_water_intake}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Daily Routine:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.daily_routine || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'daily_routine')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.daily_routine}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Stress Levels:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.stress_level || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'stress_level')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.stress_level}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Smoking and Alcohol Habits:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.smoking_alcohol_habits || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'smoking_alcohol_habits')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.smoking_alcohol_habits}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Hobbies:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.consultation_data.hobbies || ''}
-                                                    onChange={(e) => handleInputChange(e, 'consultation_data', 'hobbies')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.consultation_data.hobbies}`
-                                            )}
-                                        </p>
-                                    </>
+                                        </div>
+                                    ))
                                 )}
                             </div>
                         )}
-                        {activeTab === 'medical' && (
-                            <div>
-                                {!allClientData.history_data || Object.keys(allClientData.history_data).length === 0 ? (
-                                    <div>
-                                        <p>No data is available</p>
-                                        <div>
-                                            <NavLink
-                                                to='medical-history'
-                                                className="group box-border relative inline-flex items-center whitespace-nowrap 
-                                                    justify-center w-auto px-2 py-2 overflow-hidden text-sm text-white font-bold bg-blue-500 
-                                                    hover:bg-blue-700 rounded-md cursor-pointer shadow-lg hover:shadow-xl transform 
-                                                    hover:translate-y-1 transition-all duration-300 ease-out focus:outline-none">
-                                                Add Medical History
-                                            </NavLink>
-                                        </div>
-
-                                    </div>
-
-                                ) : (
-                                    <>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Existing Conditions:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.history_data.existing_conditions || ''}
-                                                    onChange={(e) => handleInputChange(e, 'history_data', 'existing_conditions')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.history_data.existing_conditions}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Medications:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.history_data.medications || ''}
-                                                    onChange={(e) => handleInputChange(e, 'history_data', 'medications')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.history_data.medications}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Past Surgeries or Injuries:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.history_data.surgeries_or_injuries || ''}
-                                                    onChange={(e) => handleInputChange(e, 'history_data', 'surgeries_or_injuries')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.history_data.surgeries_or_injuries}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Allergies:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.history_data.allergies || ''}
-                                                    onChange={(e) => handleInputChange(e, 'history_data', 'allergies')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.history_data.allergies}`
-                                            )}
-                                        </p>
-                                        <p className='mb-1' style={isEditMode ? { backgroundColor: '#ffffe0' } : {}}>
-                                            <span className={styles.label}>Family History Conditions:</span>
-                                            {isEditMode ? (
-                                                <input
-                                                    type="text"
-                                                    value={editableData.history_data.family_history || ''}
-                                                    onChange={(e) => handleInputChange(e, 'history_data', 'family_history')}
-                                                    className={styles.editableField}
-                                                />
-                                            ) : (
-                                                ` ${allClientData.history_data.family_history}`
-                                            )}
-                                        </p>
-                                    </>
-                                )}
-                            </div>
-                        )}
-                        {activeTab === 'assessments' &&
-                            <ClientAssessments
-                                clientAssessmentData = {editableData.client_assessment_data}
-                            />
-                        }
-                        {activeTab === 'workout' && <ClientWorkouts
-                            clientId={clientId}
-                            clientDemoPlans={allClientData.client_demo_plans || []}
-                            clientPlans={allClientData.client_plans}
-                            workoutProgressData={allClientData.workout_progress_data}
-                            onDeletePlan={handleDeletePlan}
-                        />}
                     </div>
+
+                    {activeTab === 'assessments' &&
+                        <ClientAssessments
+                            clientAssessmentData={editableData.client_assessment_data}
+                        />
+                    }
+                    {activeTab === 'workout' && <ClientWorkouts
+                        clientId={clientId}
+                        clientDemoPlans={allClientData.client_demo_plans || []}
+                        clientPlans={allClientData.client_plans}
+                        workoutProgressData={allClientData.workout_progress_data}
+                        onDeletePlan={handleDeletePlan}
+                    />}
                 </div>
             </div>
         </div>

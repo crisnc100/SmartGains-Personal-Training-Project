@@ -14,7 +14,6 @@ import AddClient from './views/ClientPages/AddClient';
 import AdditionalServices from './views/ClientPages/AdditionalServices';
 import NutritionProfile from './views/NutritionPages/NutritionProfile';
 import IntakeForm from './views/IntakePages/IntakeForm';
-import MedicalHistory from './views/IntakePages/MedicalHistory';
 import IntakeOptions from './views/IntakePages/IntakeOptions';
 import DemoPrompt from './views/ClientPages/DemoPrompt';
 import AssessmentChoice from './views/IntakePages/AssessmentChoice';
@@ -76,8 +75,6 @@ function App() {
               <Route path='all_clients' element={<AllClients />} />
               <Route path='all_clients/:clientId/current-client' element={<CurrentClient />} />
               <Route path='all_clients/:clientId/current-client/intake-form' element={<IntakeForm />} />
-              <Route path='all_clients/:clientId/current-client/medical-history' element={<MedicalHistory />} />
-              <Route path='all_clients/:clientId/current-client/intake-form/medical-history' element={<MedicalHistory />} />
               <Route path='all_clients/:clientId/current-client/intake-form/intake-options' element={<IntakeOptions />} />
               <Route path='all_clients/:clientId/current-client/assessment-choice' element={<AssessmentChoice />} />
               <Route path='all_clients/:clientId/current-client/assessment-choice/assessment-form' element={<AssessmentForm />} />

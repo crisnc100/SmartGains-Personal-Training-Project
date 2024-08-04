@@ -62,6 +62,22 @@ class IntakeForms:
         except Exception as e:
             print(f"Error fetching data: {e}")
             return None
+    
+    @classmethod
+    def get_by_client_and_type(cls, client_id, form_type):
+        query = "SELECT * FROM intake_forms WHERE client_id = %(client_id)s AND form_type = %(form_type)s AND status = 'draft'"
+        data = {
+            'client_id': client_id,
+            'form_type': form_type
+        }
+        try:
+            results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            if results:
+                return results[0]
+            return None
+        except Exception as e:
+            print(f"Error fetching data: {e}")
+            return None
 
     # READ BY CLIENT
     @classmethod

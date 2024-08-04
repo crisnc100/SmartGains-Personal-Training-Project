@@ -168,11 +168,15 @@ def add_intake_form():
     data['status'] = 'draft'  # Ensure status is 'draft' for new forms
 
     try:
+        # Check if an initial consultation form already exists for the client
+        existing_form = IntakeForms.get_by_client_and_type(data['client_id'], 'initial consultation')
+        if existing_form:
+            return jsonify({'form_id': existing_form['id']}), 200
+        
         form_id = IntakeForms.save(data)
         if not form_id:
             raise Exception('Failed to create form')
-        print(f"Form created successfully with ID: {form_id}")
-        return jsonify({'id': form_id}), 201  # Ensure 'id' matches the frontend's expected key
+        return jsonify({'form_id': form_id}), 201
     except Exception as e:
         print(f"Error creating form: {e}")
         return jsonify({'error': str(e)}), 500
@@ -328,7 +332,13 @@ def generate_ai_insights(client_id):
     
 
     additional_instructions = f"""
-    Based on the following responses from the client, {client.first_name} {client.last_name}, please provide insights. Analyze the data to highlight potential issues, suggest appropriate workout plans, recommend assessments to perform, and identify any noticeable trends. Your insights should be personalized, actionable, and relevant to the client's goals and responses.
+    Based on the following responses from the client, {client.first_name} {client.last_name}, please provide comprehensive insights. Your analysis should include:
+    1. Highlighting any potential issues or concerns based on the provided data.
+    2. Suggesting logical next steps and appropriate assessments to perform.
+    3. Identifying any noticeable trends or patterns relevant to the client's goals and responses.
+    4. Offering personalized and actionable recommendations to guide the client toward their fitness goals.
+
+    Avoid generating a workout plan. Focus on providing detailed and relevant analytics and information for the next steps in the client's fitness journey.
     """
 
     # Format the input for OpenAI
