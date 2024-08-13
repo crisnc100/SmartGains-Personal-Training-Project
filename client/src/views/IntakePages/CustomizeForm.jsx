@@ -16,13 +16,19 @@ const CustomizeForm = ({ onSave }) => {
   const [notification, setNotification] = useState({ show: false, message: '' });
 
   useEffect(() => {
-    const savedCurrentQuestions = JSON.parse(localStorage.getItem(getLocalStorageKey(clientId, 'currentQuestions')));
+    const key = getLocalStorageKey(clientId, 'currentQuestions');
+    const savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
+    console.log('Current clientId:', clientId);
+    console.log('Loading savedCurrentQuestions from local storage with key:', key);
+    console.log('Loaded savedCurrentQuestions:', savedCurrentQuestions);
+
     if (savedCurrentQuestions) {
-      fetchQuestions(savedCurrentQuestions);
+        fetchQuestions(savedCurrentQuestions);
     } else {
-      fetchQuestions();
+        console.log('No savedCurrentQuestions found, fetching default questions.');
+        fetchQuestions();
     }
-  }, []);
+}, [clientId]);
 
   const fetchQuestions = async (savedCurrentQuestions = null) => {
     try {
@@ -103,14 +109,19 @@ const CustomizeForm = ({ onSave }) => {
     ? allQuestions
     : allQuestions.filter(question => question.category === selectedCategory);
 
-  const handleSaveChanges = () => {
-    localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(currentQuestions));
-    setNotification({ show: true, message: 'Changes saved successfully!' });
-
-    setTimeout(() => {
-      setNotification({ show: false, message: '' });
-    }, 3000);
+    const handleSaveChanges = () => {
+      console.log('Saving current questions to local storage:', currentQuestions);
+      const key = getLocalStorageKey(clientId, 'currentQuestions');
+      localStorage.setItem(key, JSON.stringify(currentQuestions));
+      
+      
+      setNotification({ show: true, message: 'Changes saved successfully!' });
+  
+      setTimeout(() => {
+          setNotification({ show: false, message: '' });
+      }, 3000);
   };
+  
 
   return (
     <div className="flex flex-col">
@@ -181,8 +192,7 @@ const CustomizeForm = ({ onSave }) => {
                                 const [removedQuestion] = newCurrentQuestions.splice(index, 1);
                                 setCurrentQuestions(newCurrentQuestions);
                                 setAllQuestions(prevAllQuestions => [...prevAllQuestions, removedQuestion]);
-
-                                localStorage.setItem('currentQuestions', JSON.stringify(newCurrentQuestions));
+                                localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(newCurrentQuestions));
                               }}
                             >
                               Remove

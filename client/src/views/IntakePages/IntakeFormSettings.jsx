@@ -7,21 +7,23 @@ import IntakeTemplates from './IntakeTemplates';
 
 const IntakeFormSettings = () => {
   const [activeTab, setActiveTab] = useState('customize');
-  const { clientId } = useParams();
+  const { clientId } = useParams(); // Get clientId from URL params
+
+
   const navigate = useNavigate();
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'customize':
-        return <CustomizeForm />;
+        return <CustomizeForm clientId={clientId} />; // Pass clientId
       case 'manageQuestions':
-        return <ManageQuestions />;
+        return <ManageQuestions clientId={clientId} />; // Pass clientId
       case 'intakeTemplates':
-        return <IntakeTemplates />;
+        return <IntakeTemplates clientId={clientId} />; // Pass clientId
       case 'defaultSettings':
-        return <DefaultSetup />;
+        return <DefaultSetup clientId={clientId} />; // Pass clientId
       default:
-        return <CustomizeForm />;
+        return <CustomizeForm clientId={clientId} />; // Pass clientId
     }
   };
 

@@ -59,6 +59,18 @@ class TrainerIntakeQuestions:
         except Exception as e:
             print(f"Error inserting/updating data: {e}")
             return None
+    
+    @classmethod
+    def get_by_id(cls, question_id):
+        query = "SELECT * FROM trainer_intake_questions WHERE id = %(id)s"
+        data = {'id': question_id}
+        try:
+            result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            return cls(result[0]) if result else None
+        except Exception as e:
+            print(f"Error fetching question by ID: {e}")
+            return None
+
 
     # READ ALL BY TRAINER
     @classmethod

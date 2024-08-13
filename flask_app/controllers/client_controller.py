@@ -3,10 +3,10 @@ from flask_app import app
 from flask_app.config.mysqlconnection import connectToMySQL
 from flask_app.models.client_model import Client
 from flask_app.models.trainer_model import Trainer
-from flask_app.models.consultation_model import Consultation
 from flask_app.models.intake_forms_model import IntakeForms
 from flask_app.models.intake_form_answers_model import IntakeFormAnswers
-from flask_app.models.history_model import History
+from flask_app.models.global_form_questions_model import GlobalFormQuestions
+from flask_app.models.trainer_intake_questions_model import TrainerIntakeQuestions
 from flask_app.models.client_assessments_model import ClientAssessments
 from flask_app.models.global_assessments_model import GlobalAssessments
 from flask_app.models.demo_plans_model import DemoPlan
@@ -112,6 +112,44 @@ def current_client(client_id):
     
     print(f"Successfully retrieved all data for client_id: {client_id}")
     return jsonify(all_client_data)
+
+@app.route('/api/prompt_data/<int:client_id>')
+def prompt_data(client_id):
+    print(f"Received request to fetch tagged data for client_id: {client_id}")
+
+    client_data = Client.get_one(client_id)
+    if not client_data:
+        print(f"No client data found for client_id: {client_id}")
+        return jsonify({'error': 'No client data found'}), 404
+    
+    intake_forms = IntakeForms.get_by_client_id(client_id)
+    tagged_data = {}
+
+    # Collecting tagged data from intake forms
+    for form in intake_forms:
+        answers = IntakeFormAnswers.get_all_by_form_with_question_text(form.id)
+        for answer in answers:
+            # First, check in TrainerQuestions
+            question = TrainerIntakeQuestions.get_by_id(answer.question_id)
+            if not question:
+                # If not found, fall back to GlobalFormQuestions
+                question = GlobalFormQuestions.get_by_id(answer.question_id)
+            if question and question.tags:
+                for tag in question.tags.split(','):
+                    if tag in tagged_data:
+                        tagged_data[tag].append(answer.answer)
+                    else:
+                        tagged_data[tag] = [answer.answer]
+
+    all_tagged_data = {
+        "client_data": client_data.serialize() if client_data else {},
+        "tagged_data": tagged_data
+    }
+    
+    print(f"Successfully retrieved tagged data for client_id: {client_id}")
+    return jsonify(all_tagged_data)
+
+
 
 @app.route('/back_to_clients',methods=['POST'])
 def back_to_clients():

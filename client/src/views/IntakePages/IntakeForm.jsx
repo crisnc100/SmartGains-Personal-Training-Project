@@ -31,7 +31,7 @@ const IntakeForm = () => {
             const savedCurrentQuestions = localStorage.getItem(getLocalStorageKey(clientId, 'currentQuestions'));
 
             if (savedFormId) {
-                setFormId(parseInt(savedFormId, 10));  // Ensure formId is treated as an integer
+                setFormId(parseInt(savedFormId, 10)); // Ensure formId is treated as an integer
                 try {
                     const response = await axios.get('http://localhost:5000/api/get_saved_answers', {
                         params: {
@@ -48,12 +48,14 @@ const IntakeForm = () => {
 
                     if (savedCurrentQuestions) {
                         const parsedQuestions = JSON.parse(savedCurrentQuestions);
+                        console.log('Loaded current questions from local storage:', parsedQuestions);
                         if (Array.isArray(parsedQuestions)) {
                             const questionsWithSource = parsedQuestions.map(question => ({
                                 ...question,
                                 source: question.source || 'global'
                             }));
                             setQuestions(questionsWithSource);
+                            initializeForm(questionsWithSource, savedAnswers);
                         } else {
                             console.error('Parsed questions is not an array:', parsedQuestions);
                             fetchDefaultQuestions();
@@ -77,11 +79,10 @@ const IntakeForm = () => {
 
     const fetchDefaultQuestions = async () => {
         try {
-            console.log('Fetching default questions');
             const response = await axios.get('http://localhost:5000/api/get_user_default_questions');
             const questionsWithSource = response.data.map(question => ({
                 ...question,
-                source: question.source || 'global' // Default to 'global' if source is missing
+                source: question.source || 'global'
             }));
             setQuestions(questionsWithSource);
             localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(questionsWithSource)); // Save questions to local storage
@@ -105,7 +106,7 @@ const IntakeForm = () => {
 
     const handleInputChange = async (event, questionId) => {
         const newValue = event.target.value;
-    
+
         const updatedForm = {
             ...intakeForm,
             [questionId]: newValue
@@ -113,7 +114,7 @@ const IntakeForm = () => {
         setIntakeForm(updatedForm);
         localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(updatedForm));
         console.log('Updated form state:', updatedForm);
-    
+
         if (!formId && !createFormTimeout) {
             const timeoutId = setTimeout(async () => {
                 try {
@@ -123,11 +124,11 @@ const IntakeForm = () => {
                         form_type: 'initial consultation',
                         client_id: clientId,
                     });
-    
+
                     console.log('Form creation response:', response); // Log the full response
                     const newFormId = response.data.form_id; // Access form_id from response data
                     console.log('New form created with ID:', newFormId);
-    
+
                     if (newFormId) {
                         setFormId(newFormId);
                         localStorage.setItem(getLocalStorageKey(clientId, 'formId'), newFormId);
@@ -142,7 +143,7 @@ const IntakeForm = () => {
                     setCreateFormTimeout(null); // Clear the timeout state
                 }
             }, 12000);
-    
+
             setCreateFormTimeout(timeoutId); // Store the timeout ID
         }
     };
@@ -247,7 +248,7 @@ const IntakeForm = () => {
                     }))
                     .filter(answer => answer.answer !== '');
                 localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(intakeForm)); // Save answers to local storage
-    
+
                 const response = await axios.post('http://localhost:5000/api/auto_save_intake_form', {
                     withCredentials: true,
                     client_id: clientId,
@@ -265,12 +266,12 @@ const IntakeForm = () => {
                 setIsAutoSaving(false); // Ensure this runs even if there's an error
             }
         };
-    
+
         const intervalId = setInterval(autoSave, 12000); // Auto-save every 12 seconds
-    
+
         return () => clearInterval(intervalId);
     };
-    
+
     // Call this function when formId is set
     useEffect(() => {
         if (formId) {
@@ -388,9 +389,8 @@ const IntakeForm = () => {
         navigate(-1);
     };
     const handleCustomize = () => {
-        // Save current answers before navigating to customization
+        // Remove only currentAnswers if necessary, but leave currentQuestions intact
         localStorage.removeItem(getLocalStorageKey(clientId, 'currentAnswers'));
-        localStorage.removeItem(getLocalStorageKey(clientId, 'currentQuestions'));
         navigate('customize');
     };
 

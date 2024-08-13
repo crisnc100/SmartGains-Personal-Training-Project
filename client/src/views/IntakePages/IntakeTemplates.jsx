@@ -1,11 +1,18 @@
 // ManageQuestions.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Tooltip } from 'react-tooltip';
 
 
+
+
+const getLocalStorageKey = (clientId, key) => `client_${clientId}_${key}`;
+
+
+
 const IntakeTemplates = () => {
+  const { clientId } = useParams();
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [questions, setQuestions] = useState([]);
   const navigate = useNavigate();
@@ -47,7 +54,7 @@ const IntakeTemplates = () => {
 
   const handleConfirm = () => {
     if (selectedTemplate) {
-      localStorage.setItem('currentQuestions', JSON.stringify(questions));
+      localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(questions));
       navigate(-1); // Redirect to intake page
     }
   };
