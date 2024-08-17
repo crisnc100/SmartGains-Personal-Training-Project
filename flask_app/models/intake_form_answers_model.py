@@ -45,7 +45,7 @@ class IntakeFormAnswers:
             try:
                 return connectToMySQL('fitness_consultation_schema').query_db(query_update, data)
             except Exception as e:
-                print(f"Error updating data: {e}")
+            # print(f"Error updating data: {e}") 
                 return None
         else:
             query_insert = """
@@ -57,7 +57,7 @@ class IntakeFormAnswers:
             try:
                 return connectToMySQL('fitness_consultation_schema').query_db(query_insert, data)
             except Exception as e:
-                print(f"Error inserting data: {e}")
+            # print(f"Error inserting data: {e}")
                 return None
 
     # READ ALL BY FORM
@@ -118,6 +118,8 @@ class IntakeFormAnswers:
         except Exception as e:
             print(f"Error fetching data: {e}")
             return []
+    
+    
 
     
 

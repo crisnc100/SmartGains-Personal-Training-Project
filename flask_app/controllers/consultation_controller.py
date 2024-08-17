@@ -1,7 +1,9 @@
-from flask import request, jsonify, session, json
+from flask import request, jsonify, session
 import os
+import json
+from json.decoder import JSONDecodeError
 from flask_app import app
-from flask_app.models.consultation_model import Consultation
+from flask_app.models.client_summaries_model import ClientSummaries
 from flask_app.models.global_form_questions_model import GlobalFormQuestions
 from flask_app.models.trainer_intake_questions_model import TrainerIntakeQuestions
 from flask_app.models.intake_forms_model import IntakeForms
@@ -181,6 +183,7 @@ def add_intake_form():
         print(f"Error creating form: {e}")
         return jsonify({'error': str(e)}), 500
 
+
     
 
 @app.route('/api/update_intake_form_status', methods=['POST'])
@@ -192,12 +195,9 @@ def update_intake_form_status():
     if not form_id or not status:
         return jsonify({'error': 'Missing form_id or status'}), 400
 
-    print(f"Updating form status for form_id: {form_id} to status: {status}")
-
     try:
         # Ensure form_id is treated as an integer
         update_data = {'id': int(form_id), 'status': status}
-        print(f"Update data prepared: {update_data}")
 
         # Call the update method
         IntakeForms.update(update_data)
@@ -290,6 +290,52 @@ def final_intake_save():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/check_intake_form/<int:client_id>', methods=['GET'])
+def check_intake_form(client_id):
+    form_type = 'initial consultation'
+    
+    try:
+        # Check if an initial consultation form already exists for the client
+        existing_form = IntakeForms.get_by_client_and_type(client_id, form_type)
+        if existing_form:
+            # Return existing form details if found
+            return jsonify({
+                'form_exists': True,
+                'form_id': existing_form['id'],
+                'form_status': existing_form['status'],
+                'client_first_name': existing_form['client_first_name'],
+                'client_last_name': existing_form['client_last_name']
+            }), 200
+        else:
+            # No existing form found
+            return jsonify({'form_exists': False}), 200
+    except Exception as e:
+        print(f"Error checking form: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/get_intake_form_data', methods=['GET'])
+def get_intake_form_data():
+    client_id = request.args.get('client_id')
+    form_id = request.args.get('form_id')
+
+    if not client_id or not form_id:
+        return jsonify({'error': 'Missing required parameters'}), 400
+
+    if 'trainer_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        # Fetch saved answers with question text
+        saved_answers = IntakeFormAnswers.get_all_by_form_with_question_text(form_id)
+        serialized_answers = [answer.serialize() for answer in saved_answers]
+
+        return jsonify({
+            'answers': serialized_answers,
+        }), 200
+    except Exception as e:
+        print(f"Error fetching intake form data: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/api/get_saved_answers', methods=['GET'])
@@ -313,12 +359,14 @@ def get_saved_answers():
         return jsonify({'error': str(e)}), 500
     
 
-@app.route('/api/generate_ai_insights/<int:client_id>', methods=['POST'])
-def generate_ai_insights(client_id):
+@app.route('/api/create_client_summary/<int:client_id>', methods=['POST'])
+def create_client_summary(client_id):
     if not client_id:
         return jsonify({"error": "Client ID not found. Please log in again."}), 401
 
     data = request.get_json()
+    form_id = data.get('form_id')
+    summary_type = data.get('summary_type', 'Initial Consultation')  # Default to 'Initial Consultation'
     questions_answers = data.get('data')
     
     # Ensure questions and answers are provided
@@ -332,45 +380,95 @@ def generate_ai_insights(client_id):
     
 
     additional_instructions = f"""
-    Based on the following responses from the client, {client.first_name} {client.last_name}, please provide comprehensive insights. Your analysis should include:
-    1. Highlighting any potential issues or concerns based on the provided data.
-    2. Suggesting logical next steps and appropriate assessments to perform.
-    3. Identifying any noticeable trends or patterns relevant to the client's goals and responses.
-    4. Offering personalized and actionable recommendations to guide the client toward their fitness goals.
+    Please generate a structured client summary in JSON format based on the following responses from 
+    {client.first_name} {client.last_name}. The JSON should contain the following fields:
+    - "summary_text":  A detailed summary formatted in bullet points, including:
+                        1. The client’s main fitness goals and any challenges or obstacles mentioned.
+                        2. Medical history or physical limitations that should be considered in their fitness journey.
+                        3. Exercise preferences and dislikes to guide the creation of a personalized workout plan.
+                        4. Any relevant lifestyle factors that may influence their fitness plan.
+                        5. The client's motivation for pursuing their fitness goals.
+    - "summary_prompt": A concise and cohesive narrative summary that can be directly used to 
+    generate a personalized workout plan.
 
-    Avoid generating a workout plan. Focus on providing detailed and relevant analytics and information for the next steps in the client's fitness journey.
+    Make sure the JSON is properly formatted and that all fields are included. For example:
+{{
+  "summary_text": "Your detailed summary here...",
+  "summary_prompt": "Your concise prompt here..."
+}}
     """
 
     # Format the input for OpenAI
     formatted_data = "\n".join([f"Q: {qa['question']}\nA: {qa['answer']}" for qa in questions_answers])
-    final_prompt = formatted_data + additional_instructions
+    final_prompt = formatted_data + "\n\n" + additional_instructions
 
     try:
     # Making the request to the OpenAI API
         client_ai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         completion = client_ai.chat.completions.create(
-            model="gpt-4o-2024-05-13",  # Model (Newest One)
-            messages=[{"role": "system", "content": "You are an AI providing fitness insights."}, 
+            model="gpt-4o-mini",  # Model (Newest One)
+            messages=[{"role": "system", "content": """AI fitness assistant. Your task is to analyze client 
+                       data and generate both a detailed summary and a prompt for generating a workout plan."""}, 
                       {"role": "user", "content": final_prompt}],
             max_tokens=3000,  # Adjust as needed (how big the responses are)
-            temperature=0.7  # Control the randomness?
+            temperature=0.3  # Control the randomness?
         )
-        insights = completion.choices[0].message.content.strip()
+        client_summary = completion.choices[0].message.content.strip()
+        print("Raw AI Response:", client_summary)
 
-        # Store insights in session
-        session['ai_insights'] = insights
+        if client_summary.startswith("```json"):
+            client_summary = client_summary.replace("```json", "").replace("```", "").strip()
 
-        return jsonify({'message': 'AI insights generated successfully'}), 200
+        summary_data = json.loads(client_summary)
+        if isinstance(summary_data.get('summary_text'), list):
+            summary_text = "\n".join(summary_data.get('summary_text'))
+        else:
+            summary_text = summary_data.get('summary_text', '')
+        summary_prompt = summary_data.get('summary_prompt', '')
+
+    # Save to the database
+        client_summaries = ClientSummaries(
+            summary_text=summary_text,
+            summary_prompt=summary_prompt,
+            client_id=client_id,
+            form_id=form_id,
+            summary_type=summary_type  # Set based on input or default
+        )
+        client_summaries.save()
+
+        return jsonify({'message': 'Client AI summary generated and saved successfully'}), 200
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON: {e}")
+        return jsonify({'error': f"JSON decoding error: {e}"}), 500
     except Exception as e:
-        print(f"Error generating AI insights: {e}")
+        print(f"Error generating Client AI summary: {e}")
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/get_ai_insights', methods=['GET'])
-def get_ai_insights():
-    insights = session.get('ai_insights')
-    if insights:
-        return jsonify({'insights': insights}), 200
+@app.route('/api/get_recent_client_summary/<int:client_id>', methods=['GET'])
+def get_recent_client_summary(client_id):
+    # Fetch the latest client summary by client ID
+    client_summary = ClientSummaries.get_latest_by_client_id(client_id)
+    
+    if client_summary:
+        # Serialize the client summary and flatten the structure
+        serialized_summary = client_summary.serialize()
+
+        # Remove unnecessary nesting and return a flat structure
+        return jsonify({
+            'client_summary': {
+                'id': serialized_summary.get('id'),
+                'client_id': serialized_summary.get('client_id'),
+                'form_id': serialized_summary.get('form_id'),
+                'summary_prompt': serialized_summary.get('summary_prompt'),
+                'summary_text': serialized_summary.get('summary_text'),
+                'summary_type': serialized_summary.get('summary_type'),
+                'created_at': serialized_summary.get('created_at'),
+                'updated_at': serialized_summary.get('updated_at'),
+            }
+        }), 200
     else:
-        return jsonify({'error': 'No AI insights found'}), 404
+        return jsonify({'error': 'No Client AI summary found'}), 404
+
+
 

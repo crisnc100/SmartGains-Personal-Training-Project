@@ -75,6 +75,7 @@ function App() {
               <Route path='all_clients' element={<AllClients />} />
               <Route path='all_clients/:clientId/current-client' element={<CurrentClient />} />
               <Route path='all_clients/:clientId/current-client/intake-form' element={<IntakeForm />} />
+              <Route path='all_clients/:clientId/current-client/intake-form/success-overview' element={<AIOverview />} />'
               <Route path='all_clients/:clientId/current-client/intake-form/intake-options' element={<IntakeOptions />} />
               <Route path='all_clients/:clientId/current-client/assessment-choice' element={<AssessmentChoice />} />
               <Route path='all_clients/:clientId/current-client/assessment-choice/assessment-form' element={<AssessmentForm />} />

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
+import Modal from 'react-modal';
+
 
 
 
@@ -22,33 +24,36 @@ const IntakeForm = () => {
     const [isGeneratingInsights, setIsGeneratingInsights] = useState(false); // New state for AI insights
     const [errorMessage, setErrorMessage] = useState(null);
     const [createFormTimeout, setCreateFormTimeout] = useState(null);
-
+    const [showPopup, setShowPopup] = useState(false);
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [reloading, setReloading] = useState(false);
 
 
     useEffect(() => {
         const initializeFormState = async () => {
             const savedFormId = localStorage.getItem(getLocalStorageKey(clientId, 'formId'));
             const savedCurrentQuestions = localStorage.getItem(getLocalStorageKey(clientId, 'currentQuestions'));
+            const hasLeftComponent = sessionStorage.getItem('hasLeftIntakeForm') === 'true';
 
             if (savedFormId) {
-                setFormId(parseInt(savedFormId, 10)); // Ensure formId is treated as an integer
+                setFormId(parseInt(savedFormId, 10));
                 try {
                     const response = await axios.get('http://localhost:5000/api/get_saved_answers', {
-                        params: {
-                            client_id: clientId,
-                            form_id: savedFormId
-                        },
+                        params: { client_id: clientId, form_id: savedFormId },
                         withCredentials: true
                     });
-                    const savedAnswers = response.data.answers.reduce((acc, answer) => {
-                        acc[answer.question_id] = answer.answer;
-                        return acc;
-                    }, {});
+                    const savedAnswers = Array.isArray(response.data.answers)
+                        ? response.data.answers.reduce((acc, answer) => {
+                            acc[answer.question_id] = answer.answer;
+                            return acc;
+                        }, {})
+                        : {}; // Fallback to an empty object if answers is not an array or undefined
+
                     setIntakeForm(savedAnswers);
 
                     if (savedCurrentQuestions) {
                         const parsedQuestions = JSON.parse(savedCurrentQuestions);
-                        console.log('Loaded current questions from local storage:', parsedQuestions);
                         if (Array.isArray(parsedQuestions)) {
                             const questionsWithSource = parsedQuestions.map(question => ({
                                 ...question,
@@ -57,7 +62,6 @@ const IntakeForm = () => {
                             setQuestions(questionsWithSource);
                             initializeForm(questionsWithSource, savedAnswers);
                         } else {
-                            console.error('Parsed questions is not an array:', parsedQuestions);
                             fetchDefaultQuestions();
                         }
                     } else {
@@ -68,12 +72,37 @@ const IntakeForm = () => {
                     fetchDefaultQuestions();
                 }
             } else {
-                fetchDefaultQuestions();
+                // Check if an existing form exists when no formId is found in local storage
+                try {
+                    const response = await axios.get(`http://localhost:5000/api/check_intake_form/${clientId}`, {
+                        withCredentials: true,
+                    });
+
+                    if (response.data.form_exists && hasLeftComponent) {
+                        const existingFormId = response.data.form_id;
+                        setFormId(existingFormId);
+                        console.log('Form ID set from check intake form:', existingFormId);
+
+                        setShowPopup(true);
+                        setFirstName(response.data.client_first_name);  // Capture first name from the response
+                        setLastName(response.data.client_last_name);    // Sho  // Show the pop-up if the user has left and returned
+                    } else {
+                        fetchDefaultQuestions();
+                    }
+                } catch (error) {
+                    console.error('Error checking existing form:', error);
+                    fetchDefaultQuestions();
+                }
             }
             setLoading(false);
         };
 
         initializeFormState();
+
+        // Set the flag in sessionStorage when the user leaves the component
+        return () => {
+            sessionStorage.setItem('hasLeftIntakeForm', 'true');
+        };
     }, [clientId]);
 
 
@@ -145,6 +174,68 @@ const IntakeForm = () => {
             }, 12000);
 
             setCreateFormTimeout(timeoutId); // Store the timeout ID
+        }
+    };
+
+    const handleLoadExistingForm = async () => {
+        setReloading(true);  // Start showing the spinner
+        try {
+            console.log("handleLoadExistingForm triggered. Form ID:", formId);
+    
+            // Fetch the saved answers and questions for the existing form
+            const response = await axios.get('http://localhost:5000/api/get_saved_answers', {
+                params: { client_id: clientId, form_id: formId },
+                withCredentials: true
+            });
+    
+            if (response.data.answers && Array.isArray(response.data.answers)) {
+                const savedAnswers = response.data.answers.reduce((acc, answer) => {
+                    acc[answer.question_id] = answer.answer;
+                    return acc;
+                }, {});
+    
+                setIntakeForm(savedAnswers);
+    
+                if (response.data.questions && Array.isArray(response.data.questions)) {
+                    const questionsWithSource = response.data.questions.map(question => ({
+                        ...question,
+                        source: question.source || 'global',
+                        category: question.category || 'General', // Ensure each question has a category
+                    }));
+                    setQuestions(questionsWithSource);
+                    localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(questionsWithSource));
+                }
+    
+                // Save the form ID to local storage
+                localStorage.setItem(getLocalStorageKey(clientId, 'formId'), formId);
+            }
+    
+            // Force reload the page to fully refresh the state
+            window.location.reload();
+        } catch (error) {
+            console.error('Error loading existing form:', error);
+            setReloading(false);  // Stop showing the spinner if there's an error
+        } finally {
+            setShowPopup(false);  // Close the modal
+        }
+    };
+    
+
+    const handleCreateNewForm = async () => {
+        try {
+            const response = await axios.post('http://localhost:5000/api/add_intake_form', {
+                withCredentials: true,
+                form_type: 'Updated Intake Form',
+                client_id: clientId,
+            });
+
+            const newFormId = response.data.form_id;
+            setFormId(newFormId);
+            fetchDefaultQuestions();
+        } catch (error) {
+            console.error('Error creating new form:', error);
+        } finally {
+            setShowPopup(false);
         }
     };
 
@@ -299,8 +390,6 @@ const IntakeForm = () => {
     };
 
 
-
-
     const handleSubmit = async (e, skipAI = false) => {
         e.preventDefault();
 
@@ -350,7 +439,8 @@ const IntakeForm = () => {
             if (!skipAI) {
                 console.log("Generating AI insights");
                 try {
-                    await axios.post(`http://localhost:5000/api/generate_ai_insights/${clientId}`, {
+                    await axios.post(`http://localhost:5000/api/create_client_summary/${clientId}`, {
+                        form_id: formId, // Pass the formId to the AI summary endpoint
                         data: gatherFormData(questions, intakeForm)
                     }, {
                         withCredentials: true
@@ -460,11 +550,11 @@ const IntakeForm = () => {
                         </div>
                     ))}
                     <div className="flex justify-between">
-                        <button type="button" onClick={(e) => handleSubmit(e, true)} className="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm w-full p-2.5 text-center mt-6 mr-2" disabled={submitting}>
+                        {/*<button type="button" onClick={(e) => handleSubmit(e, true)} className="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm w-full p-2.5 text-center mt-6 mr-2" disabled={submitting}>
                             {submitting ? "Submitting..." : "Submit"}
-                        </button>
+                        </button>*/}
                         <button type="submit" className="text-white bg-green-600 hover:bg-green-700 font-medium rounded-lg text-sm w-full p-2.5 text-center mt-6 ml-2" disabled={isGeneratingInsights}>
-                            {isGeneratingInsights ? <ClipLoader size={20} color={"#ffffff"} /> : "Submit with AI Insights"}
+                            {isGeneratingInsights ? <ClipLoader size={20} color={"#ffffff"} /> : "Submit"}
                         </button>
                     </div>
                     {isGeneratingInsights && (
@@ -480,6 +570,43 @@ const IntakeForm = () => {
 
                 </form>
             </div>
+            <Modal
+                isOpen={showPopup}
+                onRequestClose={() => setShowPopup(false)}
+                contentLabel="Existing Intake Form Found"
+                className="flex items-center justify-center min-h-screen"
+                overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
+                style={{
+                    content: {
+                        border: 'none',  // Ensure no border is applied
+                        outline: 'none', // Ensure no outline is applied
+                    },
+                    overlay: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Keep the dark overlay
+                    },
+                }}
+            >
+                <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+                    <h2 className="text-2xl font-semibold text-gray-900 mb-4">Existing Intake Form Found</h2>
+                    <p className="text-lg text-gray-700 mb-6">We found an existing intake form for {firstName} {lastName}. Would you like to load the existing data or create a new form?</p>
+                    <div className="flex justify-end space-x-4">
+                        <button
+                            onClick={handleLoadExistingForm}
+                            className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-300"
+                        >
+                            Load Existing Form
+                        </button>
+                        <button
+                            onClick={handleCreateNewForm}
+                            className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-300"
+                        >
+                            Create New Form
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+
         </div>
     );
 };

@@ -10,6 +10,8 @@ class IntakeForms:
         self.trainer_id = data.get('trainer_id')
         self.created_at = data.get('created_at')
         self.updated_at = data.get('updated_at')
+        self.client_first_name = data.get('client_first_name', None)
+        self.client_last_name = data.get('client_last_name', None)
     
     def serialize(self):
         return {
@@ -65,7 +67,14 @@ class IntakeForms:
     
     @classmethod
     def get_by_client_and_type(cls, client_id, form_type):
-        query = "SELECT * FROM intake_forms WHERE client_id = %(client_id)s AND form_type = %(form_type)s AND status = 'draft'"
+        query = """
+        SELECT i.*, c.first_name AS client_first_name, c.last_name AS client_last_name
+        FROM intake_forms i
+        JOIN clients c ON i.client_id = c.id
+        WHERE i.client_id = %(client_id)s
+        AND i.form_type = %(form_type)s
+        LIMIT 1
+        """
         data = {
             'client_id': client_id,
             'form_type': form_type
@@ -73,11 +82,23 @@ class IntakeForms:
         try:
             results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
             if results:
-                return results[0]
+                form_data = results[0]
+                return {
+                    'id': form_data['id'],
+                    'form_type': form_data['form_type'],
+                    'status': form_data['status'],
+                    'client_id': form_data['client_id'],
+                    'trainer_id': form_data['trainer_id'],
+                    'created_at': form_data['created_at'],
+                    'updated_at': form_data['updated_at'],
+                    'client_first_name': form_data['client_first_name'],
+                    'client_last_name': form_data['client_last_name']
+                }
             return None
         except Exception as e:
             print(f"Error fetching data: {e}")
             return None
+
 
     # READ BY CLIENT
     @classmethod
@@ -114,11 +135,11 @@ class IntakeForms:
             WHERE id = %(id)s
         """
         try:
-            print(f"Running query: {query} with data: {data}")
+            #print(f"Running query: {query} with data: {data}")
             connectToMySQL('fitness_consultation_schema').query_db(query, data)
-            print("Query executed successfully.")
+            #print("Query executed successfully.")
         except Exception as e:
-            print(f"Error updating data: {e}")
+            #print(f"Error updating data: {e}")
             raise
 
     # DELETE
