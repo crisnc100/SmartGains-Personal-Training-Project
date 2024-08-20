@@ -36,6 +36,7 @@ import ExerciseLibrary from './views/WorkoutPages/ExerciseLibrary';
 import AssessmentForm from './views/IntakePages/AssessmentForm';
 import IntakeFormSettings from './views/IntakePages/IntakeFormSettings';
 import AIOverview from './views/IntakePages/AIOverview';
+import CustomizeForm from './views/IntakePages/CustomizeForm';
 
 
 
@@ -75,6 +76,7 @@ function App() {
               <Route path='all_clients' element={<AllClients />} />
               <Route path='all_clients/:clientId/current-client' element={<CurrentClient />} />
               <Route path='all_clients/:clientId/current-client/intake-form' element={<IntakeForm />} />
+              <Route path='all_clients/:clientId/current-client/intake-form/customize' element={<IntakeFormSettings />} />
               <Route path='all_clients/:clientId/current-client/intake-form/success-overview' element={<AIOverview />} />'
               <Route path='all_clients/:clientId/current-client/intake-form/intake-options' element={<IntakeOptions />} />
               <Route path='all_clients/:clientId/current-client/assessment-choice' element={<AssessmentChoice />} />

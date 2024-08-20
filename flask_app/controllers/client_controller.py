@@ -12,6 +12,7 @@ from flask_app.models.global_assessments_model import GlobalAssessments
 from flask_app.models.demo_plans_model import DemoPlan
 from flask_app.models.workout_progress_model import WorkoutProgress
 from flask_app.models.generated_plans_model import GeneratedPlan
+from flask_app.models.client_summaries_model import ClientSummaries
 from flask_app import mail
 from flask_mail import Message
 from flask_cors import cross_origin
@@ -107,8 +108,7 @@ def current_client(client_id):
         "client_assessment_data": [assessment.serialize() for assessment in client_assessment_data] if client_assessment_data else [],
         "client_demo_plans": client_demo_plans,
         "client_plans": client_plans,
-        "workout_progress_data": workout_progress_data  
-    }
+        "workout_progress_data": workout_progress_data    }
     
     print(f"Successfully retrieved all data for client_id: {client_id}")
     return jsonify(all_client_data)

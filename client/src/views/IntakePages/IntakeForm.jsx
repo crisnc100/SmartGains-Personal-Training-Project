@@ -28,15 +28,36 @@ const IntakeForm = () => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [reloading, setReloading] = useState(false);
+    const [customizeTriggered, setCustomizeTriggered] = useState(false);
+
 
 
     useEffect(() => {
         const initializeFormState = async () => {
-            const savedFormId = localStorage.getItem(getLocalStorageKey(clientId, 'formId'));
+            console.log("Initializing form state...");
             const savedCurrentQuestions = localStorage.getItem(getLocalStorageKey(clientId, 'currentQuestions'));
-            const hasLeftComponent = sessionStorage.getItem('hasLeftIntakeForm') === 'true';
+            const savedFormId = localStorage.getItem(getLocalStorageKey(clientId, 'formId'));
+            const hasLeftComponent = sessionStorage.getItem(`hasLeftIntakeForm_${clientId}`) === 'true';
 
-            if (savedFormId) {
+            console.log("Saved Form ID:", savedFormId);
+            console.log("Has Left Component:", hasLeftComponent);
+
+            // Step 1: Load updated questions from local storage if they exist
+            if (savedCurrentQuestions) {
+                const parsedQuestions = JSON.parse(savedCurrentQuestions);
+                if (Array.isArray(parsedQuestions)) {
+                    console.log("Loading updated questions from local storage...");
+                    setQuestions(parsedQuestions);
+                    initializeForm(parsedQuestions); // Initialize the form with the updated questions
+                } else {
+                    fetchDefaultQuestions();
+                }
+            } else {
+                fetchDefaultQuestions(); // If no updated questions are found, fetch the default questions
+            }
+
+            // Step 2: Check if a form ID exists and handle loading saved answers
+            if (savedFormId && !customizeTriggered) {
                 setFormId(parseInt(savedFormId, 10));
                 try {
                     const response = await axios.get('http://localhost:5000/api/get_saved_answers', {
@@ -48,31 +69,24 @@ const IntakeForm = () => {
                             acc[answer.question_id] = answer.answer;
                             return acc;
                         }, {})
-                        : {}; // Fallback to an empty object if answers is not an array or undefined
+                        : {}; // Fallback to an empty object if answers are not available or in an unexpected format
 
                     setIntakeForm(savedAnswers);
-
-                    if (savedCurrentQuestions) {
-                        const parsedQuestions = JSON.parse(savedCurrentQuestions);
-                        if (Array.isArray(parsedQuestions)) {
-                            const questionsWithSource = parsedQuestions.map(question => ({
-                                ...question,
-                                source: question.source || 'global'
-                            }));
-                            setQuestions(questionsWithSource);
-                            initializeForm(questionsWithSource, savedAnswers);
-                        } else {
-                            fetchDefaultQuestions();
-                        }
-                    } else {
-                        fetchDefaultQuestions();
-                    }
+                    console.log("Loaded answers into state:", savedAnswers);
                 } catch (error) {
                     console.error('Error fetching saved answers:', error);
-                    fetchDefaultQuestions();
                 }
-            } else {
-                // Check if an existing form exists when no formId is found in local storage
+            }
+
+            // Step 3: Handle case when the form was customized
+            if (customizeTriggered) {
+                console.log("Customization triggered, reinitializing questions...");
+                fetchDefaultQuestions();
+                setCustomizeTriggered(false); // Reset the customizeTriggered flag
+            }
+
+            // Step 4: Handle case when no form ID exists but an intake form may exist on the server
+            if (!savedFormId && !customizeTriggered) {
                 try {
                     const response = await axios.get(`http://localhost:5000/api/check_intake_form/${clientId}`, {
                         withCredentials: true,
@@ -84,16 +98,15 @@ const IntakeForm = () => {
                         console.log('Form ID set from check intake form:', existingFormId);
 
                         setShowPopup(true);
-                        setFirstName(response.data.client_first_name);  // Capture first name from the response
-                        setLastName(response.data.client_last_name);    // Sho  // Show the pop-up if the user has left and returned
-                    } else {
-                        fetchDefaultQuestions();
+                        setFirstName(response.data.client_first_name); // Capture first name from the response
+                        setLastName(response.data.client_last_name); // Capture last name from the response
                     }
                 } catch (error) {
                     console.error('Error checking existing form:', error);
-                    fetchDefaultQuestions();
                 }
             }
+
+            // Finish initialization by setting loading to false
             setLoading(false);
         };
 
@@ -101,14 +114,18 @@ const IntakeForm = () => {
 
         // Set the flag in sessionStorage when the user leaves the component
         return () => {
-            sessionStorage.setItem('hasLeftIntakeForm', 'true');
+            sessionStorage.setItem(`hasLeftIntakeForm_${clientId}`, 'true');
         };
-    }, [clientId]);
+    }, [clientId, customizeTriggered]);
 
 
     const fetchDefaultQuestions = async () => {
+        console.log("Fetching default questions...");
+
         try {
             const response = await axios.get('http://localhost:5000/api/get_user_default_questions');
+            console.log("Fetched default questions:", response.data);
+
             const questionsWithSource = response.data.map(question => ({
                 ...question,
                 source: question.source || 'global'
@@ -124,6 +141,7 @@ const IntakeForm = () => {
 
 
     const initializeForm = (questions, savedAnswers = {}) => {
+        console.log("Initializing form with questions and answers...", questions, savedAnswers);
         const formState = {};
         questions.forEach(question => {
             formState[question.id] = savedAnswers[question.id] || (question.question_type === 'checkbox' ? [] : '');
@@ -135,7 +153,7 @@ const IntakeForm = () => {
 
     const handleInputChange = async (event, questionId) => {
         const newValue = event.target.value;
-
+        console.log(`Input changed for question ID ${questionId}:`, newValue);
         const updatedForm = {
             ...intakeForm,
             [questionId]: newValue
@@ -181,37 +199,44 @@ const IntakeForm = () => {
         setReloading(true);  // Start showing the spinner
         try {
             console.log("handleLoadExistingForm triggered. Form ID:", formId);
-    
+
             // Fetch the saved answers and questions for the existing form
             const response = await axios.get('http://localhost:5000/api/get_saved_answers', {
                 params: { client_id: clientId, form_id: formId },
                 withCredentials: true
             });
-    
+            console.log("Load existing form API response:", response.data);
+
+
             if (response.data.answers && Array.isArray(response.data.answers)) {
                 const savedAnswers = response.data.answers.reduce((acc, answer) => {
                     acc[answer.question_id] = answer.answer;
                     return acc;
                 }, {});
-    
+
                 setIntakeForm(savedAnswers);
-    
-                if (response.data.questions && Array.isArray(response.data.questions)) {
-                    const questionsWithSource = response.data.questions.map(question => ({
-                        ...question,
-                        source: question.source || 'global',
-                        category: question.category || 'General', // Ensure each question has a category
-                    }));
-                    setQuestions(questionsWithSource);
-                    localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(questionsWithSource));
-                }
-    
-                // Save the form ID to local storage
-                localStorage.setItem(getLocalStorageKey(clientId, 'formId'), formId);
+                console.log("Loaded answers into state:", savedAnswers);
             }
-    
-            // Force reload the page to fully refresh the state
-            window.location.reload();
+
+            if (response.data.questions && Array.isArray(response.data.questions)) {
+                const questionsWithSource = response.data.questions.map(question => ({
+                    ...question,
+                    source: question.source || 'global',
+                    category: question.category || 'General', // Ensure each question has a category
+                }));
+                setQuestions(questionsWithSource);
+                localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(questionsWithSource));
+                console.log("Loaded questions into state:", questionsWithSource);
+            }
+
+            // Save the form ID to local storage
+            localStorage.setItem(getLocalStorageKey(clientId, 'formId'), formId);
+
+            // Wait until the state is fully updated before refreshing
+            setTimeout(() => {
+                // Force reload the page to fully refresh the state
+                window.location.reload();
+            }, 1000);  // Adding a 1-second delay before refreshing
         } catch (error) {
             console.error('Error loading existing form:', error);
             setReloading(false);  // Stop showing the spinner if there's an error
@@ -219,7 +244,8 @@ const IntakeForm = () => {
             setShowPopup(false);  // Close the modal
         }
     };
-    
+
+
 
     const handleCreateNewForm = async () => {
         try {
@@ -325,7 +351,7 @@ const IntakeForm = () => {
 
     const startAutoSave = (formId) => {
         const autoSave = async () => {
-            if (!formId) {
+            if (!formId || customizeTriggered) {
                 console.log('No formId found. Skipping auto-save.');
                 return; // Skip auto-save if formId is not set
             }
@@ -478,11 +504,19 @@ const IntakeForm = () => {
     const goBack = () => {
         navigate(-1);
     };
-    const handleCustomize = () => {
-        // Remove only currentAnswers if necessary, but leave currentQuestions intact
-        localStorage.removeItem(getLocalStorageKey(clientId, 'currentAnswers'));
-        navigate('customize');
+    const handleCustomize = async () => {
+        setLoading(true);
+        try {
+            await navigate('customize');
+            // Ensure questions are updated after customization
+            setCustomizeTriggered(true);
+        } catch (error) {
+            console.error('Error navigating to customization:', error);
+        } finally {
+            setLoading(false);
+        }
     };
+
 
     const groupedQuestions = questions.reduce((acc, question) => {
         if (!acc[question.category]) {

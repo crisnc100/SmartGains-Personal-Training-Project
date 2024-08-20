@@ -1,181 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
-import ReactDOMServer from 'react-dom/server';
-import { format, differenceInYears } from 'date-fns';
-import ClipLoader from 'react-spinners/ClipLoader';  // Imported the spinner component
+import ClipLoader from 'react-spinners/ClipLoader';
 
 const DemoPrompt = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
-  const [allClientData, setAllClientData] = useState({});
+  const [basePrompt, setBasePrompt] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedPrompt, setSelectedPrompt] = useState(null);
-  const [availablePrompts, setAvailablePrompts] = useState([]);
+  const [intensityLevel, setIntensityLevel] = useState('');
+  const [workoutType, setWorkoutType] = useState('');
+  const [finalPrompt, setFinalPrompt] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [additionalComments, setAdditionalComments] = useState('');
-  const [expandedPromptIndex, setExpandedPromptIndex] = useState(null);
-  const [submitting, setSubmitting] = useState(false);  // State for loading spinner
-
-  const calculateAge = (dob) => {
-    if (!dob) return null;
-    return differenceInYears(new Date(), new Date(dob));
-  };
+  const [allSummaries, setAllSummaries] = useState([]);
+  const [selectedSummaryId, setSelectedSummaryId] = useState(null);
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/prompt_data/${clientId}`)
+    console.log("Fetching summaries for clientId:", clientId);
+    axios.get(`http://localhost:5000/api/get_base_prompts/${clientId}`)
       .then(response => {
-        console.log("Initial data fetched:", response.data);
-        setAllClientData(response.data);
+        const summaries = response.data;
+        console.log("Summaries retrieved:", summaries);
+
+        if (summaries.length > 0) {
+          setAllSummaries(summaries);
+          const latestSummary = summaries[0].id;
+          setSelectedSummaryId(latestSummary.id);  // Automatically select the latest summary
+          setBasePrompt(latestSummary.summary_prompt);  // Load the prompt from the latest summary
+          console.log("Latest summary selected:", latestSummary);
+        } else {
+          console.log("No summaries available for the client.");
+        }
         setLoading(false);
       })
       .catch(error => {
-        console.error('Error fetching data:', error);
-        setError('Failed to fetch data');
+        console.error('Error fetching summaries:', error);
+        setError('Failed to fetch summaries');
         setLoading(false);
       });
   }, [clientId]);
 
-  const prompts = allClientData && allClientData.client_data ? {
-    'Beginner': [
-      {
-        id: 'beginner1',
-        content: (
-          <>Develop a beginner-friendly 3-day workout plan for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, a
-            <strong> {calculateAge(allClientData.client_data.dob)}</strong>-year-old <strong>{allClientData.client_data.gender}</strong>, aiming to achieve goals if any:
-            "<strong>{allClientData.tagged_data.goals || 'no data provided'}</strong>". This client leads a sedentary lifestyle, has minimal exercise
-            experience, and may have medical considerations such as "<strong>{allClientData.tagged_data.medical_history || 'no data provided'}</strong>". The plan should
-            incorporate low-impact, functional exercises to enhance daily living activities, improve cardiovascular
-            health, and build foundational strength. Emphasize safety, technique, and gradual progression.
-            Here are some of the client’s exercise preferences to take note of, such as:
-            such as: "<strong>{allClientData.tagged_data.preferences || 'no data provided'}</strong>", and here are the activities the client typically wants to avoid, such as,
-            such as: "<strong>{allClientData.tagged_data.restrict || 'no data provided'}</strong>". Tailor the workouts to respect these
-            preferences, promoting a positive and sustainable fitness journey.</>),
-      },
-      {
-        id: 'beginner2',
-        content: (<>Create a 3-day workout plan for beginner-level hypertrophy and strength training for
-          <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, a
-          <strong>{calculateAge(allClientData.client_data.dob)}</strong>-year-old <strong>{allClientData.client_data.gender}</strong>, focusing on slow progression
-          and basic strength-building exercises. Goals if any: "<strong>{allClientData.tagged_data.goals || 'building general strength and muscle mass'}</strong>".
-          Background conditions if any: "<strong>{allClientData.tagged_data.medical_history || 'no known medical issues'}</strong>". Include exercises that
-          target major muscle groups with an emphasis on technique, safety, and gradual progression in strength and
-          muscle building. Here are some of the client’s exercise preferences to take note of: 
-          "<strong>{allClientData.tagged_data.preferences || 'no specific preferences provided'}</strong>", 
-          and here is what the client typically wants to avoid: "<strong>{allClientData.tagged_data.restrict || 'no restrictions'}</strong>". 
-          Tailor the workouts to respect these preferences, promoting a positive and sustainable fitness journey.</>),
-      },
-      {
-        id: 'beginner3',
-        content: (<>Develop a beginner-friendly 3-day workout plan for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, a 
-          <strong>{calculateAge(allClientData.client_data.dob)}</strong>-year-old <strong>{allClientData.client_data.gender}</strong> aiming to enhance cardiovascular health and build endurance.
-          Goals if any: "<strong>{allClientData.tagged_data.goals || 'improving overall cardiovascular endurance'}</strong>". 
-          Exercise habits if documented: "<strong>{allClientData.tagged_data.habits || 'no specific exercise habits provided'}</strong>". 
-          The routine should introduce low to moderate-intensity cardiovascular exercises, gradually improving stamina 
-          and heart health. Specifically include exercises the client prefers: "<strong>{allClientData.tagged_data.preferences || 'no specific preferences provided'}</strong>", 
-          and avoid exercises the client typically wants to avoid: "<strong>{allClientData.tagged_data.restrict || 'no restrictions'}</strong>". 
-          Tailor the workouts to respect these preferences, promoting a positive and sustainable fitness journey.</>)
-      }
-    ],
-    'Intermediate': [
-      {
-        id: 'intermediate1',
-        content: ( <>Design an intermediate-level 3-day functional training workout plan for
-          <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, aged <strong>{calculateAge(allClientData.client_data.dob)}</strong> years
-          <strong>{allClientData.client_data.gender}</strong>, with some exercise experience. Objectives: 
-          "<strong>{allClientData.tagged_data.goals || 'improving functional strength and mobility'}</strong>". 
-          Medical considerations: "<strong>{allClientData.tagged_data.medical_history || 'no medical issues reported'}</strong>".
-          This plan should integrate compound movements and functional exercises to enhance overall body strength, mobility, and coordination.
-          Client preferences: "<strong>{allClientData.tagged_data.preferences || 'no specific preferences provided'}</strong>".
-          Avoid: "<strong>{allClientData.tagged_data.restrict || 'no restrictions'}</strong>".
-          Tailor the workouts to respect these preferences and promote a positive and sustainable fitness journey.</>),
-      },
-      {
-        id: 'intermediate2',
-        content: (<>Formulate an intermediate 3-day workout plan focusing on hypertrophy and strength development for
-          <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>, aged
-          <strong>{calculateAge(allClientData.client_data.dob)}</strong> years <strong>{allClientData.client_data.gender}</strong>. 
-          Goals: "<strong>{allClientData.tagged_data.goals || 'enhancing muscle growth and strength'}</strong>".
-          Medical considerations: "<strong>{allClientData.tagged_data.medical_history || 'no medical issues reported'}</strong>".
-          Include exercises that enhance muscle growth and strength through progressive overload. Incorporate variety in exercise selection to target all major muscle groups effectively.
-          Preferences: "<strong>{allClientData.tagged_data.preferences || 'no specific preferences provided'}</strong>".
-          Avoid: "<strong>{allClientData.tagged_data.restrict || 'no restrictions'}</strong>".
-          Tailor the workouts to respect these preferences, promoting a positive and sustainable strength-building journey.</>),
-      },
-      {
-        id: 'intermediate3',
-        content: ( <>Create an intermediate 3-day cardiovascular and endurance workout plan for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>,
-          aged <strong>{calculateAge(allClientData.client_data.dob)}</strong> years <strong>{allClientData.client_data.gender}</strong>, to boost heart health and stamina.
-          Goals: "<strong>{allClientData.tagged_data.goals || 'enhancing cardiovascular endurance and stamina'}</strong>".
-          Medical considerations: "<strong>{allClientData.tagged_data.medical_history || 'no medical issues reported'}</strong>".
-          The plan should include a mix of moderate to high-intensity cardio exercises and longer-duration sessions to progressively improve endurance.
-          Preferences: "<strong>{allClientData.tagged_data.preferences || 'no specific preferences provided'}</strong>".
-          Avoid: "<strong>{allClientData.tagged_data.restrict || 'no restrictions'}</strong>".
-          Tailor the workouts to respect these preferences, promoting a positive and sustainable endurance-building journey.</>)
-      }
-    ],
-    'Advanced': [
-      {
-        id: 'advanced1',
-        content: (<>Devise an advanced 3-day functional and performance training workout plan for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>,
-          a seasoned athlete aged <strong>{calculateAge(allClientData.client_data.dob)}</strong>. Target goals:
-          "<strong>{allClientData.tagged_data.goals || 'enhancing functional performance and overall athleticism'}</strong>".
-          Medical considerations: "<strong>{allClientData.tagged_data.medical_history || 'no medical issues reported'}</strong>".
-          Incorporate high-intensity functional movements and performance drills that challenge strength, power, agility, and endurance, tailored to the client's robust fitness background.
-          Preferences: "<strong>{allClientData.tagged_data.preferences || 'no specific preferences provided'}</strong>".
-          Avoid: "<strong>{allClientData.tagged_data.restrict || 'no restrictions'}</strong>".
-          Tailor the workouts to respect these preferences, promoting a high-performance and sustainable training journey.</>),
-      },
-      {
-        id: 'advanced2',
-        content: (<>Construct an advanced 3-day hypertrophy and strength training program for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>,
-          aged <strong>{calculateAge(allClientData.client_data.dob)}</strong> years <strong>{allClientData.client_data.gender}</strong>.
-          Goals: "<strong>{allClientData.tagged_data.goals || 'pushing the boundaries of muscle growth and strength'}</strong>".
-          Medical considerations: "<strong>{allClientData.tagged_data.medical_history || 'no medical issues reported'}</strong>".
-          This plan should incorporate advanced lifting techniques, high-volume sets, and periodized strength progression to maximize gains.
-          Preferences: "<strong>{allClientData.tagged_data.preferences || 'no specific preferences provided'}</strong>".
-          Avoid: "<strong>{allClientData.tagged_data.restrict || 'no restrictions'}</strong>".
-          Tailor the workouts to respect these preferences, promoting a high-performance and sustainable strength-building journey.</>),
-      },
-      {
-        id: 'advanced3',
-        content: ( <>Design an advanced 3-day cardiovascular and endurance training regimen for <strong>{allClientData.client_data.first_name} {allClientData.client_data.last_name}</strong>,
-          aged <strong>{calculateAge(allClientData.client_data.dob)}</strong> years <strong>{allClientData.client_data.gender}</strong>.
-          Goals: "<strong>{allClientData.tagged_data.goals || 'optimizing cardiorespiratory fitness and endurance'}</strong>".
-          Medical considerations: "<strong>{allClientData.tagged_data.medical_history || 'no medical issues reported'}</strong>".
-          Include high-intensity interval training (HIIT), tempo runs, and endurance cycling sessions, progressively intensifying the workload to meet the ambitious fitness objectives.
-          Preferences: "<strong>{allClientData.tagged_data.preferences || 'no specific preferences provided'}</strong>".
-          Avoid: "<strong>{allClientData.tagged_data.restrict || 'no restrictions'}</strong>".
-          Tailor the workouts to respect these preferences, promoting a high-performance and sustainable endurance-building journey.</>)
-      }
-    ]
-  } : {};
+  const handleSummaryChange = (e) => {
+    const summaryId = e.target.value;
+    console.log("Summary selected:", summaryId);
+    setSelectedSummaryId(summaryId);
 
-  const handlePromptSelection = (promptId) => {
-    const selected = availablePrompts.find(p => p.id === promptId);
-    if (selected) {
-      const htmlContent = ReactDOMServer.renderToStaticMarkup(selected.content);
-      setSelectedPrompt({ id: selected.id, content: htmlContent }); // Storing HTML string
-    } else {
-      setSelectedPrompt(null);
+    const selectedSummary = allSummaries.find(summary => summary.id === parseInt(summaryId));
+    if (selectedSummary) {
+      setBasePrompt(selectedSummary.summary_prompt);
+      console.log("Base prompt updated to:", selectedSummary.summary_prompt);
     }
   };
 
-  const handleLevelChange = (e) => {
-    const level = e.target.value;
-    setAvailablePrompts(prompts[level] || []);
-    setSelectedPrompt('');
-  };
+  useEffect(() => {
+    if (basePrompt) {
+      let modifiedPrompt = basePrompt;
+      console.log("Modifying prompt:", modifiedPrompt);
+
+      if (intensityLevel) {
+        modifiedPrompt = modifiedPrompt.replace(/(beginner|intermediate|advanced)/i, intensityLevel.toLowerCase());
+        modifiedPrompt += ` This plan is adjusted to the ${intensityLevel} level as selected.`;
+        console.log("Intensity level adjusted:", intensityLevel);
+      }
+
+      if (workoutType) {
+        modifiedPrompt += ` The focus will be on ${workoutType} training.`;
+        console.log("Workout type adjusted:", workoutType);
+      }
+
+      setFinalPrompt(modifiedPrompt);
+      console.log("Final modified prompt:", modifiedPrompt);
+    }
+  }, [intensityLevel, workoutType, basePrompt]);
 
   const validateForm = () => {
     setErrors({});
-
     let valid = true;
-    if (!selectedPrompt) {
+
+    if (!intensityLevel || !workoutType) {
       setErrors(prevErrors => ({
         ...prevErrors,
-        prompt: 'Please select a prompt before submitting.'
+        prompt: 'Please select both intensity level and workout type before submitting.'
       }));
       valid = false;
     }
@@ -183,26 +91,20 @@ const DemoPrompt = () => {
     return valid;
   };
 
-  const handleCommentsChange = (e) => {
-    setAdditionalComments(e.target.value);
-  };
-
   const submitHandler = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
-      console.error("Validation failed.");
       return;
     }
 
     const data = {
-      promptContent: selectedPrompt.content,
+      promptContent: finalPrompt,
       comments: additionalComments,
     };
 
-    console.log("Submitting data:", data);
-
     try {
-      setSubmitting(true);  // Show loading spinner
+      setSubmitting(true);
+      console.log("Submitting data:", data);
       const res = await axios.post(`http://localhost:5000/api/generate_quick_plan/${clientId}`, data, {
         withCredentials: true,
         headers: {
@@ -215,7 +117,7 @@ const DemoPrompt = () => {
       console.error("Error during submission:", err);
       handleErrorResponse(err);
     } finally {
-      setSubmitting(false);  // Hide loading spinner
+      setSubmitting(false);
     }
   };
 
@@ -244,40 +146,53 @@ const DemoPrompt = () => {
           Return Back
         </button>
       </div>
+
       <div className="my-4">
-        <label htmlFor="level" className="block text-lg font-medium text-gray-700">Client's Fitness Level:</label>
-        <select id="level" name="level" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" onChange={handleLevelChange}>
+        <label htmlFor="summarySelect" className="block text-lg font-medium text-gray-700">Select a Summary:</label>
+        <select
+          id="summarySelect"
+          value={selectedSummaryId}
+          onChange={handleSummaryChange}
+          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+        >
+          {allSummaries.map((summary) => (
+            <option key={summary.id.id} value={summary.id.id}>  {/* Adjusted to nested id */}
+              {summary.id.summary_type} - {new Date(summary.id.created_at).toLocaleString()}  {/* Adjusted to nested data */}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="my-4">
+        <label htmlFor="intensityLevel" className="block text-lg font-medium text-gray-700">Select Intensity Level:</label>
+        <select id="intensityLevel" name="intensityLevel" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" onChange={(e) => setIntensityLevel(e.target.value)}>
           <option value="">Select Level</option>
           <option value="Beginner">Beginner</option>
           <option value="Intermediate">Intermediate</option>
           <option value="Advanced">Advanced</option>
         </select>
       </div>
-      <div className="prompts space-y-4">
-        {availablePrompts.map((prompt, index) => (
-          <div key={index} className="bg-white p-4 shadow rounded-md">
-            <label className="flex items-center text-lg text-gray-800 cursor-pointer">
-              <input
-                type="radio"
-                name="workoutPrompt"
-                value={prompt.id}
-                checked={selectedPrompt?.id === prompt.id}
-                onChange={() => handlePromptSelection(prompt.id)}
-                className="form-radio h-5 w-5 text-indigo-600"
-              />
-              <span onClick={() => setExpandedPromptIndex(expandedPromptIndex === index ? null : index)} className="ml-2">
-                {index === 0 ? "Functional" : index === 1 ? "Strength Hypertrophy" : "Strength Endurance"} (Click to Expand/Collapse)
-              </span>
-            </label>
-            {expandedPromptIndex === index && (
-              <div className="text-sm mt-2 p-3 border rounded bg-gray-100 overflow-y-auto" style={{ maxHeight: '200px' }}>
-                {prompt.content}
-              </div>
-            )}
-          </div>
-        ))}
-        {errors.prompt && <div className="text-red-500 text-sm mt-2">{errors.prompt}</div>}
+
+      <div className="my-4">
+        <label htmlFor="workoutType" className="block text-lg font-medium text-gray-700">Select Workout Type:</label>
+        <select id="workoutType" name="workoutType" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" onChange={(e) => setWorkoutType(e.target.value)}>
+          <option value="">Select Type</option>
+          <option value="Hypertrophy">Hypertrophy</option>
+          <option value="Strength">Strength</option>
+          <option value="Endurance">Endurance</option>
+        </select>
       </div>
+
+      <div className="my-4">
+        <h2 className="text-lg font-medium text-gray-700">Base Prompt:</h2>
+        <p className="p-4 bg-gray-100 rounded-md">{basePrompt}</p>
+      </div>
+
+      <div className="my-4">
+        <h2 className="text-lg font-medium text-gray-700">Final Modified Prompt:</h2>
+        <p className="p-4 bg-gray-100 rounded-md">{finalPrompt}</p>
+      </div>
+
       <div className="my-4">
         <textarea
           id="additional_comments"
@@ -287,14 +202,18 @@ const DemoPrompt = () => {
           onChange={(e) => setAdditionalComments(e.target.value)}
         />
       </div>
+
       {submitting && (
         <div className="flex justify-center my-4">
           <ClipLoader color={"#123abc"} loading={submitting} size={150} />
         </div>
       )}
+
       <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={submitHandler} disabled={submitting}>
         Generate Example Plan
       </button>
+
+      {errors.prompt && <div className="text-red-500 text-sm mt-2">{errors.prompt}</div>}
       {errors.submitError && <div className="text-red-500 text-sm mt-2">{errors.submitError}</div>}
     </div>
   );

@@ -471,4 +471,16 @@ def get_recent_client_summary(client_id):
         return jsonify({'error': 'No Client AI summary found'}), 404
 
 
+@app.route('/api/get_base_prompts/<int:client_id>', methods=['GET'])
+def get_base_prompts(client_id):
+    client_summaries = ClientSummaries.get_all_by_client_id(client_id)
+    if not client_summaries:
+        return jsonify({"error": "No summaries found for this client."}), 404
+
+    summaries = [summary.serialize() for summary in client_summaries]
+    return jsonify(summaries)
+
+
+
+
 

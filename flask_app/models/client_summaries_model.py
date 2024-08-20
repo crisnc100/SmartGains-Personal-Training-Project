@@ -161,8 +161,9 @@ class ClientSummaries:
     def get_prompt_by_client_and_type(cls, client_id, summary_type):
         query = """
         SELECT summary_prompt FROM client_summaries 
-        WHERE client_id = %(client_id)s AND summary_type = %(summary_type)s 
+        WHERE client_id = %(client_id)s AND summary_type = %(summary_type)s
         ORDER BY created_at DESC LIMIT 1
+
         """
         data = {'client_id': client_id, 'summary_type': summary_type}
         try:
@@ -171,6 +172,8 @@ class ClientSummaries:
         except Exception as e:
             print(f"Error fetching prompt by type: {e}")
             return None
+
+
 
 
 
