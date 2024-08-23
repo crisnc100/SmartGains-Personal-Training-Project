@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import ClipLoader from 'react-spinners/ClipLoader';
+import { FaInfoCircle } from 'react-icons/fa';
+import { Tooltip } from 'react-tooltip';
+import { format, differenceInYears } from 'date-fns';
+
+
+
+
 
 const DemoPrompt = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
-  const [basePrompt, setBasePrompt] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [intensityLevel, setIntensityLevel] = useState('');
@@ -16,7 +22,22 @@ const DemoPrompt = () => {
   const [submitting, setSubmitting] = useState(false);
   const [additionalComments, setAdditionalComments] = useState('');
   const [allSummaries, setAllSummaries] = useState([]);
-  const [selectedSummaryId, setSelectedSummaryId] = useState(null);
+  const [selectedSummary, setSelectedSummary] = useState(null);
+  const [basePrompt, setBasePrompt] = useState('');
+  const [showFullPrompt, setShowFullPrompt] = useState(false);
+  const [showBasePrompt, setShowBasePrompt] = useState(false);
+  const [clientName, setClientName] = useState('');
+  const [intensityDescription, setIntensityDescription] = useState('');
+  const [workoutDescription, setWorkoutDescription] = useState('');
+  const [clientAge, setClientAge] = useState('');
+  const [clientGender, setClientGender] = useState('');
+
+  
+
+  const calculateAge = (dob) => {
+    if (!dob) return null;
+    return differenceInYears(new Date(), new Date(dob));
+};
 
   useEffect(() => {
     console.log("Fetching summaries for clientId:", clientId);
@@ -27,9 +48,12 @@ const DemoPrompt = () => {
 
         if (summaries.length > 0) {
           setAllSummaries(summaries);
-          const latestSummary = summaries[0].id;
-          setSelectedSummaryId(latestSummary.id);  // Automatically select the latest summary
-          setBasePrompt(latestSummary.summary_prompt);  // Load the prompt from the latest summary
+          const latestSummary = summaries[0].id; // Automatically select the latest summary
+          setSelectedSummary(latestSummary); // Set selected summary to the latest one
+          setBasePrompt(latestSummary.summary_prompt); // Directly use the summary_prompt as the basePrompt
+          setClientName(`${summaries[0].id.first_name} ${summaries[0].id.last_name}`);
+          setClientAge(calculateAge(summaries[0].id.dob)); // Use calculateAge to set the client's age
+          setClientGender(`${summaries[0].id.gender}`.toLowerCase()); // Convert gender to lowercase
           console.log("Latest summary selected:", latestSummary);
         } else {
           console.log("No summaries available for the client.");
@@ -43,38 +67,133 @@ const DemoPrompt = () => {
       });
   }, [clientId]);
 
+
   const handleSummaryChange = (e) => {
     const summaryId = e.target.value;
     console.log("Summary selected:", summaryId);
-    setSelectedSummaryId(summaryId);
-
     const selectedSummary = allSummaries.find(summary => summary.id === parseInt(summaryId));
     if (selectedSummary) {
-      setBasePrompt(selectedSummary.summary_prompt);
+      setSelectedSummary(selectedSummary);
+      setBasePrompt(selectedSummary.summary_prompt); // Use the summary_prompt as basePrompt
       console.log("Base prompt updated to:", selectedSummary.summary_prompt);
     }
   };
 
-  useEffect(() => {
-    if (basePrompt) {
-      let modifiedPrompt = basePrompt;
-      console.log("Modifying prompt:", modifiedPrompt);
+  const updateDescriptions = () => {
+    let intensityDesc = '';
+    let workoutDesc = '';
 
-      if (intensityLevel) {
-        modifiedPrompt = modifiedPrompt.replace(/(beginner|intermediate|advanced)/i, intensityLevel.toLowerCase());
-        modifiedPrompt += ` This plan is adjusted to the ${intensityLevel} level as selected.`;
-        console.log("Intensity level adjusted:", intensityLevel);
-      }
-
-      if (workoutType) {
-        modifiedPrompt += ` The focus will be on ${workoutType} training.`;
-        console.log("Workout type adjusted:", workoutType);
-      }
-
-      setFinalPrompt(modifiedPrompt);
-      console.log("Final modified prompt:", modifiedPrompt);
+    switch (intensityLevel) {
+      case 'Beginner':
+        intensityDesc = 'Beginner - Suitable for those new to exercise. Focuses on building foundational strength and endurance.';
+        break;
+      case 'Intermediate':
+        intensityDesc = 'Intermediate - For those with some experience. Emphasizes progression and more complex movements.';
+        break;
+      case 'Advanced':
+        intensityDesc = 'Advanced - Targets seasoned individuals. Involves high intensity, complex exercises for peak performance.';
+        break;
+      default:
+        break;
     }
-  }, [intensityLevel, workoutType, basePrompt]);
+
+    switch (workoutType) {
+      case 'Functional':
+        workoutDesc = 'Functional - Focuses on improving overall functional strength and mobility, emphasizing exercises that mimic real-life movements.'
+        break;
+      case 'Hypertrophy':
+        workoutDesc = 'Hypertrophy - Aims to increase muscle size with moderate to heavy weights and higher repetitions.';
+        break;
+      case 'Strength':
+        workoutDesc = 'Strength - Focuses on building maximal strength using low repetitions and heavier weights.';
+        break;
+      case 'Endurance':
+        workoutDesc = 'Endurance - Enhances stamina with higher repetitions and moderate weights, including cardio exercises.';
+        break;
+      default:
+        break;
+    }
+
+    setIntensityDescription(intensityDesc);
+    setWorkoutDescription(workoutDesc);
+  };
+
+  useEffect(() => {
+    updateDescriptions();
+  }, [intensityLevel, workoutType]);
+
+  useEffect(() => {
+    if (selectedSummary) {
+        let detailedPrompt = `Create a 3-day personalized workout plan for ${clientName}, a ${clientAge}-year-old ${clientGender} with the following profile:`;
+
+        if (selectedSummary.goals) {
+            detailedPrompt += `\n- Goals: ${selectedSummary.goals}`;
+        }
+        if (selectedSummary.medical_history) {
+            detailedPrompt += `\n- Medical History: ${selectedSummary.medical_history}`;
+        }
+        if (selectedSummary.physical_limitations) {
+            detailedPrompt += `\n- Physical Limitations: ${selectedSummary.physical_limitations}`;
+        }
+        if (selectedSummary.exercise_preferences) {
+            detailedPrompt += `\n- Exercise Preferences: ${selectedSummary.exercise_preferences}`;
+        }
+        if (selectedSummary.lifestyle_factors) {
+            detailedPrompt += `\n- Lifestyle Factors: ${selectedSummary.lifestyle_factors}`;
+        }
+        if (selectedSummary.motivation) {
+            detailedPrompt += `\n- Motivation: ${selectedSummary.motivation}`;
+        }
+        if (selectedSummary.current_exercise_routine) {
+            detailedPrompt += `\n- Current Exercise Routine: ${selectedSummary.current_exercise_routine}`;
+        }
+        if (selectedSummary.challenges) {
+            detailedPrompt += `\n- Challenges: ${selectedSummary.challenges}`;
+        }
+
+        detailedPrompt += `\n\nPlease generate a workout plan considering the above details.`;
+
+        // Add additional instructions based on the selected intensity level and workout type
+        if (intensityLevel) {
+            detailedPrompt += generateIntensityDetails(intensityLevel);
+        }
+
+        if (workoutType) {
+            detailedPrompt += generateWorkoutDetails(workoutType);
+        }
+
+        setFinalPrompt(detailedPrompt);
+        console.log("Final modified prompt:", detailedPrompt);
+    }
+}, [intensityLevel, workoutType, selectedSummary]);
+
+const generateIntensityDetails = (intensityLevel) => {
+    switch (intensityLevel) {
+        case 'Beginner':
+            return '\nThe workout intensity should be designed for a beginner, focusing on foundational strength and endurance. Emphasize gradual progression, low impact exercises, and mastering basic movements to build confidence and reduce injury risk.';
+        case 'Intermediate':
+            return '\nThe workout intensity should cater to an intermediate fitness level, focusing on progressive overload and enhancing complexity. Include a mix of compound and isolation exercises, with a moderate increase in volume and intensity to challenge the client while preventing plateaus.';
+        case 'Advanced':
+            return '\nThe workout intensity should be tailored for an advanced client, incorporating high-intensity, complex exercises with a focus on peak performance. Utilize advanced techniques like supersets, dropsets, and periodization to push the client’s limits and achieve maximum results.';
+        default:
+            return '';
+    }
+};
+
+const generateWorkoutDetails = (workoutType) => {
+    switch (workoutType) {
+        case 'Functional':
+            return '\nThe focus will be on functional training, aiming to improve overall functional strength and mobility. Include exercises that mimic real-life movements, emphasize balance, coordination, and core stability.';
+        case 'Hypertrophy':
+            return '\nThe focus will be on hypertrophy training, which involves exercises designed to increase muscle size through moderate to heavy weights and higher repetitions (8-12 reps per set). Ensure the plan includes advanced hypertrophy techniques such as drop sets and progressive overload, emphasizing proper form and recovery.';
+        case 'Strength':
+            return '\nThe focus will be on strength training, emphasizing low repetitions (4-6 reps per set) with heavier weights to build maximal strength. Incorporate compound movements like deadlifts, squats, and bench presses, with progressive overload techniques to ensure continual strength gains.';
+        case 'Endurance':
+            return '\nThe focus will be on endurance training, incorporating higher repetitions (15-20 reps per set) with moderate weights. Include cardio exercises such as interval training and circuit routines to improve stamina, cardiovascular health, and muscular endurance.';
+        default:
+            return '';
+    }
+};
 
   const validateForm = () => {
     setErrors({});
@@ -140,24 +259,42 @@ const DemoPrompt = () => {
 
   return (
     <div className="container mx-auto p-4" style={{ color: 'black' }}>
-      <h1 className="text-2xl font-bold text-center mt-4">Select Workout Prompt</h1>
+      <h1 className="text-2xl font-bold text-center mt-4">Quick Plan Generator</h1>
       <div className="flex justify-end space-x-2 mt-4">
         <button onClick={() => navigate(-1)} className="px-4 py-2 text-white bg-gray-400 hover:bg-gray-600 transition-colors duration-300 ease-in-out rounded">
           Return Back
         </button>
+      </div>
+      <div className="my-4">
+        <div className="flex items-center">
+          <h2 className="text-xl font-medium text-gray-700">Client: {clientName}</h2>
+          <FaInfoCircle
+            className="ml-2 text-blue-600 cursor-pointer"
+            onClick={() => setShowBasePrompt(!showBasePrompt)}
+            data-tooltip-id={`tooltip-summary`}
+            data-tooltip-content="View Client Summary"
+          />
+          <Tooltip id={`tooltip-summary`} place="right" type="dark" effect="solid" style={{ padding: '3px 8px', fontSize: '12px' }} />
+        </div>
+        {showBasePrompt && (
+          <div className="mt-2 p-4 bg-gray-100 rounded-md">
+            <h3 className="text-lg font-medium text-gray-700">Base Prompt (Summary):</h3>
+            <p>{basePrompt}</p>
+          </div>
+        )}
       </div>
 
       <div className="my-4">
         <label htmlFor="summarySelect" className="block text-lg font-medium text-gray-700">Select a Summary:</label>
         <select
           id="summarySelect"
-          value={selectedSummaryId}
+          value={selectedSummary?.id}
           onChange={handleSummaryChange}
           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
         >
           {allSummaries.map((summary) => (
-            <option key={summary.id.id} value={summary.id.id}>  {/* Adjusted to nested id */}
-              {summary.id.summary_type} - {new Date(summary.id.created_at).toLocaleString()}  {/* Adjusted to nested data */}
+            <option key={summary.id.id} value={summary.id.id}>
+              {summary.id.summary_type} - {new Date(summary.id.created_at).toLocaleString()}
             </option>
           ))}
         </select>
@@ -177,22 +314,39 @@ const DemoPrompt = () => {
         <label htmlFor="workoutType" className="block text-lg font-medium text-gray-700">Select Workout Type:</label>
         <select id="workoutType" name="workoutType" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" onChange={(e) => setWorkoutType(e.target.value)}>
           <option value="">Select Type</option>
+          <option value="Functional">Functional</option>
           <option value="Hypertrophy">Hypertrophy</option>
           <option value="Strength">Strength</option>
           <option value="Endurance">Endurance</option>
         </select>
       </div>
 
+      {/* Always show key details */}
       <div className="my-4">
-        <h2 className="text-lg font-medium text-gray-700">Base Prompt:</h2>
-        <p className="p-4 bg-gray-100 rounded-md">{basePrompt}</p>
+        <h2 className="text-lg font-medium text-gray-700">Selected Plan Overview:</h2>
+        <p className="p-4 bg-gray-100 rounded-md">
+          {intensityLevel ? `Intensity Level: ${intensityDescription}` : 'No Intensity Level Selected'}
+          <br />
+          {workoutType ? `Workout Type: ${workoutDescription}` : 'No Workout Type Selected'}
+        </p>
       </div>
 
+      {/* Toggle for full prompt details */}
       <div className="my-4">
-        <h2 className="text-lg font-medium text-gray-700">Final Modified Prompt:</h2>
-        <p className="p-4 bg-gray-100 rounded-md">{finalPrompt}</p>
+        <button 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" 
+          onClick={() => setShowFullPrompt(!showFullPrompt)}>
+          {showFullPrompt ? 'Hide Full Details' : 'View Full Details'}
+        </button>
+        {showFullPrompt && (
+          <div className="mt-4 p-4 bg-gray-200 rounded-md">
+            <h2 className="text-lg font-medium text-gray-700">Final Modified Prompt:</h2>
+            <p className="p-4 bg-gray-100 rounded-md">{finalPrompt}</p>
+          </div>
+        )}
       </div>
 
+      {/* Submit Button */}
       <div className="my-4">
         <textarea
           id="additional_comments"
@@ -209,11 +363,10 @@ const DemoPrompt = () => {
         </div>
       )}
 
-      <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={submitHandler} disabled={submitting}>
+      <button className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" onClick={submitHandler} disabled={submitting}>
         Generate Example Plan
       </button>
 
-      {errors.prompt && <div className="text-red-500 text-sm mt-2">{errors.prompt}</div>}
       {errors.submitError && <div className="text-red-500 text-sm mt-2">{errors.submitError}</div>}
     </div>
   );

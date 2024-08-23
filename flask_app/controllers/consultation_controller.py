@@ -361,41 +361,58 @@ def get_saved_answers():
 
 @app.route('/api/create_client_summary/<int:client_id>', methods=['POST'])
 def create_client_summary(client_id):
+    # Check if the client_id is provided
     if not client_id:
         return jsonify({"error": "Client ID not found. Please log in again."}), 401
 
+    # Retrieve data from the request
     data = request.get_json()
     form_id = data.get('form_id')
     summary_type = data.get('summary_type', 'Initial Consultation')  # Default to 'Initial Consultation'
-    questions_answers = data.get('data')
-    
+    questions_answers = data.get('data')  # Assuming you get a list of question/answer pairs
+
     # Ensure questions and answers are provided
     if not questions_answers:
         return jsonify({'error': 'No data provided'}), 400
-
     # Retrieve client information to personalize the response
     client = Client.get_one(client_id)
     if not client:
         return jsonify({"success": False, "message": "Client not found."}), 404
-    
 
+    # Format additional instructions for AI
     additional_instructions = f"""
-    Please generate a structured client summary in JSON format based on the following responses from 
-    {client.first_name} {client.last_name}. The JSON should contain the following fields:
-    - "summary_text":  A detailed summary formatted in bullet points, including:
-                        1. The client’s main fitness goals and any challenges or obstacles mentioned.
-                        2. Medical history or physical limitations that should be considered in their fitness journey.
-                        3. Exercise preferences and dislikes to guide the creation of a personalized workout plan.
-                        4. Any relevant lifestyle factors that may influence their fitness plan.
-                        5. The client's motivation for pursuing their fitness goals.
-    - "summary_prompt": A concise and cohesive narrative summary that can be directly used to 
-    generate a personalized workout plan.
+    Please generate a structured client summary in JSON format based on the following responses from {client.first_name} {client.last_name}. The JSON should contain the following fields:
+    - "summary_text": A detailed summary formatted in bullet points, including:
+        1. The client’s main fitness goals and any challenges or obstacles mentioned.
+        2. Medical history or physical limitations that should be considered in their fitness journey.
+        3. Exercise preferences and dislikes to guide the creation of a personalized workout plan.
+        4. Any relevant lifestyle factors that may influence their fitness plan.
+        5. The client's motivation for pursuing their fitness goals.
+        6. The client's current exercise routine, if any.
+        7. Any challenges the client faces in maintaining their fitness routine.
+    - "summary_prompt": A concise and cohesive narrative summary that can be directly used to generate a personalized workout plan.
+    - "goals": The client's specific goals and challenges.
+    - "medical_history": Any medical history or physical limitations.
+    - "physical_limitations": Specific physical limitations that might affect the workout plan.
+    - "exercise_preferences": The client's preferences and dislikes regarding exercises.
+    - "lifestyle_factors": Any lifestyle factors (like daily routines) that could affect the workout plan.
+    - "motivation": What motivates the client to pursue their fitness goals.
+    - "current_exercise_routine": The client's current exercise routine, if any.
+    - "challenges": Any challenges the client is facing in maintaining their fitness routine.
 
-    Make sure the JSON is properly formatted and that all fields are included. For example:
-{{
-  "summary_text": "Your detailed summary here...",
-  "summary_prompt": "Your concise prompt here..."
-}}
+    Ensure the JSON is properly formatted, and all fields are included. For example:
+    {{
+        "summary_text": "Detailed summary here...",
+        "summary_prompt": "Concise prompt here...",
+        "goals": "Client goals here...",
+        "medical_history": "Client medical history here...",
+        "physical_limitations": "Client physical limitations here...",
+        "exercise_preferences": "Client exercise preferences here...",
+        "lifestyle_factors": "Client lifestyle factors here...",
+        "motivation": "Client motivation here...",
+        "current_exercise_routine": "Client's current exercise routine here...",
+        "challenges": "Client's challenges here..."
+    }}
     """
 
     # Format the input for OpenAI
@@ -403,46 +420,51 @@ def create_client_summary(client_id):
     final_prompt = formatted_data + "\n\n" + additional_instructions
 
     try:
-    # Making the request to the OpenAI API
+        # Making the request to OpenAI API
         client_ai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         completion = client_ai.chat.completions.create(
-            model="gpt-4o-mini",  # Model (Newest One)
-            messages=[{"role": "system", "content": """AI fitness assistant. Your task is to analyze client 
-                       data and generate both a detailed summary and a prompt for generating a workout plan."""}, 
+            model="gpt-4o-mini",
+            messages=[{"role": "system", "content": "AI fitness assistant. Your task is to analyze client data."},
                       {"role": "user", "content": final_prompt}],
-            max_tokens=3000,  # Adjust as needed (how big the responses are)
-            temperature=0.3  # Control the randomness?
+            max_tokens=3000,
+            temperature=0.3
         )
+        
         client_summary = completion.choices[0].message.content.strip()
-        print("Raw AI Response:", client_summary)
 
+        # Parsing the JSON response from AI
         if client_summary.startswith("```json"):
             client_summary = client_summary.replace("```json", "").replace("```", "").strip()
 
         summary_data = json.loads(client_summary)
-        if isinstance(summary_data.get('summary_text'), list):
-            summary_text = "\n".join(summary_data.get('summary_text'))
-        else:
-            summary_text = summary_data.get('summary_text', '')
-        summary_prompt = summary_data.get('summary_prompt', '')
 
-    # Save to the database
-        client_summaries = ClientSummaries(
-            summary_text=summary_text,
-            summary_prompt=summary_prompt,
+        # Creating a new ClientSummaries instance with extracted data
+        client_summary_instance = ClientSummaries(
+            summary_text=summary_data.get('summary_text'),
+            summary_prompt=summary_data.get('summary_prompt'),
+            summary_type=summary_type,
+            goals=summary_data.get('goals'),
+            medical_history=summary_data.get('medical_history'),
+            physical_limitations=summary_data.get('physical_limitations'),
+            exercise_preferences=summary_data.get('exercise_preferences'),
+            lifestyle_factors=summary_data.get('lifestyle_factors'),
+            motivation=summary_data.get('motivation'),
+            current_exercise_routine=summary_data.get('current_exercise_routine'),
+            challenges=summary_data.get('challenges'),
             client_id=client_id,
-            form_id=form_id,
-            summary_type=summary_type  # Set based on input or default
+            form_id=form_id
         )
-        client_summaries.save()
 
-        return jsonify({'message': 'Client AI summary generated and saved successfully'}), 200
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
-        return jsonify({'error': f"JSON decoding error: {e}"}), 500
+        # Save the client summary to the database
+        result = client_summary_instance.save()
+        if result:
+            return jsonify({"success": True, "message": "Client summary saved successfully.", "summary_id": result}), 201
+        else:
+            return jsonify({"error": "Failed to save client summary."}), 500
+
     except Exception as e:
-        print(f"Error generating Client AI summary: {e}")
-        return jsonify({'error': str(e)}), 500
+        print(f"Error generating or saving client summary: {e}")
+        return jsonify({"error": "An error occurred while generating or saving the client summary."}), 500
 
 
 @app.route('/api/get_recent_client_summary/<int:client_id>', methods=['GET'])
@@ -463,6 +485,14 @@ def get_recent_client_summary(client_id):
                 'summary_prompt': serialized_summary.get('summary_prompt'),
                 'summary_text': serialized_summary.get('summary_text'),
                 'summary_type': serialized_summary.get('summary_type'),
+                'goals': serialized_summary.get('goals'),
+                'medical_history': serialized_summary.get('medical_history'),
+                'physical_limitations': serialized_summary.get('physical_limitations'),
+                'exercise_preferences': serialized_summary.get('exercise_preferences'),
+                'lifestyle_factors': serialized_summary.get('lifestyle_factors'),
+                'motivation': serialized_summary.get('motivation'),
+                'current_exercise_routine': serialized_summary.get('current_exercise_routine'),
+                'challenges': serialized_summary.get('challenges'),
                 'created_at': serialized_summary.get('created_at'),
                 'updated_at': serialized_summary.get('updated_at'),
             }
