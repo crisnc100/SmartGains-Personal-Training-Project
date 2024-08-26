@@ -512,5 +512,16 @@ def get_base_prompts(client_id):
 
 
 
+@app.route('/api/get_simple_client_data/<int:client_id>', methods=['GET'])
+def get_simple_client_data(client_id):
+    client_data = Client.get_one(client_id)
+    if not client_data:
+        return jsonify({"error": "No client data found for this client"}), 404
+    
+    return jsonify(client_data.serialize())
+
+
+
+
 
 
