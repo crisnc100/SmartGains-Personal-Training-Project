@@ -145,10 +145,7 @@ class IntakeForms:
     # DELETE
     @classmethod
     def delete(cls, form_id):
-        query = "DELETE FROM intake_forms WHERE id = %(id)s"
-        data = {'id': form_id}
-        try:
-            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
-        except Exception as e:
-            print(f"Error deleting data: {e}")
-            return None
+        query = "DELETE FROM intake_forms WHERE id = %(id)s;"
+        data = {"id": form_id}
+        result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        return result != 0

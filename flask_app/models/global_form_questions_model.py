@@ -11,7 +11,6 @@ class GlobalFormQuestions:
         self.visual_aid_url = data.get('visual_aid_url')
         self.is_default = data.get('is_default')
         self.templates = data.get('templates')
-        self.tags = data.get('tags')
         self.created_at = data.get('created_at')
         self.updated_at = data.get('updated_at')
     
@@ -25,7 +24,6 @@ class GlobalFormQuestions:
             'visual_aid_url': self.visual_aid_url,
             'is_default': self.is_default,
             'templates': self.templates,
-            'tags': self.tags,
             'created_at': str(self.created_at),
             'updated_at': str(self.updated_at)
         }
@@ -124,14 +122,4 @@ class GlobalFormQuestions:
             print(f"Error fetching default questions: {e}")
             return []
     
-    @classmethod
-    def get_by_tag(cls, tag):
-        query = "SELECT * FROM global_form_questions WHERE FIND_IN_SET(%(tag)s, tags)"
-        data = {'tag': tag}
-        try:
-            results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
-            questions = [cls(row) for row in results]
-            return questions
-        except Exception as e:
-            print(f"Error fetching data by tag: {e}")
-            return []
+   

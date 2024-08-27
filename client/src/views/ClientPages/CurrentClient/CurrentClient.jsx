@@ -80,10 +80,10 @@ const CurrentClient = () => {
 
     const capitalizeFirstLetter = (string) => {
         return string
-        .toLowerCase()
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     };
 
     const handleDeletePlan = (updatedPlans, type) => {
@@ -95,22 +95,48 @@ const CurrentClient = () => {
         }));
     };
 
-
-
-
-    const saveChanges = () => {
-        console.log("Attempting to save changes:", editableData);
-        axios.post(`http://localhost:5000/api/update_client_data/${clientId}`, editableData)
-            .then(() => {
-                console.log("Data saved successfully, updating state...");
-                setAllClientData({ ...editableData });
-                setEditableData({ ...editableData });
-                setIsEditMode(false);
-            })
-            .catch(error => {
-                console.error('Error updating client data', error);
-            });
+    const handleDeleteForm = (formId) => {
+        if (window.confirm("Are you sure you want to delete this intake form? This action cannot be undone.")) {
+            axios.delete(`http://localhost:5000/api/delete_intake_form/${formId}`)
+                .then(response => {
+                    if (response.data.success) {
+                        console.log(`Form with ID ${formId} deleted successfully.`);
+                        // Remove the deleted form from both allClientData and editableData states
+                        const updatedIntakeForms = allClientData.intake_forms.filter(form => form.id !== formId);
+                        setAllClientData(prevData => ({
+                            ...prevData,
+                            intake_forms: updatedIntakeForms
+                        }));
+                        setEditableData(prevData => ({
+                            ...prevData,
+                            intake_forms: updatedIntakeForms
+                        }));
+                    } else {
+                        console.error(`Failed to delete form: ${response.data.message}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting form:', error);
+                });
+        }
     };
+    
+
+
+
+        const saveChanges = () => {
+            console.log("Attempting to save changes:", editableData);
+            axios.post(`http://localhost:5000/api/update_client_data/${clientId}`, editableData)
+                .then(() => {
+                    console.log("Data saved successfully, updating state...");
+                    setAllClientData({ ...editableData });
+                    setEditableData({ ...editableData });
+                    setIsEditMode(false);
+                })
+                .catch(error => {
+                    console.error('Error updating client data', error);
+                });
+        };
 
 
 
@@ -333,6 +359,17 @@ const CurrentClient = () => {
                                                 <h3 className="font-bold text-xl">{capitalizeFirstLetter(form.form_type)}</h3>
                                                 <p className='text-xl'>{format(new Date(form.created_at), 'MM-dd-yyyy')}</p>
                                             </div>
+                                            {isEditMode && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // Prevent collapsing the form when clicking delete
+                                                        handleDeleteForm(form.id);
+                                                    }}
+                                                    className="py-1 px-2 font-semibold rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 ease-in-out"
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
                                             {expandedForms[form.id] && (
                                                 <div className="p-4 bg-white rounded-b-md shadow-md">
                                                     {form.answers.map((answer, answerIndex) => (

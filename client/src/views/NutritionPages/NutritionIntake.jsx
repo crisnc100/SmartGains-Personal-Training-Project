@@ -53,15 +53,13 @@ const NutritionIntake = () => {
     useEffect(() => {
         axios.get(`http://localhost:5000/api/get_relatable_nutrition_data/${clientId}`, { withCredentials: true })
             .then(response => {
-                const { client_data, consultation_data, history_data } = response.data;
+                const { client_data} = response.data;
                 setRelatableData(response.data);
                 setClientName(`${client_data.first_name} ${client_data.last_name}`);
                 setNutritionForm(prevForm => ({
                     ...prevForm,
                     ...client_data,
-                    dob: formatDate(client_data.dob),
-                    ...consultation_data,
-                    ...history_data,
+                    dob: formatDate(client_data.dob)
                 }));
                 setLoading(false);
             })

@@ -32,7 +32,7 @@ const CustomizeForm = ({ onSave }) => {
 
   const fetchQuestions = async (savedCurrentQuestions = null) => {
     try {
-      const globalResponse = await axios.get('http://localhost:5000/api/get_global_questions');
+      const globalResponse = await axios.get('http://localhost:5000/api/get_user_questions');
       const globalQuestions = globalResponse.data;
 
       if (savedCurrentQuestions) {

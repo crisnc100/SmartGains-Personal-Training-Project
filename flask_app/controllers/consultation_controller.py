@@ -46,10 +46,12 @@ def get_user_questions():
         global_questions = [q for q in global_questions if q.id not in user_deleted_question_ids]
 
         # Combine global questions with user-specific edits and additions
-        combined_questions = {q.id: q for q in global_questions}
+        combined_questions = {q.id: q for q in global_questions}  # This should create a dictionary with objects, not other dictionaries
+
         for uq in user_questions:
             if uq.action == 'edit' or uq.action == 'add':
-                combined_questions[uq.global_question_id or uq.id] = uq
+                combined_questions[uq.global_question_id or uq.id] = uq  # Ensure uq is an object, not a dictionary
+
 
         return jsonify([question.serialize() for question in combined_questions.values()]), 200
     except Exception as e:
@@ -519,6 +521,20 @@ def get_simple_client_data(client_id):
         return jsonify({"error": "No client data found for this client"}), 404
     
     return jsonify(client_data.serialize())
+
+@app.route('/api/delete_intake_form/<int:form_id>', methods=['DELETE'])
+def delete_intake_form(form_id):
+    try:
+        success = IntakeForms.delete(form_id)
+        if success:
+            print(f"Intake form with ID {form_id} deleted successfully.")
+            return jsonify({"success": True, "message": "Intake form deleted successfully."}), 200
+        else:
+            print(f"No intake form found with ID {form_id}.")
+            return jsonify({"success": False, "message": "Failed to delete intake form. No such form exists."}), 404
+    except Exception as e:
+        print(f"An error occurred while deleting intake plan with ID {form_id}: {str(e)}")
+        return jsonify({"success": False, "message": f"An error occurred while deleting the intake form: {str(e)}"}), 500
 
 
 

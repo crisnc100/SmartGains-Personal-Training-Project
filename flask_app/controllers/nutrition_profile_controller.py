@@ -2,8 +2,7 @@ from flask import request, jsonify, session
 from flask_app import app
 from flask_app.models.nutrition_profile_model import NutritionProfile
 from flask_app.models.client_model import Client
-from flask_app.models.consultation_model import Consultation
-from flask_app.models.history_model import History
+
 
 
 @app.route('/api/get_all_nutrition_profiles', methods=['GET'])
@@ -27,13 +26,8 @@ def get_relatable_nutrition_data(client_id):
         print(f"No client data found for client_id: {client_id}")
         return jsonify({'error': 'No client data found'}), 404
 
-    consultation_data = Consultation.get_by_client_id(client_id)
-    history_data = History.get_by_client_id(client_id)
-
     relatable_data = {
-        "client_data": client_data.serialize() if client_data else {},
-        "consultation_data": consultation_data.serialize() if consultation_data else {},
-        "history_data": history_data.serialize() if history_data else {},
+        "client_data": client_data.serialize() if client_data else {}
     }
 
     print(f"Successfully retrieved data for client_id: {client_id}")

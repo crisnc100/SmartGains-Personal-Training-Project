@@ -173,7 +173,7 @@ class WorkoutProgress:
                     }
                 grouped_progress[plan_key]['sessions'].append(row)
 
-            print("Grouped Multi-Day Progress:", grouped_progress)
+            #print("Grouped Multi-Day Progress:", grouped_progress)
             return grouped_progress
 
         except Exception as e:
@@ -201,7 +201,7 @@ class WorkoutProgress:
                 if len(day_completion_status) == 1 and result['completed_marked'] == 1:
                     single_day_results.append(result)
         
-            print("Single-Day Generated Plan Progress:", single_day_results)
+            #print("Single-Day Generated Plan Progress:", single_day_results)
             return [cls(result) for result in single_day_results]
         except Exception as e:
             print(f"An error occurred while fetching single-day generated plan progress: {str(e)}")

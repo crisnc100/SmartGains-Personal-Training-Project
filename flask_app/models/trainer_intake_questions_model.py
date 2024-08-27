@@ -14,7 +14,7 @@ class TrainerIntakeQuestions:
         self.created_at = data.get('created_at')
         self.updated_at = data.get('updated_at')
         self.trainer_id = data.get('trainer_id')
-        self.global_question_id = data('global_question_id')
+        self.global_question_id = data.get('global_question_id')
     
     def serialize(self):
         return {
@@ -36,6 +36,13 @@ class TrainerIntakeQuestions:
     # CREATE or UPDATE based on action
     @classmethod
     def update_or_create(cls, data):
+
+        if 'visual_aid_url' not in data or not data['visual_aid_url']:
+            data['visual_aid_url'] = None
+        if 'is_default' not in data:
+            data['is_default'] = None  # Set is_default to None if not provided
+        if 'templates' not in data:
+                data['templates'] = None
         existing_question = cls.get_by_global_question_id(data['trainer_id'], data['global_question_id'])
         if existing_question:
             query = """
