@@ -15,6 +15,71 @@ const CustomizeForm = ({ onSave }) => {
   const [showCurrentQuestions, setShowCurrentQuestions] = useState(true);
   const [notification, setNotification] = useState({ show: false, message: '' });
 
+
+  useEffect(() => {
+    // Ensure clientId is initialized early
+    if (!clientId) {
+      // Handle the case where clientId isn't available, maybe redirect or show a warning
+      console.warn("Client ID is missing, initializing...");
+    }
+
+    const key = getLocalStorageKey(clientId, 'currentQuestions');
+    let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
+
+    if (!savedCurrentQuestions) {
+      savedCurrentQuestions = [];
+      localStorage.setItem(key, JSON.stringify(savedCurrentQuestions));
+    }
+
+    console.log('Current clientId:', clientId);
+    console.log('Loading savedCurrentQuestions from local storage with key:', key);
+    console.log('Loaded savedCurrentQuestions:', savedCurrentQuestions);
+
+    fetchQuestions(savedCurrentQuestions);
+
+  }, [clientId]);
+
+  const fetchQuestions = async (savedCurrentQuestions = null) => {
+    try {
+        const globalResponse = await axios.get('http://localhost:5000/api/get_user_questions');
+        const globalQuestions = globalResponse.data;
+
+        let combinedQuestions = {};
+
+        // Combine global and trainer questions
+        globalQuestions.forEach((q) => {
+            if (q.action === 'edit' && q.global_question_id) {
+                combinedQuestions[q.global_question_id] = q; // Replace global question with trainer's edited version
+            } else {
+                combinedQuestions[q.id] = q; // Add global or trainer question
+            }
+        });
+
+        let allQuestionsArray = Object.values(combinedQuestions);
+
+        if (savedCurrentQuestions) {
+            // Filter out questions that are already in the 'Current Intake Form'
+            const filteredQuestions = allQuestionsArray.filter(q => 
+                !savedCurrentQuestions.some(cq => cq.id === q.id || cq.global_question_id === q.id)
+            );
+
+            setAllQuestions(filteredQuestions);
+            setCurrentQuestions(savedCurrentQuestions);
+        } else {
+            setCurrentQuestions([]);
+        }
+
+        const allCategories = ['All', ...new Set(allQuestionsArray.map(q => q.category))];
+        setCategories(allCategories);
+
+    } catch (error) {
+        console.error('Error fetching questions:', error);
+    }
+};
+
+
+
+
   useEffect(() => {
     const key = getLocalStorageKey(clientId, 'currentQuestions');
     const savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
@@ -23,42 +88,12 @@ const CustomizeForm = ({ onSave }) => {
     console.log('Loaded savedCurrentQuestions:', savedCurrentQuestions);
 
     if (savedCurrentQuestions) {
-        fetchQuestions(savedCurrentQuestions);
+      fetchQuestions(savedCurrentQuestions);
     } else {
-        console.log('No savedCurrentQuestions found, fetching default questions.');
-        fetchQuestions();
+      console.log('No savedCurrentQuestions found, fetching default questions.');
+      fetchQuestions();
     }
-}, [clientId]);
-
-  const fetchQuestions = async (savedCurrentQuestions = null) => {
-    try {
-      const globalResponse = await axios.get('http://localhost:5000/api/get_user_questions');
-      const globalQuestions = globalResponse.data;
-
-      if (savedCurrentQuestions) {
-        const nonDefaultQuestions = globalQuestions.filter(gq => 
-          !savedCurrentQuestions.some(dq => dq.id === gq.id)
-        );
-
-        setAllQuestions(nonDefaultQuestions);
-        setCurrentQuestions(savedCurrentQuestions);
-      } else {
-        const defaultResponse = await axios.get('http://localhost:5000/api/get_user_default_questions');
-        const defaultQuestions = defaultResponse.data;
-
-        const nonDefaultQuestions = globalQuestions.filter(gq => 
-          !defaultQuestions.some(dq => dq.id === gq.id)
-        );
-
-        setAllQuestions(nonDefaultQuestions);
-        setCurrentQuestions(defaultQuestions);
-      }
-
-      setCategories(['All', ...new Set(globalQuestions.map(q => q.category))]);
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-    }
-  };
+  }, [clientId]);
 
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
@@ -72,56 +107,52 @@ const CustomizeForm = ({ onSave }) => {
 
     const itemId = parseInt(draggableId.split('-')[1]);
 
-    if (sourceDroppable === destDroppable) {
-      if (sourceDroppable === 'all-questions') {
-        const items = Array.from(filteredQuestions);
-        const [reorderedItem] = items.splice(sourceIndex, 1);
-        items.splice(destIndex, 0, reorderedItem);
-        const updatedAllQuestions = allQuestions.map(q => items.find(fq => fq.id === q.id) || q);
-        setAllQuestions(updatedAllQuestions);
-      } else if (sourceDroppable === 'current-questions') {
-        const items = Array.from(currentQuestions);
-        const [reorderedItem] = items.splice(sourceIndex, 1);
-        items.splice(destIndex, 0, reorderedItem);
-        setCurrentQuestions(items);
-      }
-    } else {
-      let sourceItems = sourceDroppable === 'all-questions' ? Array.from(filteredQuestions) : Array.from(currentQuestions);
-      let destinationItems = destDroppable === 'all-questions' ? Array.from(filteredQuestions) : Array.from(currentQuestions);
+    let newCurrentQuestions = Array.from(currentQuestions);
+    let newAllQuestions = Array.from(allQuestions);
 
-      const [movedItem] = sourceItems.splice(sourceIndex, 1);
-      destinationItems.splice(destIndex, 0, movedItem);
-
-      if (sourceDroppable === 'all-questions') {
-        const updatedAllQuestions = allQuestions.filter(q => q.id !== itemId);
-        setAllQuestions(updatedAllQuestions);
-        setCurrentQuestions(destinationItems);
-      } else {
-        setCurrentQuestions(sourceItems);
-        setAllQuestions([...allQuestions, movedItem]);
-      }
+    if (sourceDroppable === 'all-questions' && destDroppable === 'current-questions') {
+      const [movedItem] = newAllQuestions.splice(sourceIndex, 1);
+      newCurrentQuestions.splice(destIndex, 0, movedItem);
+    } else if (sourceDroppable === 'current-questions' && destDroppable === 'all-questions') {
+      const [movedItem] = newCurrentQuestions.splice(sourceIndex, 1);
+      newAllQuestions.splice(destIndex, 0, movedItem);
+    } else if (sourceDroppable === 'current-questions' && destDroppable === 'current-questions') {
+      const [reorderedItem] = newCurrentQuestions.splice(sourceIndex, 1);
+      newCurrentQuestions.splice(destIndex, 0, reorderedItem);
     }
 
-    localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(currentQuestions));
+    setAllQuestions(newAllQuestions);
+    setCurrentQuestions(newCurrentQuestions);
+    localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(newCurrentQuestions));
   };
 
   const filteredQuestions = selectedCategory === 'All'
     ? allQuestions
     : allQuestions.filter(question => question.category === selectedCategory);
 
-    const handleSaveChanges = () => {
-      console.log('Saving current questions to local storage:', currentQuestions);
-      const key = getLocalStorageKey(clientId, 'currentQuestions');
-      localStorage.setItem(key, JSON.stringify(currentQuestions));
-      
-      
-      setNotification({ show: true, message: 'Changes saved successfully!' });
-  
-      setTimeout(() => {
-          setNotification({ show: false, message: '' });
-      }, 3000);
+  // Log filtered questions to check if trainer-added questions are included
+  //console.log('Filtered Questions:', filteredQuestions);
+
+
+  const handleSaveChanges = () => {
+    console.log('Saving current questions to local storage:', currentQuestions);
+    const key = getLocalStorageKey(clientId, 'currentQuestions');
+    localStorage.setItem(key, JSON.stringify(currentQuestions));
+
+    // Update the question bank by removing questions that are already in the 'Current Intake Form'
+    const updatedQuestionBank = allQuestions.filter(q =>
+      !currentQuestions.some(cq => cq.id === q.id || cq.global_question_id === q.id)
+    );
+    setAllQuestions(updatedQuestionBank);
+
+    setNotification({ show: true, message: 'Changes saved successfully!' });
+
+    setTimeout(() => {
+      setNotification({ show: false, message: '' });
+    }, 3000);
   };
-  
+
+
 
   return (
     <div className="flex flex-col">
@@ -151,7 +182,10 @@ const CustomizeForm = ({ onSave }) => {
               {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="max-h-96 overflow-y-auto">
                   {filteredQuestions.map((question, index) => (
-                    <Draggable key={`all-${question.id}`} draggableId={`all-${question.id}`} index={index}>
+                    <Draggable
+                      key={`all-${question.id}-${index}`}  // Ensure unique keys by adding the index or another unique identifier
+                      draggableId={`all-${question.id}`}
+                      index={index}>
                       {(provided) => (
                         <div
                           ref={provided.innerRef}
@@ -176,7 +210,10 @@ const CustomizeForm = ({ onSave }) => {
                 {(provided) => (
                   <div {...provided.droppableProps} ref={provided.innerRef} className="max-h-96 overflow-y-auto">
                     {currentQuestions.map((question, index) => (
-                      <Draggable key={`current-${question.id}`} draggableId={`current-${question.id}`} index={index}>
+                      <Draggable
+                        key={`current-${question.id}-${index}`}  // Ensure unique keys by adding the index or another unique identifier
+                        draggableId={`current-${question.id}`}
+                        index={index}>
                         {(provided) => (
                           <div
                             ref={provided.innerRef}
@@ -222,6 +259,7 @@ const CustomizeForm = ({ onSave }) => {
       )}
     </div>
   );
+
 };
 
 export default CustomizeForm;

@@ -41,21 +41,26 @@ def get_user_questions():
         user_questions = TrainerIntakeQuestions.get_all_by_trainer(trainer_id)
         global_questions = GlobalFormQuestions.get_all()
 
-        # Filter out global questions that are marked as deleted by the trainer
-        user_deleted_question_ids = {uq.global_question_id for uq in user_questions if uq.action == 'delete'}
-        global_questions = [q for q in global_questions if q.id not in user_deleted_question_ids]
-
-        # Combine global questions with user-specific edits and additions
-        combined_questions = {q.id: q for q in global_questions}  # This should create a dictionary with objects, not other dictionaries
+        # Create a dictionary to hold the combined questions
+        combined_questions = {q.id: q for q in global_questions}
 
         for uq in user_questions:
-            if uq.action == 'edit' or uq.action == 'add':
-                combined_questions[uq.global_question_id or uq.id] = uq  # Ensure uq is an object, not a dictionary
+            if uq.action == 'edit' and uq.global_question_id is not None:
+                # Replace the global question with the trainer's edited version
+                combined_questions[uq.global_question_id] = uq
+            elif uq.action == 'add':
+                # Add new trainer-specific question using its own ID as the key
+                combined_questions[uq.id] = uq
+            elif uq.action == 'delete' and uq.global_question_id in combined_questions:
+                # Remove the global question if it was deleted by the trainer
+                del combined_questions[uq.global_question_id]
 
-
+        # Return the combined list of questions
         return jsonify([question.serialize() for question in combined_questions.values()]), 200
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
     
 @app.route('/api/get_user_question/<int:question_id>', methods=['GET'])
 def get_user_question(question_id):
@@ -77,25 +82,57 @@ def get_user_default_questions():
             return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
         trainer_id = session['trainer_id']
+        # Fetching all questions for the trainer, you can replace this with get_all_defaults based on your needs
         user_questions = TrainerIntakeQuestions.get_all_by_trainer(trainer_id)
         global_default_questions = GlobalFormQuestions.get_all_defaults()
 
-        # Merge global default questions with user-specific questions
+        # Combine global and trainer questions
         combined_questions = {q.id: q for q in global_default_questions}
+
+        # Override global questions with trainer-specific ones
         for uq in user_questions:
             combined_questions[uq.id] = uq
+
+        # Filtering non-default trainer questions if necessary
+        filtered_questions = [
+            question for question in combined_questions.values() 
+            if question.is_default == 1  # Keep only default questions
+        ]
+
+        return jsonify([question.serialize() for question in filtered_questions]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/get_questions_by_template/<template>', methods=['GET'])
+def get_questions_by_template(template):
+    try:
+        if 'trainer_id' not in session:
+            return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+        trainer_id = session['trainer_id']
+        global_questions = GlobalFormQuestions.get_by_template(template)
+        user_questions = TrainerIntakeQuestions.get_all_by_trainer(trainer_id)
+
+        # Filter out global questions that are marked as deleted by the trainer
+        user_deleted_question_ids = {uq.global_question_id for uq in user_questions if uq.action == 'delete'}
+        global_questions = [q for q in global_questions if q.id not in user_deleted_question_ids]
+
+        # Combine global questions with user-specific edits and additions
+        combined_questions = {q.id: q for q in global_questions}
+
+        for uq in user_questions:
+            if uq.action == 'edit' and uq.global_question_id is not None:
+                combined_questions[uq.global_question_id] = uq
+            elif uq.action == 'add' and uq.templates == template:
+                combined_questions[uq.id] = uq
+            elif uq.action == 'delete' and uq.global_question_id in combined_questions:
+                del combined_questions[uq.global_question_id]
 
         return jsonify([question.serialize() for question in combined_questions.values()]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/get_questions_by_template/<template>', methods=['GET'])
-def get_questions_by_template(template):
-    try:
-        questions = GlobalFormQuestions.get_by_template(template)
-        return jsonify([question.serialize() for question in questions]), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/add_user_question', methods=['POST'])
@@ -261,7 +298,15 @@ def auto_save_intake_form():
                 if isinstance(answer['answer'], list):
                     answer['answer'] = ','.join(answer['answer'])  # Convert list to comma-separated string
                 
-                if answer['answer']:  # Only save non-empty answers
+                if answer['answer']:
+                    # Determine the question_source based on the question_id and its presence in either table
+                    if TrainerIntakeQuestions.get_by_id(answer['question_id']):
+                        answer['question_source'] = 'trainer'
+                    elif GlobalFormQuestions.get_by_id(answer['question_id']):
+                        answer['question_source'] = 'global'
+                    else:
+                        return jsonify({'error': f'Invalid question_id: {answer["question_id"]}'}), 400
+
                     answer['form_id'] = form_id
                     IntakeFormAnswers.save(answer)
         

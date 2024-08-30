@@ -115,6 +115,20 @@ class TrainerIntakeQuestions:
         except Exception as e:
             print(f"Error fetching data: {e}")
             return None
+    
+    @classmethod
+    def get_all_defaults(cls, trainer_id):
+        query = """
+            SELECT * FROM trainer_intake_questions 
+            WHERE trainer_id = %(trainer_id)s AND is_default = 1
+        """
+        data = {'trainer_id': trainer_id}
+        try:
+            results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            return [cls(row) for row in results]  # Ensure each row is an instance of TrainerIntakeQuestions
+        except Exception as e:
+            print(f"Error fetching default questions for trainer_id {trainer_id}: {e}")
+            return []
 
 
 

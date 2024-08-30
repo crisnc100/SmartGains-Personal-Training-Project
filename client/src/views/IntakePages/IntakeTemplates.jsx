@@ -29,19 +29,31 @@ const IntakeTemplates = () => {
 
   const fetchDefaultQuestions = () => {
     axios.get('http://localhost:5000/api/get_user_default_questions')
-      .then(response => {
-        setQuestions(response.data);
-      })
-      .catch(error => console.error('Error fetching default questions:', error));
-  };
+        .then(response => {
+            const fetchedQuestions = response.data;
+
+            // Log fetched questions to verify
+            console.log('Fetched Default Questions (including trainer-added):', fetchedQuestions);
+
+            setQuestions(fetchedQuestions);
+        })
+        .catch(error => console.error('Error fetching default questions:', error));
+};
+
 
   const fetchQuestionsByTemplate = (template) => {
     axios.get(`http://localhost:5000/api/get_questions_by_template/${template}`)
-      .then(response => {
-        setQuestions(response.data);
-      })
-      .catch(error => console.error('Error fetching questions:', error));
-  };
+        .then(response => {
+            const fetchedQuestions = response.data;
+
+            // Log the fetched questions to debug
+            console.log(`Fetched Questions for Template ${template}:`, fetchedQuestions);
+
+            setQuestions(fetchedQuestions);
+        })
+        .catch(error => console.error('Error fetching questions:', error));
+};
+
 
   const handleTemplateClick = (template) => {
       if (selectedTemplate === template) {
