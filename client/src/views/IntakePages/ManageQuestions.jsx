@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaEdit, FaTrash, FaUndo } from 'react-icons/fa';
+import { useNavigate, useParams } from 'react-router-dom';
+
+
+
+const getLocalStorageKey = (clientId, key) => `client_${clientId}_${key}`;
 
 const ManageQuestions = () => {
     const [questions, setQuestions] = useState([]);
+    const { clientId } = useParams();
     const [newQuestion, setNewQuestion] = useState({
         question_text: '',
         question_type: '',
@@ -54,12 +60,29 @@ const ManageQuestions = () => {
     const editQuestion = (questionId) => {
         const question = questions.find(q => q.id === questionId);
         const category = question.category === 'Other' ? question.other_category : question.category;
-        axios.put(`http://localhost:5000/api/update_user_question/${question.global_question_id || question.id}`, { ...question, category, action: 'edit' })
-            .then(() => {
-                setEditingQuestion(null);
-                showNotification('Question updated successfully');
-            })
-            .catch(error => console.error('Error updating question:', error));
+    
+        axios.put(`http://localhost:5000/api/update_user_question/${question.global_question_id || question.id}`, 
+          { ...question, category, action: 'edit' })
+          .then(() => {
+              setEditingQuestion(null);
+              showNotification('Question updated successfully');
+    
+              // Update the savedCurrentQuestions in localStorage
+              const key = getLocalStorageKey(clientId, 'currentQuestions');
+              let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
+    
+              if (savedCurrentQuestions) {
+                  const updatedCurrentQuestions = savedCurrentQuestions.map(cq => {
+                      if (cq.id === question.id || cq.global_question_id === question.id) {
+                          return { ...cq, ...question }; // Merge the updated question details
+                      }
+                      return cq;
+                  });
+    
+                  localStorage.setItem(key, JSON.stringify(updatedCurrentQuestions));
+              }
+          })
+          .catch(error => console.error('Error updating question:', error));
     };
 
     const deleteQuestion = (questionId) => {
@@ -178,7 +201,7 @@ const ManageQuestions = () => {
                                 <input
                                     type="text"
                                     name="question_text"
-                                    value={question.question_text}
+                                    value={question.question_text || ""}
                                     onChange={(e) => handleEditInputChange(e, question.id)}
                                     className="border p-2 mr-2 w-full"
                                 />

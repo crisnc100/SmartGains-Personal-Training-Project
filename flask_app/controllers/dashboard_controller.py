@@ -28,9 +28,12 @@ def total_clients():
 
 @app.route('/api/get_all_pinned_plans', methods=['GET'])
 def get_all_pinned_plans():
+    trainer_id = session.get('trainer_id')
+    if not trainer_id:
+        return jsonify({'error': 'Unauthorized'}), 401
     try:
-        pinned_generated_plans = GeneratedPlan.get_pinned_plans()
-        pinned_demo_plans = DemoPlan.get_pinned_plans()
+        pinned_generated_plans = GeneratedPlan.get_pinned_plans(trainer_id)
+        pinned_demo_plans = DemoPlan.get_pinned_plans(trainer_id)
         
         combined_pinned_plans = pinned_generated_plans + pinned_demo_plans
         
@@ -38,6 +41,7 @@ def get_all_pinned_plans():
     except Exception as e:
         print(f"Error in get_all_pinned_plans endpoint: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
 
 
 @app.route('/api/unpin_plan/<int:plan_id>', methods=['POST'])

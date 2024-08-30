@@ -284,18 +284,21 @@ class GeneratedPlan:
 
     
     @classmethod
-    def get_pinned_plans(cls):
+    def get_pinned_plans(cls, trainer_id):
         query = """
             SELECT * FROM generated_plans
-            WHERE pinned_until IS NOT NULL AND pinned_until > NOW()
+            WHERE pinned_until IS NOT NULL 
+            AND pinned_until > NOW()
+            AND client_id IN (SELECT id FROM clients WHERE trainer_id = %s)
             ORDER BY pinned_until DESC;
         """
         try:
-            results = connectToMySQL('fitness_consultation_schema').query_db(query)
+            results = connectToMySQL('fitness_consultation_schema').query_db(query, (trainer_id,))
             return [cls(result) for result in results] if results else []
         except Exception as e:
             print(f"Error fetching pinned plans: {e}")
             return []
+
 
     @classmethod
     def get_completion_status_and_date(cls, plan_id):

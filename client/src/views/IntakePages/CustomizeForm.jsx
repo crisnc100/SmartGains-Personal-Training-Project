@@ -2,6 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import ManageQuestions from './ManageQuestions';
+import Modal from 'react-modal';
+
+const customStyles = {
+  content: {
+    top: '50%',
+    left: '50%',
+    right: 'auto',
+    bottom: 'auto',
+    marginRight: '-50%',
+    transform: 'translate(-50%, -50%)',
+  },
+};
 
 
 const getLocalStorageKey = (clientId, key) => `client_${clientId}_${key}`;
@@ -14,7 +27,18 @@ const CustomizeForm = ({ onSave }) => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showCurrentQuestions, setShowCurrentQuestions] = useState(true);
   const [notification, setNotification] = useState({ show: false, message: '' });
+  const [modalIsOpen, setModalIsOpen] = useState(false); // State to handle modal visibility
 
+
+  const openModal = () => setModalIsOpen(true);
+  const closeModal = () => setModalIsOpen(false);
+
+
+  const refreshQuestions = () => {
+    const key = getLocalStorageKey(clientId, 'currentQuestions');
+    const savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
+    fetchQuestions(savedCurrentQuestions);
+  };
 
   useEffect(() => {
     // Ensure clientId is initialized early
@@ -41,41 +65,41 @@ const CustomizeForm = ({ onSave }) => {
 
   const fetchQuestions = async (savedCurrentQuestions = null) => {
     try {
-        const globalResponse = await axios.get('http://localhost:5000/api/get_user_questions');
-        const globalQuestions = globalResponse.data;
+      const globalResponse = await axios.get('http://localhost:5000/api/get_user_questions');
+      const globalQuestions = globalResponse.data;
 
-        let combinedQuestions = {};
+      let combinedQuestions = {};
 
-        // Combine global and trainer questions
-        globalQuestions.forEach((q) => {
-            if (q.action === 'edit' && q.global_question_id) {
-                combinedQuestions[q.global_question_id] = q; // Replace global question with trainer's edited version
-            } else {
-                combinedQuestions[q.id] = q; // Add global or trainer question
-            }
-        });
-
-        let allQuestionsArray = Object.values(combinedQuestions);
-
-        if (savedCurrentQuestions) {
-            // Filter out questions that are already in the 'Current Intake Form'
-            const filteredQuestions = allQuestionsArray.filter(q => 
-                !savedCurrentQuestions.some(cq => cq.id === q.id || cq.global_question_id === q.id)
-            );
-
-            setAllQuestions(filteredQuestions);
-            setCurrentQuestions(savedCurrentQuestions);
+      // Combine global and trainer questions
+      globalQuestions.forEach((q) => {
+        if (q.action === 'edit' && q.global_question_id) {
+          combinedQuestions[q.global_question_id] = q; // Replace global question with trainer's edited version
         } else {
-            setCurrentQuestions([]);
+          combinedQuestions[q.id] = q; // Add global or trainer question
         }
+      });
 
-        const allCategories = ['All', ...new Set(allQuestionsArray.map(q => q.category))];
-        setCategories(allCategories);
+      let allQuestionsArray = Object.values(combinedQuestions);
+
+      if (savedCurrentQuestions) {
+        // Filter out questions that are already in the 'Current Intake Form'
+        const filteredQuestions = allQuestionsArray.filter(q =>
+          !savedCurrentQuestions.some(cq => cq.id === q.id || cq.global_question_id === q.id)
+        );
+
+        setAllQuestions(filteredQuestions);
+        setCurrentQuestions(savedCurrentQuestions);
+      } else {
+        setCurrentQuestions([]);
+      }
+
+      const allCategories = ['All', ...new Set(allQuestionsArray.map(q => q.category))];
+      setCategories(allCategories);
 
     } catch (error) {
-        console.error('Error fetching questions:', error);
+      console.error('Error fetching questions:', error);
     }
-};
+  };
 
 
 
@@ -257,6 +281,18 @@ const CustomizeForm = ({ onSave }) => {
           {notification.message}
         </div>
       )}
+      {/* Modal for ManageQuestions */}
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={closeModal}
+        style={customStyles}
+        contentLabel="Manage Questions"
+      >
+        <ManageQuestions onQuestionUpdated={refreshQuestions} />
+        <button onClick={closeModal} className="bg-red-500 text-white px-4 py-2 rounded mt-4">
+          Close
+        </button>
+      </Modal>
     </div>
   );
 
