@@ -15,6 +15,7 @@ const IntakeForm = () => {
     const [formId, setFormId] = useState(null); // New state for form ID
     const [questions, setQuestions] = useState([]);
     const [intakeForm, setIntakeForm] = useState({});
+    const [allQuestions, setAllQuestions] = useState([]);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(true);
     const [loadingError, setLoadingError] = useState(false);
@@ -47,8 +48,12 @@ const IntakeForm = () => {
                 const parsedQuestions = JSON.parse(savedCurrentQuestions);
                 if (Array.isArray(parsedQuestions)) {
                     console.log("Loading updated questions from local storage...");
-                    setQuestions(parsedQuestions);
-                    initializeForm(parsedQuestions); // Initialize the form with the updated questions
+                    const parsedQuestionsWithUniqueId = parsedQuestions.map((question) => {
+                        const uniqueId = `${question.question_source}_${question.id}`;
+                        return { ...question, uniqueId };
+                    });
+                    setQuestions(parsedQuestionsWithUniqueId);
+                    initializeForm(parsedQuestionsWithUniqueId); // Initialize the form with the updated questions
                 } else {
                     fetchDefaultQuestions();
                 }
@@ -118,26 +123,41 @@ const IntakeForm = () => {
         };
     }, [clientId, customizeTriggered]);
 
-
     const fetchDefaultQuestions = async () => {
         console.log("Fetching default questions...");
-
+    
         try {
-            const response = await axios.get('http://localhost:5000/api/get_user_default_questions');
-            console.log("Fetched default questions:", response.data);
-
-            const questionsWithSource = response.data.map(question => ({
+            const response = await axios.get('http://localhost:5000/api/get_user_questions');
+            const questions = response.data;
+    
+            // Filter for questions where is_default === 1, both global and trainer questions
+            const defaultQuestions = questions.filter(question =>
+                question.is_default === 1 // Include both global and trainer default questions
+            );
+    
+            // Log default questions for debugging
+            console.log("Filtered Default Questions:", defaultQuestions);
+    
+            // Add the uniqueId for each question to ensure uniqueness
+            const defaultQuestionsWithUniqueIds = defaultQuestions.map(question => ({
                 ...question,
-                source: question.source || 'global'
+                uniqueId: `${question.question_source}_${question.id}` // Ensure uniqueId is set
             }));
-            setQuestions(questionsWithSource);
-            localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(questionsWithSource)); // Save questions to local storage
-            initializeForm(questionsWithSource);
-            setLoading(false);
+    
+            // Save the default questions to state and local storage
+            setQuestions(defaultQuestionsWithUniqueIds);
+            localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(defaultQuestionsWithUniqueIds));
         } catch (error) {
             console.error('Error fetching default questions:', error);
         }
     };
+    
+    
+    
+    
+    
+
+
 
 
     const initializeForm = (questions, savedAnswers = {}) => {

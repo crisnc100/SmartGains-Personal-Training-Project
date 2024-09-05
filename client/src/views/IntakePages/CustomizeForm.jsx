@@ -65,43 +65,55 @@ const CustomizeForm = ({ onSave }) => {
 
   const fetchQuestions = async (savedCurrentQuestions = null) => {
     try {
-      const globalResponse = await axios.get('http://localhost:5000/api/get_user_questions');
-      const globalQuestions = globalResponse.data;
-
-      let combinedQuestions = {};
-
-      // Combine global and trainer questions
-      globalQuestions.forEach((q) => {
-        if (q.action === 'edit' && q.global_question_id) {
-          combinedQuestions[q.global_question_id] = q; // Replace global question with trainer's edited version
-        } else {
-          combinedQuestions[q.id] = q; // Add global or trainer question
-        }
+      // Fetch global and trainer questions from the backend
+      const response = await axios.get('http://localhost:5000/api/get_user_questions');
+      const questions = response.data;
+  
+      console.log('Fetched Global and Trainer Questions:', questions);
+  
+      // Process all questions to include uniqueId
+      let allQuestionsArray = questions.map((question) => {
+        // Create a uniqueId by combining question_source with the numeric id
+        const uniqueId = `${question.question_source}_${question.id}`;
+        return { ...question, uniqueId }; // Append uniqueId to each question object
       });
-
-      let allQuestionsArray = Object.values(combinedQuestions);
-
+  
+      console.log('All Questions Array with uniqueId:', allQuestionsArray);
+  
       if (savedCurrentQuestions) {
+        // Assign uniqueId to the savedCurrentQuestions as well
+        const savedCurrentQuestionsWithUniqueId = savedCurrentQuestions.map((question) => {
+          const uniqueId = `${question.question_source}_${question.id}`;
+          return { ...question, uniqueId }; // Append uniqueId to each current question
+        });
+  
+        console.log('Saved Current Questions with uniqueId:', savedCurrentQuestionsWithUniqueId);
+  
         // Filter out questions that are already in the 'Current Intake Form'
         const filteredQuestions = allQuestionsArray.filter(q =>
-          !savedCurrentQuestions.some(cq => cq.id === q.id || cq.global_question_id === q.id)
+          !savedCurrentQuestionsWithUniqueId.some(cq => cq.uniqueId === q.uniqueId) // Compare using uniqueId
         );
-
+  
+        console.log('Filtered Questions (after excluding current intake questions):', filteredQuestions);
+  
+        // Set filtered questions to the question bank and current intake questions
         setAllQuestions(filteredQuestions);
-        setCurrentQuestions(savedCurrentQuestions);
+        setCurrentQuestions(savedCurrentQuestionsWithUniqueId);
       } else {
-        setCurrentQuestions([]);
+        console.log('No saved current questions found.');
+        setAllQuestions(allQuestionsArray); // Show all questions if no saved intake form is present
+        setCurrentQuestions([]); // Set current intake form to an empty array if no questions are saved
       }
-
+  
+      // Create a list of categories for filtering in the question bank
       const allCategories = ['All', ...new Set(allQuestionsArray.map(q => q.category))];
       setCategories(allCategories);
-
+  
     } catch (error) {
       console.error('Error fetching questions:', error);
     }
   };
-
-
+  
 
 
   useEffect(() => {
@@ -120,6 +132,8 @@ const CustomizeForm = ({ onSave }) => {
   }, [clientId]);
 
   const handleDragEnd = (result) => {
+    console.log('Drag Result:', result); // Log the drag result
+
     const { source, destination, draggableId } = result;
 
     if (!destination) return;
@@ -129,30 +143,51 @@ const CustomizeForm = ({ onSave }) => {
     const sourceDroppable = source.droppableId;
     const destDroppable = destination.droppableId;
 
-    const itemId = parseInt(draggableId.split('-')[1]);
+    //console.log('Dragging Item:', draggableId); // Log the dragged item
+    //console.log('Source:', sourceDroppable, 'Destination:', destDroppable);
+    const itemUniqueId = draggableId;  // Use draggableId directly as it includes the uniqueId (e.g., "global-1" or "trainer-1")
 
-    let newCurrentQuestions = Array.from(currentQuestions);
-    let newAllQuestions = Array.from(allQuestions);
+    if (sourceDroppable === destDroppable) {
+      if (sourceDroppable === 'all-questions') {
+        const items = Array.from(filteredQuestions);
+        const [reorderedItem] = items.splice(sourceIndex, 1);
+        items.splice(destIndex, 0, reorderedItem);
+        const updatedAllQuestions = allQuestions.map(q => items.find(fq => fq.uniqueId === q.uniqueId) || q);  // Compare by uniqueId
+        setAllQuestions(updatedAllQuestions);
+      } else if (sourceDroppable === 'current-questions') {
+        const items = Array.from(currentQuestions);
+        const [reorderedItem] = items.splice(sourceIndex, 1);
+        items.splice(destIndex, 0, reorderedItem);
+        setCurrentQuestions(items);
+      }
+    } else {
+      let sourceItems = sourceDroppable === 'all-questions' ? Array.from(filteredQuestions) : Array.from(currentQuestions);
+      let destinationItems = destDroppable === 'all-questions' ? Array.from(filteredQuestions) : Array.from(currentQuestions);
 
-    if (sourceDroppable === 'all-questions' && destDroppable === 'current-questions') {
-      const [movedItem] = newAllQuestions.splice(sourceIndex, 1);
-      newCurrentQuestions.splice(destIndex, 0, movedItem);
-    } else if (sourceDroppable === 'current-questions' && destDroppable === 'all-questions') {
-      const [movedItem] = newCurrentQuestions.splice(sourceIndex, 1);
-      newAllQuestions.splice(destIndex, 0, movedItem);
-    } else if (sourceDroppable === 'current-questions' && destDroppable === 'current-questions') {
-      const [reorderedItem] = newCurrentQuestions.splice(sourceIndex, 1);
-      newCurrentQuestions.splice(destIndex, 0, reorderedItem);
+      const [movedItem] = sourceItems.splice(sourceIndex, 1);
+      destinationItems.splice(destIndex, 0, movedItem);
+
+      if (sourceDroppable === 'all-questions') {
+        const updatedAllQuestions = allQuestions.filter(q => q.uniqueId !== itemUniqueId);  // Use uniqueId for comparison
+        setAllQuestions(updatedAllQuestions);
+        setCurrentQuestions(destinationItems);
+      } else {
+        setCurrentQuestions(sourceItems);
+        setAllQuestions([...allQuestions, movedItem]);
+      }
     }
 
-    setAllQuestions(newAllQuestions);
-    setCurrentQuestions(newCurrentQuestions);
-    localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(newCurrentQuestions));
+    localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(currentQuestions));
   };
 
   const filteredQuestions = selectedCategory === 'All'
-    ? allQuestions
-    : allQuestions.filter(question => question.category === selectedCategory);
+  ? allQuestions.filter(q => 
+      !currentQuestions.some(cq => cq.uniqueId === q.uniqueId)) // Compare by uniqueId
+  : allQuestions.filter(q => 
+      q.category === selectedCategory && 
+      !currentQuestions.some(cq => cq.uniqueId === q.uniqueId)); // Compare by uniqueId
+
+
 
   // Log filtered questions to check if trainer-added questions are included
   //console.log('Filtered Questions:', filteredQuestions);
@@ -164,11 +199,10 @@ const CustomizeForm = ({ onSave }) => {
     localStorage.setItem(key, JSON.stringify(currentQuestions));
 
     // Update the question bank by removing questions that are already in the 'Current Intake Form'
-    const updatedQuestionBank = allQuestions.filter(q =>
-      !currentQuestions.some(cq => cq.id === q.id || cq.global_question_id === q.id)
-    );
+    const updatedQuestionBank = allQuestions.filter(q => 
+      !currentQuestions.some(cq => cq.uniqueId === q.uniqueId)); // Compare by uniqueId
     setAllQuestions(updatedQuestionBank);
-
+    
     setNotification({ show: true, message: 'Changes saved successfully!' });
 
     setTimeout(() => {
@@ -205,27 +239,40 @@ const CustomizeForm = ({ onSave }) => {
             <Droppable droppableId="all-questions">
               {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="max-h-96 overflow-y-auto">
-                  {filteredQuestions.map((question, index) => (
-                    <Draggable
-                      key={`all-${question.id}-${index}`}  // Ensure unique keys by adding the index or another unique identifier
-                      draggableId={`all-${question.id}`}
-                      index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className="bg-white p-2 mb-2 border rounded shadow"
-                        >
-                          {question.question_text}
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
+                  {filteredQuestions.map((question, index) => {
+                    // Use a distinct key for global and trainer questions
+                    const isGlobal = question.global_question_id !== null;
+                    const uniqueKey = isGlobal ? `global-${question.id}` : `trainer-${question.id}`;
+                    const uniqueDraggableId = uniqueKey;
+
+                    //console.log(`Rendering Draggable for question ID: ${question.id}, Type: ${isGlobal ? 'Global' : 'Trainer'}, Draggable ID: ${uniqueDraggableId}`);
+
+                    return (
+                      <Draggable
+                        key={uniqueKey}  // Ensure unique key for React
+                        draggableId={uniqueDraggableId}  // Ensure unique draggableId for DnD
+                        index={index}
+                      >
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="bg-white p-2 mb-2 border rounded shadow"
+                          >
+                            {question.question_text}
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })}
                   {provided.placeholder}
                 </div>
               )}
             </Droppable>
+
+
+
           </div>
           {showCurrentQuestions && (
             <div className="w-1/2 p-4">

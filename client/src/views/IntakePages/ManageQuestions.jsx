@@ -29,7 +29,13 @@ const ManageQuestions = () => {
 
     const fetchQuestions = () => {
         axios.get('http://localhost:5000/api/get_user_questions')
-            .then(response => setQuestions(response.data))
+            .then(response => {
+                const fetchedQuestions = response.data.map(question => ({
+                    ...question,
+                    uniqueId: `${question.question_source}_${question.id}` // Assign uniqueId
+                }));
+                setQuestions(fetchedQuestions);
+            })
             .catch(error => console.error('Error fetching questions:', error));
     };
 
@@ -38,10 +44,10 @@ const ManageQuestions = () => {
         setNewQuestion({ ...newQuestion, [name]: value });
     };
 
-    const handleEditInputChange = (e, questionId) => {
+    const handleEditInputChange = (e, uniqueId) => {
         const { name, value } = e.target;
         const updatedQuestions = questions.map(question =>
-            question.id === questionId ? { ...question, [name]: value } : question
+            question.uniqueId === uniqueId ? { ...question, [name]: value } : question
         );
         setQuestions(updatedQuestions);
     };
@@ -50,49 +56,53 @@ const ManageQuestions = () => {
         const category = newQuestion.category === 'Other' ? newQuestion.other_category : newQuestion.category;
         axios.post('http://localhost:5000/api/add_user_question', { ...newQuestion, category, action: 'add' })
             .then(response => {
-                setQuestions([...questions, response.data]);
+                const addedQuestion = response.data;
+                const uniqueId = `trainer_${addedQuestion.id}`;  // Create uniqueId for the new question
+                setQuestions([...questions, { ...addedQuestion, uniqueId }]);  // Add with uniqueId
                 setNewQuestion({ question_text: '', question_type: '', options: '', category: '', other_category: '' });
                 showNotification('Question added successfully');
             })
             .catch(error => console.error('Error adding question:', error));
     };
 
-    const editQuestion = (questionId) => {
-        const question = questions.find(q => q.id === questionId);
+    const editQuestion = (uniqueId) => {
+        const question = questions.find(q => q.uniqueId === uniqueId);  // Use uniqueId to find the question
         const category = question.category === 'Other' ? question.other_category : question.category;
-    
-        axios.put(`http://localhost:5000/api/update_user_question/${question.global_question_id || question.id}`, 
-          { ...question, category, action: 'edit' })
-          .then(() => {
-              setEditingQuestion(null);
-              showNotification('Question updated successfully');
-    
-              // Update the savedCurrentQuestions in localStorage
-              const key = getLocalStorageKey(clientId, 'currentQuestions');
-              let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
-    
-              if (savedCurrentQuestions) {
-                  const updatedCurrentQuestions = savedCurrentQuestions.map(cq => {
-                      if (cq.id === question.id || cq.global_question_id === question.id) {
-                          return { ...cq, ...question }; // Merge the updated question details
-                      }
-                      return cq;
-                  });
-    
-                  localStorage.setItem(key, JSON.stringify(updatedCurrentQuestions));
-              }
-          })
-          .catch(error => console.error('Error updating question:', error));
+
+        axios.put(`http://localhost:5000/api/update_user_question/${question.global_question_id || question.id}`,
+            { ...question, category, action: 'edit' })
+            .then(() => {
+                setEditingQuestion(null);
+                showNotification('Question updated successfully');
+
+                // Update the savedCurrentQuestions in localStorage
+                const key = getLocalStorageKey(clientId, 'currentQuestions');
+                let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
+
+                if (savedCurrentQuestions) {
+                    const updatedCurrentQuestions = savedCurrentQuestions.map(cq => {
+                        if (cq.uniqueId === question.uniqueId) {
+                            return { ...cq, ...question }; // Merge the updated question details
+                        }
+                        return cq;
+                    });
+
+                    localStorage.setItem(key, JSON.stringify(updatedCurrentQuestions));
+                }
+            })
+            .catch(error => console.error('Error updating question:', error));
     };
 
-    const deleteQuestion = (questionId) => {
-        axios.delete(`http://localhost:5000/api/delete_user_question/${questionId}`)
+    const deleteQuestion = (uniqueId) => {
+        const question = questions.find(q => q.uniqueId === uniqueId);
+        axios.delete(`http://localhost:5000/api/delete_user_question/${question.id}`)
             .then(() => {
-                setQuestions(questions.filter(q => q.id !== questionId));
+                setQuestions(questions.filter(q => q.uniqueId !== uniqueId));
                 showNotification('Question deleted successfully');
             })
             .catch(error => console.error('Error deleting question:', error));
     };
+
 
     const showNotification = (message) => {
         setNotification({ show: true, message });
@@ -181,33 +191,38 @@ const ManageQuestions = () => {
                 )}
                 <button onClick={addQuestion} className="bg-blue-500 hover:bg-blue-700 text-white mt-4 p-2 rounded">Add Question</button>
                 <div className="flex justify-end space-x-2">
-                <button
-                    onClick={confirmRestoreQuestions}
-                    className="mr-2 flex items-center bg-green-600 hover:bg-green-700 text-white p-2 rounded"
-                    title='Restore All Default Questions'>
-                    <FaUndo className="inline mr-2" /> Restore by Default
-                </button>
-            </div>
+                    <button
+                        onClick={confirmRestoreQuestions}
+                        className="mr-2 flex items-center bg-green-600 hover:bg-green-700 text-white p-2 rounded"
+                        title='Restore All Default Questions'>
+                        <FaUndo className="inline mr-2" /> Restore by Default
+                    </button>
+                </div>
             </div>
             <div className="p-2 border rounded flex justify-between items-center">
                 <div className="w-3/4"><strong>Questions</strong></div>
                 <div className="w-1/4"><strong>Actions</strong></div>
             </div>
             {questions.map(question => (
-                <div key={question.id} className="mb-4 p-2 border rounded flex justify-between items-center">
-                    {editingQuestion === question.id ? (
+                <div key={question.uniqueId} className="mb-4 p-2 border rounded flex justify-between items-center">
+                    {editingQuestion === question.uniqueId ? (
                         <div className="flex-grow">
                             <div className="mb-2">
                                 <input
                                     type="text"
                                     name="question_text"
-                                    value={question.question_text || ""}
-                                    onChange={(e) => handleEditInputChange(e, question.id)}
+                                    value={question.question_text || ''}  // Fix here
+                                    onChange={(e) => handleEditInputChange(e, question.uniqueId)}
                                     className="border p-2 mr-2 w-full"
                                 />
                             </div>
-                            <div className='mb-2'>
-                                <select name="question_type" value={question.question_type} onChange={(e) => handleEditInputChange(e, question.id)} className="border p-2 mr-2 w-full">
+                            <div className="mb-2">
+                                <select
+                                    name="question_type"
+                                    value={question.question_type || ''}  // Fix here
+                                    onChange={(e) => handleEditInputChange(e, question.uniqueId)}
+                                    className="border p-2 mr-2 w-full"
+                                >
                                     <option value="">Select type</option>
                                     <option value="text">Text</option>
                                     <option value="select">Select</option>
@@ -215,17 +230,22 @@ const ManageQuestions = () => {
                                     <option value="textarea">Textarea</option>
                                 </select>
                             </div>
-                            <div className='mb-2'>
+                            <div className="mb-2">
                                 <input
                                     type="text"
                                     name="options"
-                                    value={question.options}
-                                    onChange={(e) => handleEditInputChange(e, question.id)}
+                                    value={question.options || ''}  // Fix here
+                                    onChange={(e) => handleEditInputChange(e, question.uniqueId)}
                                     className="border p-2 mr-2 w-full"
                                     placeholder="Enter options separated by commas"
                                 />
                             </div>
-                            <select name="category" value={question.category} onChange={(e) => handleEditInputChange(e, question.id)} className="border p-2 mr-2 mb-4 w-full">
+                            <select
+                                name="category"
+                                value={question.category || ''}  // Fix here
+                                onChange={(e) => handleEditInputChange(e, question.uniqueId)}
+                                className="border p-2 mr-2 mb-4 w-full"
+                            >
                                 {categories.map(category => (
                                     <option key={category} value={category}>{category}</option>
                                 ))}
@@ -234,13 +254,13 @@ const ManageQuestions = () => {
                                 <input
                                     type="text"
                                     name="other_category"
-                                    value={question.other_category}
-                                    onChange={(e) => handleEditInputChange(e, question.id)}
+                                    value={question.other_category || ''}  // Fix here
+                                    onChange={(e) => handleEditInputChange(e, question.uniqueId)}
                                     placeholder="Enter new category"
                                     className="border p-2 mr-2 mb-4 w-full"
                                 />
                             )}
-                            <button onClick={() => editQuestion(question.id)} className="bg-green-500 hover:bg-green-600 text-white p-2 rounded mr-2">Save</button>
+                            <button onClick={() => editQuestion(question.uniqueId)} className="bg-green-500 hover:bg-green-600 text-white p-2 rounded mr-2">Save</button>
                             <button onClick={() => setEditingQuestion(null)} className="bg-red-500 hover:bg-red-700 text-white p-2 rounded">Cancel</button>
                         </div>
                     ) : (
@@ -251,13 +271,13 @@ const ManageQuestions = () => {
                             </div>
                             <div className="w-1/4 space-x-2">
                                 <button
-                                    onClick={() => setEditingQuestion(question.id)}
+                                    onClick={() => setEditingQuestion(question.uniqueId)}
                                     className="bg-yellow-400 hover:bg-yellow-600 text-white p-2 rounded"
                                     title="Edit">
                                     <FaEdit />
                                 </button>
                                 <button
-                                    onClick={() => setDeleteConfirm({ show: true, questionId: question.id })} 
+                                    onClick={() => setDeleteConfirm({ show: true, questionId: question.uniqueId })}
                                     className="bg-red-500 hover:bg-red-700 text-white p-2 rounded"
                                     title='Delete'>
                                     <FaTrash />

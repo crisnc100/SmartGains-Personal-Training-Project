@@ -41,25 +41,29 @@ def get_user_questions():
         user_questions = TrainerIntakeQuestions.get_all_by_trainer(trainer_id)
         global_questions = GlobalFormQuestions.get_all()
 
-        # Create a dictionary to hold the combined questions
-        combined_questions = {q.id: q for q in global_questions}
+        combined_questions = {}
 
-        for uq in user_questions:
-            if uq.action == 'edit' and uq.global_question_id is not None:
-                # Replace the global question with the trainer's edited version
-                combined_questions[uq.global_question_id] = uq
-            elif uq.action == 'add':
-                # Add new trainer-specific question using its own ID as the key
-                combined_questions[uq.id] = uq
-            elif uq.action == 'delete' and uq.global_question_id in combined_questions:
-                # Remove the global question if it was deleted by the trainer
-                del combined_questions[uq.global_question_id]
+        for gq in global_questions:
+            gq_data = gq.serialize()
+            gq_data['question_source'] = 'global'
+            combined_questions[f'global_{gq.id}'] = gq_data  # Ensure unique key for global questions
 
-        # Return the combined list of questions
-        return jsonify([question.serialize() for question in combined_questions.values()]), 200
+        for tq in user_questions:
+            tq_data = tq.serialize()
+            tq_data['question_source'] = 'trainer'
+            if tq.action == 'edit' and tq.global_question_id:
+                combined_questions[f'global_{tq.global_question_id}'] = tq_data  # Replace global question with edited trainer question
+            elif tq.action == 'add':
+                combined_questions[f'trainer_{tq.id}'] = tq_data  # Ensure unique key for trainer questions
+            elif tq.action == 'delete' and f'global_{tq.global_question_id}' in combined_questions:
+                del combined_questions[f'global_{tq.global_question_id}']  # Remove the global question if trainer deleted it
+
+        return jsonify(list(combined_questions.values())), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
 
     
 @app.route('/api/get_user_question/<int:question_id>', methods=['GET'])
@@ -82,24 +86,25 @@ def get_user_default_questions():
             return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
         trainer_id = session['trainer_id']
-        # Fetching all questions for the trainer, you can replace this with get_all_defaults based on your needs
         user_questions = TrainerIntakeQuestions.get_all_by_trainer(trainer_id)
-        global_default_questions = GlobalFormQuestions.get_all_defaults()
+        global_questions = GlobalFormQuestions.get_all()
 
-        # Combine global and trainer questions
-        combined_questions = {q.id: q for q in global_default_questions}
+        combined_questions = {q.id: q for q in global_questions}
 
-        # Override global questions with trainer-specific ones
         for uq in user_questions:
-            combined_questions[uq.id] = uq
+            if uq.global_question_id is not None:
+                combined_questions[uq.global_question_id] = uq
+            else:
+                combined_questions[uq.id] = uq
 
-        # Filtering non-default trainer questions if necessary
+        # Filter questions to include all trainer questions and only default global questions
         filtered_questions = [
-            question for question in combined_questions.values() 
-            if question.is_default == 1  # Keep only default questions
+            question for question in combined_questions.values()
+            if question.is_default == 1 or question.trainer_id == trainer_id
         ]
 
         return jsonify([question.serialize() for question in filtered_questions]), 200
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -118,20 +123,30 @@ def get_questions_by_template(template):
         user_deleted_question_ids = {uq.global_question_id for uq in user_questions if uq.action == 'delete'}
         global_questions = [q for q in global_questions if q.id not in user_deleted_question_ids]
 
-        # Combine global questions with user-specific edits and additions
-        combined_questions = {q.id: q for q in global_questions}
+        combined_questions = {}
 
-        for uq in user_questions:
-            if uq.action == 'edit' and uq.global_question_id is not None:
-                combined_questions[uq.global_question_id] = uq
-            elif uq.action == 'add' and uq.templates == template:
-                combined_questions[uq.id] = uq
-            elif uq.action == 'delete' and uq.global_question_id in combined_questions:
-                del combined_questions[uq.global_question_id]
+        # Process global questions without worrying about uniqueId here
+        for gq in global_questions:
+            gq_data = gq.serialize()
+            gq_data['question_source'] = 'global'
+            combined_questions[f'global_{gq.id}'] = gq_data
 
-        return jsonify([question.serialize() for question in combined_questions.values()]), 200
+        # Process trainer questions
+        for tq in user_questions:
+            tq_data = tq.serialize()
+            tq_data['question_source'] = 'trainer'
+
+            if tq.action == 'edit' and tq.global_question_id is not None:
+                combined_questions[f'global_{tq.global_question_id}'] = tq_data  # Replace global question with trainer edit
+            elif tq.action == 'add' and tq.templates == template:
+                combined_questions[f'trainer_{tq.id}'] = tq_data
+            elif tq.action == 'delete' and f'global_{tq.global_question_id}' in combined_questions:
+                del combined_questions[f'global_{tq.global_question_id}']
+
+        return jsonify(list(combined_questions.values())), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 
 

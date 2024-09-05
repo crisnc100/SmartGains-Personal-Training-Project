@@ -4,12 +4,7 @@ import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Tooltip } from 'react-tooltip';
 
-
-
-
 const getLocalStorageKey = (clientId, key) => `client_${clientId}_${key}`;
-
-
 
 const IntakeTemplates = () => {
   const { clientId } = useParams();
@@ -27,32 +22,53 @@ const IntakeTemplates = () => {
     }
   }, [selectedTemplate]);
 
-  const fetchDefaultQuestions = () => {
-    axios.get('http://localhost:5000/api/get_user_default_questions')
-        .then(response => {
-            const fetchedQuestions = response.data;
+  const fetchDefaultQuestions = async () => {
+    console.log("Fetching default questions...");
 
-            // Log fetched questions to verify
-            console.log('Fetched Default Questions (including trainer-added):', fetchedQuestions);
+    try {
+      // Use the correct endpoint to fetch default questions
+      const response = await axios.get('http://localhost:5000/api/get_user_questions'); 
+      console.log("Fetched questions:", response.data);
 
-            setQuestions(fetchedQuestions);
-        })
-        .catch(error => console.error('Error fetching default questions:', error));
-};
+      // Ensure that each question has a uniqueId combining source and id
+      const questionsWithUniqueId = response.data.map(question => ({
+        ...question,
+        uniqueId: `${question.question_source}_${question.id}`, // Create uniqueId from source and id
+        source: question.source || 'global' // Ensure source is provided
+      }));
+
+      // Filter questions to only include those marked as default (is_default = 1)
+      const defaultQuestions = questionsWithUniqueId.filter(question => question.is_default === 1);
+
+      // Log the filtered default questions for verification
+      console.log("Filtered Default Questions:", defaultQuestions);
+
+      // Set the filtered default questions to the state
+      setQuestions(defaultQuestions);
+
+      // Save the default questions to local storage with uniqueId
+      localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(defaultQuestions));
+    } catch (error) {
+      console.error('Error fetching default questions:', error);
+    }
+  };
 
 
   const fetchQuestionsByTemplate = (template) => {
     axios.get(`http://localhost:5000/api/get_questions_by_template/${template}`)
-        .then(response => {
-            const fetchedQuestions = response.data;
+      .then(response => {
+        const fetchedQuestions = response.data.map(question => ({
+          ...question,
+          uniqueId: `${question.question_source}_${question.id}`, // Ensure uniqueId is appended
+        }));
 
-            // Log the fetched questions to debug
-            console.log(`Fetched Questions for Template ${template}:`, fetchedQuestions);
+        // Log the fetched questions to debug
+        console.log(`Fetched Questions for Template ${template}:`, fetchedQuestions);
 
-            setQuestions(fetchedQuestions);
-        })
-        .catch(error => console.error('Error fetching questions:', error));
-};
+        setQuestions(fetchedQuestions);
+      })
+      .catch(error => console.error('Error fetching questions:', error));
+  };
 
 
   const handleTemplateClick = (template) => {
