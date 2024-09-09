@@ -151,21 +151,31 @@ const ManageQuestions = () => {
         <div>
             <h2>Manage Questions</h2>
             <div className="my-4">
-                <input
-                    type="text"
-                    name="question_text"
+                <textarea
+                    name='question_text'
                     value={newQuestion.question_text}
                     onChange={handleInputChange}
-                    placeholder="Enter question text"
-                    className="border p-2 mr-2"
+                    placeholder="Enter your question"
+                    className="border p-2 mr-2 w-full"
+                    onFocus={(e) => e.target.style.height = "200px"}  // Expand height on focus
+                    onBlur={(e) => e.target.style.height = "40px"}  // Shrink back on blur
+                    style={{ height: "40px", transition: "height 0.3s ease" }}  // Smooth transition
                 />
-                <select name="question_type" value={newQuestion.question_type} onChange={handleInputChange} className="border p-2 mr-2">
+
+
+                <select
+                    name="question_type"
+                    value={newQuestion.question_type}
+                    onChange={handleInputChange}
+                    className="border p-2 mr-2"
+                >
                     <option value="">Select type</option>
-                    <option value="text">Text</option>
-                    <option value="select">Select</option>
-                    <option value="checkbox">Checkbox</option>
-                    <option value="textarea">Textarea</option>
+                    <option value="text">Text (Single-line input)</option>
+                    <option value="textarea">Textarea (Larger-area input)</option>
+                    <option value="select">Select (Dropdown with options)</option>
+                    <option value="checkbox">Checkbox (Multiple choices)</option>
                 </select>
+
                 <input
                     type="text"
                     name="options"
@@ -173,7 +183,9 @@ const ManageQuestions = () => {
                     onChange={handleInputChange}
                     placeholder="Enter options separated by commas"
                     className="border p-2 mr-2"
+                    disabled={newQuestion.question_type !== 'select' && newQuestion.question_type !== 'checkbox'} // Disable for non-select and non-checkbox
                 />
+
                 <select name="category" value={newQuestion.category} onChange={handleInputChange} className="border p-2 mr-2">
                     {categories.map(category => (
                         <option key={category} value={category}>{category}</option>
@@ -224,21 +236,23 @@ const ManageQuestions = () => {
                                     className="border p-2 mr-2 w-full"
                                 >
                                     <option value="">Select type</option>
-                                    <option value="text">Text</option>
-                                    <option value="select">Select</option>
-                                    <option value="checkbox">Checkbox</option>
-                                    <option value="textarea">Textarea</option>
+                                    <option value="text">Text (Single-line input)</option>
+                                    <option value="textarea">Textarea (Larger-area input)</option>
+                                    <option value="select">Select (Dropdown with options)</option>
+                                    <option value="checkbox">Checkbox (Multiple choices)</option>
                                 </select>
                             </div>
                             <div className="mb-2">
                                 <input
                                     type="text"
                                     name="options"
-                                    value={question.options || ''}  // Fix here
+                                    value={question.options || ''}  // Use an empty string to prevent the null warning
                                     onChange={(e) => handleEditInputChange(e, question.uniqueId)}
                                     className="border p-2 mr-2 w-full"
                                     placeholder="Enter options separated by commas"
+                                    disabled={question.question_type !== 'select' && question.question_type !== 'checkbox'} // Disable for non-select and non-checkbox
                                 />
+
                             </div>
                             <select
                                 name="category"

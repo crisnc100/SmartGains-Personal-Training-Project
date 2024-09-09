@@ -78,35 +78,6 @@ def get_user_question(question_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-    
-@app.route('/api/get_user_default_questions', methods=['GET'])
-def get_user_default_questions():
-    try:
-        if 'trainer_id' not in session:
-            return jsonify({"status": "error", "message": "Unauthorized"}), 401
-
-        trainer_id = session['trainer_id']
-        user_questions = TrainerIntakeQuestions.get_all_by_trainer(trainer_id)
-        global_questions = GlobalFormQuestions.get_all()
-
-        combined_questions = {q.id: q for q in global_questions}
-
-        for uq in user_questions:
-            if uq.global_question_id is not None:
-                combined_questions[uq.global_question_id] = uq
-            else:
-                combined_questions[uq.id] = uq
-
-        # Filter questions to include all trainer questions and only default global questions
-        filtered_questions = [
-            question for question in combined_questions.values()
-            if question.is_default == 1 or question.trainer_id == trainer_id
-        ]
-
-        return jsonify([question.serialize() for question in filtered_questions]), 200
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/get_questions_by_template/<template>', methods=['GET'])

@@ -125,25 +125,25 @@ const IntakeForm = () => {
 
     const fetchDefaultQuestions = async () => {
         console.log("Fetching default questions...");
-    
+
         try {
             const response = await axios.get('http://localhost:5000/api/get_user_questions');
             const questions = response.data;
-    
+
             // Filter for questions where is_default === 1, both global and trainer questions
             const defaultQuestions = questions.filter(question =>
                 question.is_default === 1 // Include both global and trainer default questions
             );
-    
+
             // Log default questions for debugging
             console.log("Filtered Default Questions:", defaultQuestions);
-    
+
             // Add the uniqueId for each question to ensure uniqueness
             const defaultQuestionsWithUniqueIds = defaultQuestions.map(question => ({
                 ...question,
                 uniqueId: `${question.question_source}_${question.id}` // Ensure uniqueId is set
             }));
-    
+
             // Save the default questions to state and local storage
             setQuestions(defaultQuestionsWithUniqueIds);
             localStorage.setItem(getLocalStorageKey(clientId, 'currentQuestions'), JSON.stringify(defaultQuestionsWithUniqueIds));
@@ -151,11 +151,8 @@ const IntakeForm = () => {
             console.error('Error fetching default questions:', error);
         }
     };
-    
-    
-    
-    
-    
+
+
 
 
 
@@ -171,12 +168,12 @@ const IntakeForm = () => {
     };
 
 
-    const handleInputChange = async (event, questionId) => {
+    const handleInputChange = async (event, uniqueId) => {
         const newValue = event.target.value;
-        console.log(`Input changed for question ID ${questionId}:`, newValue);
+        console.log(`Input changed for question ID ${uniqueId}:`, newValue);
         const updatedForm = {
             ...intakeForm,
-            [questionId]: newValue
+            [uniqueId]: newValue
         };
         setIntakeForm(updatedForm);
         localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(updatedForm));
@@ -285,36 +282,49 @@ const IntakeForm = () => {
         }
     };
 
-    const handleCheckboxChange = (event, questionId) => {
+    const handleCheckboxChange = (event, uniqueId) => {
         const { value } = event.target;
+        const isOtherSelected = value === 'Other';
         setIntakeForm((prevState) => {
-            const updatedArray = Array.isArray(prevState[questionId])
-                ? prevState[questionId].includes(value)
-                    ? prevState[questionId].filter(item => item !== value)
-                    : [...prevState[questionId], value]
+            const updatedArray = Array.isArray(prevState[uniqueId])
+                ? prevState[uniqueId].includes(value)
+                    ? prevState[uniqueId].filter(item => item !== value)
+                    : [...prevState[uniqueId], value]
                 : [value]; // Initialize as an array if it's not already
 
             const updatedForm = {
                 ...prevState,
-                [questionId]: updatedArray
+                [uniqueId]: updatedArray,
             };
+
+            // If "Other" is selected, add an empty field for user input for "Other"
+            if (isOtherSelected) {
+                updatedForm[`${uniqueId}_other`] = updatedForm[`${uniqueId}_other`] || ''; // Create other field if not already there
+            } else if (!updatedArray.includes('Other')) {
+                // If "Other" is unchecked, remove the "Other" field
+                delete updatedForm[`${uniqueId}_other`];
+            }
+
             localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(updatedForm));
             return updatedForm;
         });
     };
 
 
+
     const renderInputField = (question) => {
-        const { id, question_text, question_type, options } = question;
-        const value = intakeForm[id] || '';
+        const { uniqueId, question_text, question_type, options } = question;
+        const value = intakeForm[uniqueId] || '';
+        const otherValue = intakeForm[`${uniqueId}_other`] || ''; // Value for "Other" input
+
 
         if (question_type === 'select') {
             return (
                 <select
-                    name={id}
-                    id={id}
+                    name={uniqueId}
+                    id={uniqueId}
                     value={value}
-                    onChange={(e) => handleInputChange(e, id)}
+                    onChange={(e) => handleInputChange(e, uniqueId)}
                     className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
                 >
                     <option value="">Select an option</option>
@@ -330,25 +340,36 @@ const IntakeForm = () => {
                         <label key={option} className="inline-flex items-center md:w-1/2">
                             <input
                                 type="checkbox"
-                                name={id}
+                                name={uniqueId}
                                 value={option}
                                 checked={value.includes(option)} // Check if the option is included in the value array
-                                onChange={(e) => handleCheckboxChange(e, id)}
+                                onChange={(e) => handleCheckboxChange(e, uniqueId)}
                                 className="form-checkbox"
                                 aria-label={option}
                             />
                             <span className="ml-2">{option}</span>
                         </label>
                     ))}
+
+                    {/* Render input field for "Other" if selected */}
+                    {value.includes('Other') && (
+                        <input
+                            type="text"
+                            placeholder="Please specify"
+                            value={otherValue}
+                            onChange={(e) => handleInputChange(e, `${uniqueId}_other`)}
+                            className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500 mt-2"
+                        />
+                    )}
                 </div>
             );
         } else if (question_type === 'textarea') {
             return (
                 <textarea
-                    id={id}
-                    name={id}
+                    id={uniqueId}
+                    name={uniqueId}
                     value={value}
-                    onChange={(e) => handleInputChange(e, id)}
+                    onChange={(e) => handleInputChange(e, uniqueId)}
                     className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
                     rows="4"
                     style={{ maxWidth: '100%', maxHeight: '150px' }}
@@ -358,10 +379,10 @@ const IntakeForm = () => {
             return (
                 <input
                     type="text"
-                    id={id}
-                    name={id}
+                    id={uniqueId}
+                    name={uniqueId}
                     value={value}
-                    onChange={(e) => handleInputChange(e, id)}
+                    onChange={(e) => handleInputChange(e, uniqueId)}
                     className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
                 />
             );
@@ -381,7 +402,7 @@ const IntakeForm = () => {
                     .map(question => ({
                         question_source: question.source || 'global',
                         question_id: question.id,
-                        answer: intakeForm[question.id]
+                        answer: intakeForm[question.uniqueId]
                     }))
                     .filter(answer => answer.answer !== '');
                 localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(intakeForm)); // Save answers to local storage
@@ -590,13 +611,13 @@ const IntakeForm = () => {
                             <h2 className="text-2xl font-bold text-gray-800 mb-4 ">{category}:</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {groupedQuestions[category].map(question => (
-                                    <div key={question.id} className="form-group">
+                                    <div key={question.uniqueId} className="form-group">
                                         <label className="block text-sm font-medium text-gray-900 capitalize no-transform mb-2" style={{ fontWeight: 'bold', fontSize: '15px', textTransform: 'none' }} htmlFor={question.id}>
                                             {question.question_text}
                                         </label>
                                         {renderInputField(question)}
-                                        {errors[question.id] && (
-                                            <p className="mt-2 text-sm text-red-600">{errors[question.id]}</p>
+                                        {errors[question.uniqueId] && (
+                                            <p className="mt-2 text-sm text-red-600">{errors[question.uniqueId]}</p>
                                         )}
                                     </div>
                                 ))}
