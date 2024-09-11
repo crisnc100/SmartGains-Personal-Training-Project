@@ -68,34 +68,34 @@ const CustomizeForm = ({ onSave }) => {
       // Fetch global and trainer questions from the backend
       const response = await axios.get('http://localhost:5000/api/get_user_questions');
       const questions = response.data;
-  
+
       console.log('Fetched Global and Trainer Questions:', questions);
-  
+
       // Process all questions to include uniqueId
       let allQuestionsArray = questions.map((question) => {
         // Create a uniqueId by combining question_source with the numeric id
         const uniqueId = `${question.question_source}_${question.id}`;
         return { ...question, uniqueId }; // Append uniqueId to each question object
       });
-  
+
       console.log('All Questions Array with uniqueId:', allQuestionsArray);
-  
+
       if (savedCurrentQuestions) {
         // Assign uniqueId to the savedCurrentQuestions as well
         const savedCurrentQuestionsWithUniqueId = savedCurrentQuestions.map((question) => {
           const uniqueId = `${question.question_source}_${question.id}`;
           return { ...question, uniqueId }; // Append uniqueId to each current question
         });
-  
+
         console.log('Saved Current Questions with uniqueId:', savedCurrentQuestionsWithUniqueId);
-  
+
         // Filter out questions that are already in the 'Current Intake Form'
         const filteredQuestions = allQuestionsArray.filter(q =>
           !savedCurrentQuestionsWithUniqueId.some(cq => cq.uniqueId === q.uniqueId) // Compare using uniqueId
         );
-  
+
         console.log('Filtered Questions (after excluding current intake questions):', filteredQuestions);
-  
+
         // Set filtered questions to the question bank and current intake questions
         setAllQuestions(filteredQuestions);
         setCurrentQuestions(savedCurrentQuestionsWithUniqueId);
@@ -104,16 +104,16 @@ const CustomizeForm = ({ onSave }) => {
         setAllQuestions(allQuestionsArray); // Show all questions if no saved intake form is present
         setCurrentQuestions([]); // Set current intake form to an empty array if no questions are saved
       }
-  
+
       // Create a list of categories for filtering in the question bank
       const allCategories = ['All', ...new Set(allQuestionsArray.map(q => q.category))];
       setCategories(allCategories);
-  
+
     } catch (error) {
       console.error('Error fetching questions:', error);
     }
   };
-  
+
 
 
   useEffect(() => {
@@ -181,10 +181,10 @@ const CustomizeForm = ({ onSave }) => {
   };
 
   const filteredQuestions = selectedCategory === 'All'
-  ? allQuestions.filter(q => 
+    ? allQuestions.filter(q =>
       !currentQuestions.some(cq => cq.uniqueId === q.uniqueId)) // Compare by uniqueId
-  : allQuestions.filter(q => 
-      q.category === selectedCategory && 
+    : allQuestions.filter(q =>
+      q.category === selectedCategory &&
       !currentQuestions.some(cq => cq.uniqueId === q.uniqueId)); // Compare by uniqueId
 
 
@@ -199,10 +199,10 @@ const CustomizeForm = ({ onSave }) => {
     localStorage.setItem(key, JSON.stringify(currentQuestions));
 
     // Update the question bank by removing questions that are already in the 'Current Intake Form'
-    const updatedQuestionBank = allQuestions.filter(q => 
+    const updatedQuestionBank = allQuestions.filter(q =>
       !currentQuestions.some(cq => cq.uniqueId === q.uniqueId)); // Compare by uniqueId
     setAllQuestions(updatedQuestionBank);
-    
+
     setNotification({ show: true, message: 'Changes saved successfully!' });
 
     setTimeout(() => {
@@ -240,12 +240,9 @@ const CustomizeForm = ({ onSave }) => {
               {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="max-h-96 overflow-y-auto">
                   {filteredQuestions.map((question, index) => {
-                    // Use a distinct key for global and trainer questions
-                    const isGlobal = question.global_question_id !== null;
-                    const uniqueKey = isGlobal ? `global-${question.id}` : `trainer-${question.id}`;
-                    const uniqueDraggableId = uniqueKey;
-
-                    //console.log(`Rendering Draggable for question ID: ${question.id}, Type: ${isGlobal ? 'Global' : 'Trainer'}, Draggable ID: ${uniqueDraggableId}`);
+                    // Create uniqueKey and draggableId based on question source and ID
+                    const uniqueKey = `${question.question_source}-${question.id}`;  // Ensure globally unique key
+                    const uniqueDraggableId = `${question.question_source}-${question.id}-${index}`;  // Ensure draggableId is unique
 
                     return (
                       <Draggable
@@ -266,6 +263,7 @@ const CustomizeForm = ({ onSave }) => {
                       </Draggable>
                     );
                   })}
+
                   {provided.placeholder}
                 </div>
               )}

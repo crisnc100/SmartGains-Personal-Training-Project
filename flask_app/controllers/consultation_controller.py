@@ -135,18 +135,48 @@ def add_user_question():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/update_user_question/<int:question_id>', methods=['PUT'])
+@app.route('/api/update_user_question/<int:question_id>', methods=['POST'])
 def update_user_question(question_id):
     data = request.get_json()
-    data['trainer_id'] = session.get('trainer_id')
-    data['global_question_id'] = question_id
-    data['action'] = 'edit'
+    print(f"Received data for update: {data}")
+    
+    # Ensure that the 'question_type' is included and properly handled
+    if 'question_type' not in data or not data['question_type']:
+        return jsonify({'error': 'Question type is required'}), 400
 
-    try:
-        TrainerIntakeQuestions.update_or_create(data)
-        return jsonify({'message': 'Question updated successfully'}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    # Check if options are present for 'select' or 'checkbox' question types
+    if data['question_type'] in ['select', 'checkbox'] and not data.get('options'):
+        return jsonify({'error': 'Options are required for select and checkbox question types'}), 400
+    
+    if data['question_type'] == 'select':
+        print(f"Received select question options: {data['options']}")
+
+    # Check if it's a trainer or global question
+    if data['question_source'] == 'trainer':
+        # For trainer-specific questions, use the update_trainer_question method
+        data['trainer_id'] = session.get('trainer_id')
+        data['id'] = question_id
+        
+        try:
+            # Call the trainer update method
+            TrainerIntakeQuestions.update_trainer_question(data)
+            return jsonify({'message': 'Trainer question updated successfully'}), 200
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    else:
+        # For global questions, ensure global_question_id is present
+        data['global_question_id'] = question_id
+        data['trainer_id'] = session.get('trainer_id')
+        
+        try:
+            # Call the global question update or create method
+            TrainerIntakeQuestions.update_or_create(data)
+            return jsonify({'message': 'Global question updated successfully'}), 200
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+
 
 @app.route('/api/delete_user_question/<int:question_id>', methods=['DELETE'])
 def delete_user_question(question_id):

@@ -14,7 +14,7 @@ const ManageQuestions = () => {
         question_text: '',
         question_type: '',
         options: '',
-        category: '',
+        category: 'Exercise History and Preferences',
         other_category: ''
     });
     const [editingQuestion, setEditingQuestion] = useState(null);
@@ -46,11 +46,23 @@ const ManageQuestions = () => {
 
     const handleEditInputChange = (e, uniqueId) => {
         const { name, value } = e.target;
-        const updatedQuestions = questions.map(question =>
-            question.uniqueId === uniqueId ? { ...question, [name]: value } : question
-        );
+
+        const updatedQuestions = questions.map(question => {
+            if (question.uniqueId === uniqueId) {
+                // If editing the 'options' field for a select question, ensure it's a string
+                if (name === 'options' && question.question_type === 'dropdown') {
+                    return { ...question, options: value.split(',').map(option => option.trim()).join(',') };
+                }
+
+                return { ...question, [name]: value };
+            }
+            return question;
+        });
+
         setQuestions(updatedQuestions);
     };
+
+
 
     const addQuestion = () => {
         const category = newQuestion.category === 'Other' ? newQuestion.other_category : newQuestion.category;
@@ -58,40 +70,103 @@ const ManageQuestions = () => {
             .then(response => {
                 const addedQuestion = response.data;
                 const uniqueId = `trainer_${addedQuestion.id}`;  // Create uniqueId for the new question
-                setQuestions([...questions, { ...addedQuestion, uniqueId }]);  // Add with uniqueId
-                setNewQuestion({ question_text: '', question_type: '', options: '', category: '', other_category: '' });
+
+                // Manually populate the missing fields using the current state of `newQuestion`
+                const completeQuestion = {
+                    id: addedQuestion.id,
+                    uniqueId: uniqueId,
+                    question_text: newQuestion.question_text,  // Use the newQuestion values
+                    question_type: newQuestion.question_type,
+                    options: newQuestion.options,
+                    category: newQuestion.category,
+                    other_category: newQuestion.other_category,
+                };
+
+                // Update the state with the complete question
+                setQuestions(prevQuestions => [...prevQuestions, completeQuestion]);
+                setNewQuestion({ question_text: '', question_type: '', options: '', category: 'Exercise History and Preferences', other_category: '' });
                 showNotification('Question added successfully');
             })
             .catch(error => console.error('Error adding question:', error));
     };
 
-    const editQuestion = (uniqueId) => {
-        const question = questions.find(q => q.uniqueId === uniqueId);  // Use uniqueId to find the question
-        const category = question.category === 'Other' ? question.other_category : question.category;
 
-        axios.put(`http://localhost:5000/api/update_user_question/${question.global_question_id || question.id}`,
-            { ...question, category, action: 'edit' })
+    const editQuestion = (uniqueId) => {
+        const question = questions.find(q => q.uniqueId === uniqueId);
+
+        // Log the full question object for debugging
+        console.log("Full question object:", question);
+
+        // For trainer questions, keep action as "add"
+        const options = Array.isArray(question.options) ? question.options.join(',') : question.options;
+
+        // Log the options to ensure correct format
+        console.log("Formatted options (before sending):", options);
+
+        const isTrainerQuestion = question.question_source === 'trainer';
+        const action = isTrainerQuestion ? 'add' : 'edit';
+
+        // Prepare the category and log it
+        const category = question.category === 'Other' ? question.other_category : question.category;
+        console.log("Category (before sending):", category);
+
+        // Log the question_type and ensure it's correct
+        console.log("Question type (before sending):", question.question_type);
+
+        // Log the full payload being sent to the backend
+        console.log("Sending question data to update:", {
+            question_text: question.question_text,
+            question_type: question.question_type,
+            options,
+            category,
+            action,
+            question_source: question.question_source,
+        });
+
+        axios.post(`http://localhost:5000/api/update_user_question/${question.id}`, {
+            question_text: question.question_text,
+            question_type: question.question_type,
+            options: options || "",  // Ensure options are a string
+            category,
+            action,
+            question_source: question.question_source,
+        })
             .then(() => {
                 setEditingQuestion(null);
                 showNotification('Question updated successfully');
-
-                // Update the savedCurrentQuestions in localStorage
-                const key = getLocalStorageKey(clientId, 'currentQuestions');
-                let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
-
-                if (savedCurrentQuestions) {
-                    const updatedCurrentQuestions = savedCurrentQuestions.map(cq => {
-                        if (cq.uniqueId === question.uniqueId) {
-                            return { ...cq, ...question }; // Merge the updated question details
-                        }
-                        return cq;
-                    });
-
-                    localStorage.setItem(key, JSON.stringify(updatedCurrentQuestions));
-                }
+                updateLocalStorageAndState(question);
             })
             .catch(error => console.error('Error updating question:', error));
     };
+
+
+
+
+
+
+
+
+    const updateLocalStorageAndState = (updatedQuestion) => {
+        const key = getLocalStorageKey(clientId, 'currentQuestions');
+        let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
+
+        if (savedCurrentQuestions) {
+            const updatedCurrentQuestions = savedCurrentQuestions.map(cq => {
+                if (cq.uniqueId === updatedQuestion.uniqueId) {
+                    return { ...cq, ...updatedQuestion };  // Merge the updated question details
+                }
+                return cq;
+            });
+
+            localStorage.setItem(key, JSON.stringify(updatedCurrentQuestions));
+        }
+
+        // Update the component state to reflect the edited question
+        setQuestions(prevQuestions =>
+            prevQuestions.map(q => q.uniqueId === updatedQuestion.uniqueId ? { ...q, ...updatedQuestion } : q)
+        );
+    };
+
 
     const deleteQuestion = (uniqueId) => {
         const question = questions.find(q => q.uniqueId === uniqueId);
@@ -172,7 +247,7 @@ const ManageQuestions = () => {
                     <option value="">Select type</option>
                     <option value="text">Text (Single-line input)</option>
                     <option value="textarea">Textarea (Larger-area input)</option>
-                    <option value="select">Select (Dropdown with options)</option>
+                    <option value="dropdown">Select (Dropdown with options)</option>
                     <option value="checkbox">Checkbox (Multiple choices)</option>
                 </select>
 
@@ -183,7 +258,16 @@ const ManageQuestions = () => {
                     onChange={handleInputChange}
                     placeholder="Enter options separated by commas"
                     className="border p-2 mr-2"
-                    disabled={newQuestion.question_type !== 'select' && newQuestion.question_type !== 'checkbox'} // Disable for non-select and non-checkbox
+                    onFocus={(e) => e.target.style.width = "600px"}  // Increase width on focus
+                    onBlur={(e) => e.target.style.width = "300px"}  // Reduce width back to original on blur
+                    style={{
+                        height: "40px",  // Keep the height lower
+                        width: "300px",  // Set initial width to make it long but not too boxy
+                        transition: "width 0.6s ease, box-shadow 0.1s ease",
+                        overflowY: "hidden",
+                        borderRadius: "8px"
+                    }}
+                    disabled={newQuestion.question_type !== 'dropdown' && newQuestion.question_type !== 'checkbox'} // Disable for non-select and non-checkbox
                 />
 
                 <select name="category" value={newQuestion.category} onChange={handleInputChange} className="border p-2 mr-2">
@@ -238,7 +322,7 @@ const ManageQuestions = () => {
                                     <option value="">Select type</option>
                                     <option value="text">Text (Single-line input)</option>
                                     <option value="textarea">Textarea (Larger-area input)</option>
-                                    <option value="select">Select (Dropdown with options)</option>
+                                    <option value="dropdown">Select (Dropdown with options)</option>
                                     <option value="checkbox">Checkbox (Multiple choices)</option>
                                 </select>
                             </div>
@@ -250,7 +334,7 @@ const ManageQuestions = () => {
                                     onChange={(e) => handleEditInputChange(e, question.uniqueId)}
                                     className="border p-2 mr-2 w-full"
                                     placeholder="Enter options separated by commas"
-                                    disabled={question.question_type !== 'select' && question.question_type !== 'checkbox'} // Disable for non-select and non-checkbox
+                                    disabled={question.question_type !== 'dropdown' && question.question_type !== 'checkbox'} // Disable for non-select and non-checkbox
                                 />
 
                             </div>

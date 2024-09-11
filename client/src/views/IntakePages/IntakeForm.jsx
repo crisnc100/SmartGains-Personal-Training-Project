@@ -318,7 +318,7 @@ const IntakeForm = () => {
         const otherValue = intakeForm[`${uniqueId}_other`] || ''; // Value for "Other" input
 
 
-        if (question_type === 'select') {
+        if (question_type === 'dropdown') {
             return (
                 <select
                     name={uniqueId}

@@ -67,6 +67,53 @@ class TrainerIntakeQuestions:
             print(f"Error inserting/updating data: {e}")
             return None
     
+
+    @classmethod
+    def update_trainer_question(cls, data):
+        """Force update trainer-specific questions with minimal logic for debugging purposes."""
+
+        try:
+            # Add the options field back in for testing
+            query = """
+                UPDATE trainer_intake_questions 
+                SET question_text = %(question_text)s, question_type = %(question_type)s, options = %(options)s, 
+                category = %(category)s, updated_at = NOW()
+                WHERE id = %(id)s AND trainer_id = %(trainer_id)s
+            """
+
+            # Include options in the data
+            update_data = {
+                'question_text': data['question_text'],
+                'question_type': data['question_type'],
+                'options': data['options'],
+                'category': data['category'],
+                'id': data['id'],
+                'trainer_id': data['trainer_id']
+            }
+
+
+            # Execute the query
+            rows_affected = connectToMySQL('fitness_consultation_schema').query_db(query, update_data)
+
+            print(f"Query executed. Affected rows: {rows_affected}")
+            return rows_affected
+
+        except Exception as e:
+            print(f"Error updating trainer question: {e}")
+            return None
+
+
+
+
+
+
+
+
+
+
+
+
+    
     @classmethod
     def get_by_id(cls, question_id):
         query = "SELECT * FROM trainer_intake_questions WHERE id = %(id)s"
