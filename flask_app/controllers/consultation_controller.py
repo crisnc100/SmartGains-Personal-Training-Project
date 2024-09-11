@@ -180,21 +180,46 @@ def update_user_question(question_id):
 
 @app.route('/api/delete_user_question/<int:question_id>', methods=['DELETE'])
 def delete_user_question(question_id):
-    if 'trainer_id' not in session:
-        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    data = request.get_json()
+    question_source = data.get('question_source')
 
-    trainer_id = session['trainer_id']
-    data = {
-        'trainer_id': trainer_id,
-        'global_question_id': question_id,
-        'action': 'delete'
-    }
+    if question_source == 'trainer':
+        # Handle trainer-specific questions
+        question = TrainerIntakeQuestions.get_by_id(question_id)
+        if question and question.action == 'add':
+            # Trainer added this question, so just delete it
+            TrainerIntakeQuestions.delete(question_id)
+            return jsonify({'message': 'Trainer question deleted successfully'}), 200
+        elif question and question.global_question_id:
+            # Edited global question, set action to 'delete'
+            TrainerIntakeQuestions.mark_trainer_question_deleted({
+                'id': question.id,
+                'action': 'delete'
+            })
+            return jsonify({'message': 'Edited global question hidden'}), 200
+        else:
+            return jsonify({'error': 'Question not found or invalid action'}), 404
 
-    try:
-        TrainerIntakeQuestions.update_or_create(data)
-        return jsonify({'message': 'Question deleted successfully'}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    elif question_source == 'global':
+        # Handle global question
+        global_question = GlobalFormQuestions.get_by_id(question_id)
+        if global_question:
+            # Add entry to trainer questions with all required fields
+            TrainerIntakeQuestions.mark_global_question_deleted({
+                'global_question_id': question_id,
+                'trainer_id': session.get('trainer_id'),
+                'question_text': global_question.question_text,  # Ensure question_text is passed
+                'question_type': global_question.question_type,  # Ensure question_type is passed
+                'options': global_question.options,              # Ensure options are passed
+                'category': global_question.category,            # Ensure category is passed
+                'action': 'delete'
+            })
+            return jsonify({'message': 'Global question hidden'}), 200
+        else:
+            return jsonify({'error': 'Global question not found'}), 404
+
+    return jsonify({'error': 'Invalid question source'}), 400
+
 
 @app.route('/api/restore_user_questions', methods=['GET'])
 def restore_user_questions():

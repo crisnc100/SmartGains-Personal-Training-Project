@@ -104,15 +104,6 @@ class TrainerIntakeQuestions:
 
 
 
-
-
-
-
-
-
-
-
-
     
     @classmethod
     def get_by_id(cls, question_id):
@@ -176,13 +167,40 @@ class TrainerIntakeQuestions:
         except Exception as e:
             print(f"Error fetching default questions for trainer_id {trainer_id}: {e}")
             return []
+    
+    @classmethod
+    def mark_global_question_deleted(cls, data):
+        # Ensure all required fields are present in the `data` dictionary
+        query = """
+            INSERT INTO trainer_intake_questions 
+            (global_question_id, trainer_id, question_text, question_type, options, category, action, created_at, updated_at)
+            VALUES (%(global_question_id)s, %(trainer_id)s, %(question_text)s, %(question_type)s, %(options)s, %(category)s, %(action)s, NOW(), NOW())
+        """
+
+        # You must provide these fields in the data before calling this method
+        # `data` should contain 'question_text', 'question_type', 'options', 'category', etc.
+        try:
+            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+        except Exception as e:
+            print(f"Error marking global question as deleted: {e}")
+            return None
+
+    
+    @classmethod
+    def mark_trainer_question_deleted(cls, data):
+        query = """
+            UPDATE trainer_intake_questions 
+            SET action = %(action)s, updated_at = NOW()
+            WHERE id = %(id)s
+        """
+        connectToMySQL('fitness_consultation_schema').query_db(query, data)
 
 
 
     @classmethod
-    def delete(cls, trainer_question_id):
+    def delete(cls, question_id):
         query = "DELETE FROM trainer_intake_questions WHERE id = %(id)s;"
-        data = {"id": trainer_question_id}
+        data = {"id": question_id}
         try:
             result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
             return result != 0

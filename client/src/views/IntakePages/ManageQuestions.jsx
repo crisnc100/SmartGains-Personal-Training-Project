@@ -22,6 +22,10 @@ const ManageQuestions = () => {
     const [categories, setCategories] = useState(['Exercise History and Preferences', 'Fitness Goals and Motivation', 'Exercise Routine and Recovery', 'Lifestyle and Challenges', 'Medical History', 'Basic Nutrition', 'Other']);
     const [deleteConfirm, setDeleteConfirm] = useState({ show: false, questionId: null });
     const [restoreConfirm, setRestoreConfirm] = useState(false);
+    const [addValidationErrors, setAddValidationErrors] = useState(''); // For adding questions
+    const [editValidationErrors, setEditValidationErrors] = useState(''); // For editing questions
+
+
 
     useEffect(() => {
         fetchQuestions();
@@ -63,9 +67,57 @@ const ManageQuestions = () => {
     };
 
 
+    // Validate question
+    const validateQuestion = (question) => {
+        const { question_text, question_type, options, category, other_category } = question;
+        const specialCharRegex = /[^a-zA-Z0-9\s]/;
+        let errors = '';
+
+        // Check required fields
+        if (!question_text || !question_type || (!category && !other_category)) {
+            errors += 'All fields are required. ';
+        }
+
+        // Check if question text contains special characters
+        if (specialCharRegex.test(question_text)) {
+            errors += 'Question text contains special characters. Only alphanumeric characters are allowed. ';
+        }
+
+        // Check minimum character length for question text
+        if (question_text.trim().length < 5) {
+            errors += 'Question must be at least 5 characters long. ';
+        }
+
+        // Check for uniqueness of the question text
+        const questionExists = questions.some(q => q.question_text.toLowerCase() === question_text.toLowerCase() && q.id !== question.id);
+        if (questionExists) {
+            errors += 'This question already exists. ';
+        }
+
+        // Validate options for dropdown/checkbox types
+        if ((question_type === 'dropdown' || question_type === 'checkbox') && options.split(',').length < 2) {
+            errors += 'At least two options are required for dropdown and checkbox questions. ';
+        }
+
+        // Validate unique category for 'Other'
+        if (category === 'Other' && categories.includes(other_category.trim())) {
+            errors += 'This category already exists. ';
+        }
+
+        return errors || null;  // Return the string of errors, or null if no errors
+    };
+
+
+
+
 
     const addQuestion = () => {
         const category = newQuestion.category === 'Other' ? newQuestion.other_category : newQuestion.category;
+        const errors = validateQuestion(newQuestion);
+        if (errors) {
+            setAddValidationErrors(errors);  // Show errors in the adding section
+            return;
+        }
         axios.post('http://localhost:5000/api/add_user_question', { ...newQuestion, category, action: 'add' })
             .then(response => {
                 const addedQuestion = response.data;
@@ -85,6 +137,7 @@ const ManageQuestions = () => {
                 // Update the state with the complete question
                 setQuestions(prevQuestions => [...prevQuestions, completeQuestion]);
                 setNewQuestion({ question_text: '', question_type: '', options: '', category: 'Exercise History and Preferences', other_category: '' });
+                setAddValidationErrors('');  // Clear validation errors after successful add
                 showNotification('Question added successfully');
             })
             .catch(error => console.error('Error adding question:', error));
@@ -93,6 +146,11 @@ const ManageQuestions = () => {
 
     const editQuestion = (uniqueId) => {
         const question = questions.find(q => q.uniqueId === uniqueId);
+        const errors = validateQuestion(question);
+        if (errors) {
+            setEditValidationErrors(errors);  // Show errors in the editing section
+            return;
+        }
 
         // Log the full question object for debugging
         console.log("Full question object:", question);
@@ -133,17 +191,12 @@ const ManageQuestions = () => {
         })
             .then(() => {
                 setEditingQuestion(null);
+                setEditValidationErrors('');  // Clear validation errors after successful edit
                 showNotification('Question updated successfully');
                 updateLocalStorageAndState(question);
             })
             .catch(error => console.error('Error updating question:', error));
     };
-
-
-
-
-
-
 
 
     const updateLocalStorageAndState = (updatedQuestion) => {
@@ -170,13 +223,23 @@ const ManageQuestions = () => {
 
     const deleteQuestion = (uniqueId) => {
         const question = questions.find(q => q.uniqueId === uniqueId);
-        axios.delete(`http://localhost:5000/api/delete_user_question/${question.id}`)
-            .then(() => {
+        
+        axios.delete(`http://localhost:5000/api/delete_user_question/${question.id}`, {
+            data: { question_source: question.question_source }  // Send source to backend
+        })
+        .then(() => {
+            if (question.question_source === 'trainer') {
+                // Remove from UI if it's a trainer-added question
                 setQuestions(questions.filter(q => q.uniqueId !== uniqueId));
-                showNotification('Question deleted successfully');
-            })
-            .catch(error => console.error('Error deleting question:', error));
+            } else if (question.question_source === 'global') {
+                // Hide the global question by removing it from the UI
+                setQuestions(questions.filter(q => q.uniqueId !== uniqueId));
+            }
+            showNotification('Question deleted successfully');
+        })
+        .catch(error => console.error('Error deleting question:', error));
     };
+    
 
 
     const showNotification = (message) => {
@@ -225,6 +288,11 @@ const ManageQuestions = () => {
     return (
         <div>
             <h2>Manage Questions</h2>
+            {addValidationErrors && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    {addValidationErrors}
+                </div>
+            )}
             <div className="my-4">
                 <textarea
                     name='question_text'
@@ -303,6 +371,11 @@ const ManageQuestions = () => {
                 <div key={question.uniqueId} className="mb-4 p-2 border rounded flex justify-between items-center">
                     {editingQuestion === question.uniqueId ? (
                         <div className="flex-grow">
+                            {editValidationErrors && (
+                                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                    {editValidationErrors}
+                                </div>
+                            )}
                             <div className="mb-2">
                                 <input
                                     type="text"
@@ -358,9 +431,17 @@ const ManageQuestions = () => {
                                     className="border p-2 mr-2 mb-4 w-full"
                                 />
                             )}
+
                             <button onClick={() => editQuestion(question.uniqueId)} className="bg-green-500 hover:bg-green-600 text-white p-2 rounded mr-2">Save</button>
-                            <button onClick={() => setEditingQuestion(null)} className="bg-red-500 hover:bg-red-700 text-white p-2 rounded">Cancel</button>
-                        </div>
+                            <button
+                                onClick={() => {
+                                    setEditingQuestion(null);
+                                    setEditValidationErrors(null);  // Clear the error messages when cancelling
+                                }}
+                                className="bg-red-500 hover:bg-red-700 text-white p-2 rounded"
+                            >
+                                Cancel
+                            </button>                        </div>
                     ) : (
                         <>
                             <div className="flex-grow w-3/4">
