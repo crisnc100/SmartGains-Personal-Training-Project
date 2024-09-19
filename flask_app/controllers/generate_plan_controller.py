@@ -79,7 +79,7 @@ def generate_custom_plan(client_id):
     # Making the request to the OpenAI API
         client_ai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         completion = client_ai.chat.completions.create(
-            model="gpt-4o-2024-05-13",  # Model (Newest One)
+            model="gpt-4o-2024-08-06",  # Model (Newest One)
             messages=[{"role": "system", "content": "You are a fitness trainer."}, {"role": "user", "content": final_prompt}],
             max_tokens=3000,  # Adjust as needed (how big the responses are)
             temperature=0  # Control the randomness?

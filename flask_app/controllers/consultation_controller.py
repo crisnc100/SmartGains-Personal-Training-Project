@@ -511,7 +511,7 @@ def create_client_summary(client_id):
         # Making the request to OpenAI API
         client_ai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         completion = client_ai.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o-mini-2024-07-18",
             messages=[{"role": "system", "content": "AI fitness assistant. Your task is to analyze client data."},
                       {"role": "user", "content": final_prompt}],
             max_tokens=3000,

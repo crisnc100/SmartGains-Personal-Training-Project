@@ -70,7 +70,7 @@ const ManageQuestions = () => {
     // Validate question
     const validateQuestion = (question) => {
         const { question_text, question_type, options, category, other_category } = question;
-        const specialCharRegex = /[^a-zA-Z0-9\s]/;
+        const specialCharRegex = /[^a-zA-Z0-9\s?.]/;
         let errors = '';
 
         // Check required fields
@@ -157,29 +157,9 @@ const ManageQuestions = () => {
 
         // For trainer questions, keep action as "add"
         const options = Array.isArray(question.options) ? question.options.join(',') : question.options;
-
-        // Log the options to ensure correct format
-        console.log("Formatted options (before sending):", options);
-
         const isTrainerQuestion = question.question_source === 'trainer';
         const action = isTrainerQuestion ? 'add' : 'edit';
-
-        // Prepare the category and log it
         const category = question.category === 'Other' ? question.other_category : question.category;
-        console.log("Category (before sending):", category);
-
-        // Log the question_type and ensure it's correct
-        console.log("Question type (before sending):", question.question_type);
-
-        // Log the full payload being sent to the backend
-        console.log("Sending question data to update:", {
-            question_text: question.question_text,
-            question_type: question.question_type,
-            options,
-            category,
-            action,
-            question_source: question.question_source,
-        });
 
         axios.post(`http://localhost:5000/api/update_user_question/${question.id}`, {
             question_text: question.question_text,
@@ -188,6 +168,8 @@ const ManageQuestions = () => {
             category,
             action,
             question_source: question.question_source,
+            is_default: question.is_default || 0,  // Ensure `is_default` is passed (default to 0 if not present)
+
         })
             .then(() => {
                 setEditingQuestion(null);
@@ -202,7 +184,7 @@ const ManageQuestions = () => {
     const updateLocalStorageAndState = (updatedQuestion) => {
         const key = getLocalStorageKey(clientId, 'currentQuestions');
         let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
-
+    
         if (savedCurrentQuestions) {
             const updatedCurrentQuestions = savedCurrentQuestions.map(cq => {
                 if (cq.uniqueId === updatedQuestion.uniqueId) {
@@ -210,15 +192,15 @@ const ManageQuestions = () => {
                 }
                 return cq;
             });
-
+    
             localStorage.setItem(key, JSON.stringify(updatedCurrentQuestions));
         }
-
-        // Update the component state to reflect the edited question
+    
         setQuestions(prevQuestions =>
             prevQuestions.map(q => q.uniqueId === updatedQuestion.uniqueId ? { ...q, ...updatedQuestion } : q)
         );
     };
+    
 
 
     const deleteQuestion = (uniqueId) => {

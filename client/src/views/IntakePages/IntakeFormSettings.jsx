@@ -38,25 +38,25 @@ const IntakeFormSettings = () => {
         </button>
         <ul>
           <li
-            className={`cursor-pointer p-2 ${activeTab === 'customize' ? 'bg-gray-200' : ''}`}
+            className={`cursor-pointer p-2 ${activeTab === 'customize' ? 'bg-gray-300' : 'hover:bg-gray-100'}`}
             onClick={() => setActiveTab('customize')}
           >
             Customize Form
           </li>
           <li
-            className={`cursor-pointer p-2 ${activeTab === 'manageQuestions' ? 'bg-gray-200' : ''}`}
+            className={`cursor-pointer p-2 ${activeTab === 'manageQuestions' ? 'bg-gray-300 ' : 'hover:bg-gray-100'}`}
             onClick={() => setActiveTab('manageQuestions')}
           >
             Manage Questions
           </li>
           <li
-            className={`cursor-pointer p-2 ${activeTab === 'intakeTemplates' ? 'bg-gray-200' : ''}`}
+            className={`cursor-pointer p-2 ${activeTab === 'intakeTemplates' ? 'bg-gray-300' : 'hover:bg-gray-100'}`}
             onClick={() => setActiveTab('intakeTemplates')}
           >
             Intake Templates
           </li>
           <li
-            className={`cursor-pointer p-2 ${activeTab === 'defaultSettings' ? 'bg-gray-200' : ''}`}
+            className={`cursor-pointer p-2 ${activeTab === 'defaultSettings' ? 'bg-gray-300' : 'hover:bg-gray-100'}`}
             onClick={() => setActiveTab('defaultSettings')}
           >
             Default Setup

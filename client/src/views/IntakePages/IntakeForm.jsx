@@ -160,12 +160,23 @@ const IntakeForm = () => {
     const initializeForm = (questions, savedAnswers = {}) => {
         console.log("Initializing form with questions and answers...", questions, savedAnswers);
         const formState = {};
+
+        // Map answers to questions using the original question ID
         questions.forEach(question => {
-            formState[question.id] = savedAnswers[question.id] || (question.question_type === 'checkbox' ? [] : '');
+            const questionId = question.id;  // Use the original question ID
+            formState[questionId] = savedAnswers[questionId] || '';  // Match saved answer to question ID
         });
+
         setIntakeForm(formState);
         console.log('Initialized form state:', formState);
     };
+
+
+
+
+
+
+
 
 
     const handleInputChange = async (event, uniqueId) => {
@@ -224,10 +235,10 @@ const IntakeForm = () => {
             });
             console.log("Load existing form API response:", response.data);
 
-
             if (response.data.answers && Array.isArray(response.data.answers)) {
                 const savedAnswers = response.data.answers.reduce((acc, answer) => {
-                    acc[answer.question_id] = answer.answer;
+                    const uniqueId = `${answer.question_source}_${answer.question_id}`;  // Use uniqueId here
+                    acc[uniqueId] = answer.answer;
                     return acc;
                 }, {});
 
@@ -282,49 +293,51 @@ const IntakeForm = () => {
         }
     };
 
-    const handleCheckboxChange = (event, uniqueId) => {
+    const handleCheckboxChange = (event, questionId) => {
         const { value } = event.target;
         const isOtherSelected = value === 'Other';
+    
         setIntakeForm((prevState) => {
-            const updatedArray = Array.isArray(prevState[uniqueId])
-                ? prevState[uniqueId].includes(value)
-                    ? prevState[uniqueId].filter(item => item !== value)
-                    : [...prevState[uniqueId], value]
+            const updatedArray = Array.isArray(prevState[questionId])
+                ? prevState[questionId].includes(value)
+                    ? prevState[questionId].filter(item => item !== value)
+                    : [...prevState[questionId], value]
                 : [value]; // Initialize as an array if it's not already
-
+    
             const updatedForm = {
                 ...prevState,
-                [uniqueId]: updatedArray,
+                [questionId]: updatedArray, // Use questionId to update the state
             };
-
+    
             // If "Other" is selected, add an empty field for user input for "Other"
             if (isOtherSelected) {
-                updatedForm[`${uniqueId}_other`] = updatedForm[`${uniqueId}_other`] || ''; // Create other field if not already there
+                updatedForm[`${questionId}_other`] = updatedForm[`${questionId}_other`] || ''; // Create "Other" field if not already there
             } else if (!updatedArray.includes('Other')) {
                 // If "Other" is unchecked, remove the "Other" field
-                delete updatedForm[`${uniqueId}_other`];
+                delete updatedForm[`${questionId}_other`];
             }
-
+    
+            // Save the updated form to local storage
             localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(updatedForm));
             return updatedForm;
         });
     };
+    
 
 
 
     const renderInputField = (question) => {
-        const { uniqueId, question_text, question_type, options } = question;
-        const value = intakeForm[uniqueId] || '';
-        const otherValue = intakeForm[`${uniqueId}_other`] || ''; // Value for "Other" input
-
+        const { id, question_text, question_type, options } = question;
+        const value = intakeForm[id] || '';  // Use question id to access answer
+        const otherValue = intakeForm[`${id}_other`] || ''; // Value for "Other" input
 
         if (question_type === 'dropdown') {
             return (
                 <select
-                    name={uniqueId}
-                    id={uniqueId}
+                    name={id}
+                    id={id}
                     value={value}
-                    onChange={(e) => handleInputChange(e, uniqueId)}
+                    onChange={(e) => handleInputChange(e, id)}
                     className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
                 >
                     <option value="">Select an option</option>
@@ -340,10 +353,10 @@ const IntakeForm = () => {
                         <label key={option} className="inline-flex items-center md:w-1/2">
                             <input
                                 type="checkbox"
-                                name={uniqueId}
+                                name={id}
                                 value={option}
                                 checked={value.includes(option)} // Check if the option is included in the value array
-                                onChange={(e) => handleCheckboxChange(e, uniqueId)}
+                                onChange={(e) => handleCheckboxChange(e, id)}
                                 className="form-checkbox"
                                 aria-label={option}
                             />
@@ -357,7 +370,7 @@ const IntakeForm = () => {
                             type="text"
                             placeholder="Please specify"
                             value={otherValue}
-                            onChange={(e) => handleInputChange(e, `${uniqueId}_other`)}
+                            onChange={(e) => handleInputChange(e, `${id}_other`)}
                             className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500 mt-2"
                         />
                     )}
@@ -366,10 +379,10 @@ const IntakeForm = () => {
         } else if (question_type === 'textarea') {
             return (
                 <textarea
-                    id={uniqueId}
-                    name={uniqueId}
+                    id={id}
+                    name={id}
                     value={value}
-                    onChange={(e) => handleInputChange(e, uniqueId)}
+                    onChange={(e) => handleInputChange(e, id)}
                     className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
                     rows="4"
                     style={{ maxWidth: '100%', maxHeight: '150px' }}
@@ -379,10 +392,10 @@ const IntakeForm = () => {
             return (
                 <input
                     type="text"
-                    id={uniqueId}
-                    name={uniqueId}
+                    id={id}
+                    name={id}
                     value={value}
-                    onChange={(e) => handleInputChange(e, uniqueId)}
+                    onChange={(e) => handleInputChange(e, id)}
                     className="bg-white border border-black text-gray-900 text-sm rounded-lg block w-full p-2.5 focus:border-blue-500 focus:ring-blue-500"
                 />
             );
@@ -402,7 +415,7 @@ const IntakeForm = () => {
                     .map(question => ({
                         question_source: question.source || 'global',
                         question_id: question.id,
-                        answer: intakeForm[question.uniqueId]
+                        answer: intakeForm[question.id]  // Use question.id to access the answer
                     }))
                     .filter(answer => answer.answer !== '');
                 localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(intakeForm)); // Save answers to local storage

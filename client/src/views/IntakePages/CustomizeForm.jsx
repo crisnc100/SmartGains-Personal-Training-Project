@@ -65,54 +65,85 @@ const CustomizeForm = ({ onSave }) => {
 
   const fetchQuestions = async (savedCurrentQuestions = null) => {
     try {
-      // Fetch global and trainer questions from the backend
-      const response = await axios.get('http://localhost:5000/api/get_user_questions');
-      const questions = response.data;
+        // Fetch global and trainer questions from the backend
+        const response = await axios.get('http://localhost:5000/api/get_user_questions');
+        const questions = response.data;
 
-      console.log('Fetched Global and Trainer Questions:', questions);
-
-      // Process all questions to include uniqueId
-      let allQuestionsArray = questions.map((question) => {
-        // Create a uniqueId by combining question_source with the numeric id
-        const uniqueId = `${question.question_source}_${question.id}`;
-        return { ...question, uniqueId }; // Append uniqueId to each question object
-      });
-
-      console.log('All Questions Array with uniqueId:', allQuestionsArray);
-
-      if (savedCurrentQuestions) {
-        // Assign uniqueId to the savedCurrentQuestions as well
-        const savedCurrentQuestionsWithUniqueId = savedCurrentQuestions.map((question) => {
-          const uniqueId = `${question.question_source}_${question.id}`;
-          return { ...question, uniqueId }; // Append uniqueId to each current question
-        });
-
-        console.log('Saved Current Questions with uniqueId:', savedCurrentQuestionsWithUniqueId);
-
-        // Filter out questions that are already in the 'Current Intake Form'
-        const filteredQuestions = allQuestionsArray.filter(q =>
-          !savedCurrentQuestionsWithUniqueId.some(cq => cq.uniqueId === q.uniqueId) // Compare using uniqueId
+        // Create an array of all the global question IDs that have trainer-specific versions
+        const trainerSpecificGlobalIds = new Set(
+            questions
+                .filter(q => q.question_source === 'trainer')  // Only trainer-specific questions
+                .map(q => q.global_question_id)  // Get the global_question_id linked to trainer questions
         );
 
-        console.log('Filtered Questions (after excluding current intake questions):', filteredQuestions);
+        // Filter out global questions that have a trainer-specific version in the allQuestions array
+        let allQuestionsArray = questions.filter(question => {
+            return !(question.question_source === 'global' && trainerSpecificGlobalIds.has(question.id));
+        });
 
-        // Set filtered questions to the question bank and current intake questions
-        setAllQuestions(filteredQuestions);
-        setCurrentQuestions(savedCurrentQuestionsWithUniqueId);
-      } else {
-        console.log('No saved current questions found.');
-        setAllQuestions(allQuestionsArray); // Show all questions if no saved intake form is present
-        setCurrentQuestions([]); // Set current intake form to an empty array if no questions are saved
-      }
+        // Add uniqueId for all questions
+        allQuestionsArray = allQuestionsArray.map((question) => {
+            const uniqueId = `${question.question_source}_${question.id}`;
+            return { ...question, uniqueId }; // Append uniqueId to each question object
+        });
 
-      // Create a list of categories for filtering in the question bank
-      const allCategories = ['All', ...new Set(allQuestionsArray.map(q => q.category))];
-      setCategories(allCategories);
+        if (savedCurrentQuestions) {
+            // Same filtering logic for current intake questions
+            const savedCurrentQuestionsWithUniqueId = savedCurrentQuestions.map((question) => {
+                const uniqueId = `${question.question_source}_${question.id}`;
+                return { ...question, uniqueId }; // Append uniqueId to each current question
+            });
+
+            // Update the currentQuestions state and local storage
+            updateCurrentQuestions(savedCurrentQuestionsWithUniqueId, allQuestionsArray);
+
+        } else {
+            // Set allQuestions and currentQuestions state if no saved current questions exist
+            setAllQuestions(allQuestionsArray);
+            setCurrentQuestions([]);  // Set current intake form to an empty array if no questions are saved
+        }
+
+        // Create a list of categories for filtering in the question bank
+        const allCategories = ['All', ...new Set(allQuestionsArray.map(q => q.category))];
+        setCategories(allCategories);
 
     } catch (error) {
-      console.error('Error fetching questions:', error);
+        console.error('Error fetching questions:', error);
     }
-  };
+};
+
+
+
+const updateCurrentQuestions = (savedCurrentQuestions, allQuestionsArray) => {
+  // Find if a global question has been edited and is now a trainer question
+  const updatedCurrentQuestions = savedCurrentQuestions.map(question => {
+      // If a trainer version exists, use that
+      const trainerQuestion = allQuestionsArray.find(q => q.global_question_id === question.id && q.question_source === 'trainer');
+      
+      // If a trainer version exists, replace the global version
+      if (trainerQuestion) {
+          return { ...trainerQuestion, uniqueId: `${trainerQuestion.question_source}_${trainerQuestion.id}` };
+      }
+
+      // Otherwise, keep the current question
+      return question;
+  });
+
+  // Save the updated current questions to local storage
+  const key = getLocalStorageKey(clientId, 'currentQuestions');
+  localStorage.setItem(key, JSON.stringify(updatedCurrentQuestions));
+
+  // Update the state
+  setCurrentQuestions(updatedCurrentQuestions);
+
+  // Filter out the questions already present in currentQuestions from the question bank
+  const updatedAllQuestions = allQuestionsArray.filter(q => {
+      return !updatedCurrentQuestions.some(cq => cq.uniqueId === q.uniqueId);
+  });
+
+  // Update the question bank (allQuestions) state
+  setAllQuestions(updatedAllQuestions);
+};
 
 
 
@@ -292,7 +323,7 @@ const CustomizeForm = ({ onSave }) => {
                           >
                             <span>{question.question_text}</span>
                             <button
-                              className="bg-red-500 text-white px-2 py-1 rounded"
+                              className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-700"
                               onClick={() => {
                                 const newCurrentQuestions = Array.from(currentQuestions);
                                 const [removedQuestion] = newCurrentQuestions.splice(index, 1);

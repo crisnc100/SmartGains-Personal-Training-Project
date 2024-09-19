@@ -90,7 +90,7 @@ def generate_quick_plan(client_id):
     # OpenAI API
         client_ai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         completion = client_ai.chat.completions.create(
-            model="gpt-4o-2024-05-13",  # Model (Newest one)
+            model="gpt-4o-2024-08-06",  # Model (Newest one)
             messages=[{"role": "system", "content": "You are a fitness trainer."}, {"role": "user", "content": final_prompt}],
             max_tokens=3000, 
             temperature=0  
