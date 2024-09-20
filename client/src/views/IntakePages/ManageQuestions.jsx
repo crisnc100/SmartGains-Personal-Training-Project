@@ -18,10 +18,13 @@ const ManageQuestions = () => {
         other_category: ''
     });
     const [editingQuestion, setEditingQuestion] = useState(null);
+    const [backupQuestion, setBackupQuestion] = useState(null); // New state to store the original question
     const [notification, setNotification] = useState({ show: false, message: '' });
     const [categories, setCategories] = useState(['Exercise History and Preferences', 'Fitness Goals and Motivation', 'Exercise Routine and Recovery', 'Lifestyle and Challenges', 'Medical History', 'Basic Nutrition', 'Other']);
     const [deleteConfirm, setDeleteConfirm] = useState({ show: false, questionId: null });
     const [restoreConfirm, setRestoreConfirm] = useState(false);
+    const [restoreOneConfirm, setRestoreOneConfirm] = useState({ show: false, questionId: null });
+
     const [addValidationErrors, setAddValidationErrors] = useState(''); // For adding questions
     const [editValidationErrors, setEditValidationErrors] = useState(''); // For editing questions
 
@@ -36,7 +39,9 @@ const ManageQuestions = () => {
             .then(response => {
                 const fetchedQuestions = response.data.map(question => ({
                     ...question,
-                    uniqueId: `${question.question_source}_${question.id}` // Assign uniqueId
+                    uniqueId: `${question.question_source}_${question.id}`, // Assign uniqueId
+                    isEdited: question.action === 'edit' // Mark questions with action = 'edit' as edited
+
                 }));
                 setQuestions(fetchedQuestions);
             })
@@ -53,17 +58,32 @@ const ManageQuestions = () => {
 
         const updatedQuestions = questions.map(question => {
             if (question.uniqueId === uniqueId) {
-                // If editing the 'options' field for a select question, ensure it's a string
+                // If editing 'options' for select question, ensure it's a string
                 if (name === 'options' && question.question_type === 'dropdown') {
                     return { ...question, options: value.split(',').map(option => option.trim()).join(',') };
                 }
-
                 return { ...question, [name]: value };
             }
             return question;
         });
 
         setQuestions(updatedQuestions);
+    };
+
+    const startEditing = (uniqueId) => {
+        const questionToEdit = questions.find(q => q.uniqueId === uniqueId);
+        setBackupQuestion({ ...questionToEdit }); // Save original question
+        setEditingQuestion(uniqueId); // Enter edit mode
+    };
+
+    const cancelEdit = () => {
+        setQuestions(prevQuestions =>
+            prevQuestions.map(q => (q.uniqueId === backupQuestion.uniqueId ? backupQuestion : q))
+        );
+        setEditingQuestion(null); // Exit edit mode
+        setBackupQuestion(null); // Clear backup
+        setEditValidationErrors(null);  // Clear the error messages when cancelling
+
     };
 
 
@@ -172,6 +192,11 @@ const ManageQuestions = () => {
 
         })
             .then(() => {
+                setQuestions(prevQuestions =>
+                    prevQuestions.map(q =>
+                        q.uniqueId === uniqueId ? { ...q, isEdited: true } : q
+                    )
+                );
                 setEditingQuestion(null);
                 setEditValidationErrors('');  // Clear validation errors after successful edit
                 showNotification('Question updated successfully');
@@ -184,7 +209,7 @@ const ManageQuestions = () => {
     const updateLocalStorageAndState = (updatedQuestion) => {
         const key = getLocalStorageKey(clientId, 'currentQuestions');
         let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
-    
+
         if (savedCurrentQuestions) {
             const updatedCurrentQuestions = savedCurrentQuestions.map(cq => {
                 if (cq.uniqueId === updatedQuestion.uniqueId) {
@@ -192,36 +217,43 @@ const ManageQuestions = () => {
                 }
                 return cq;
             });
-    
+
             localStorage.setItem(key, JSON.stringify(updatedCurrentQuestions));
         }
-    
+
         setQuestions(prevQuestions =>
             prevQuestions.map(q => q.uniqueId === updatedQuestion.uniqueId ? { ...q, ...updatedQuestion } : q)
         );
     };
-    
+
 
 
     const deleteQuestion = (uniqueId) => {
         const question = questions.find(q => q.uniqueId === uniqueId);
-        
+
         axios.delete(`http://localhost:5000/api/delete_user_question/${question.id}`, {
             data: { question_source: question.question_source }  // Send source to backend
         })
-        .then(() => {
-            if (question.question_source === 'trainer') {
-                // Remove from UI if it's a trainer-added question
-                setQuestions(questions.filter(q => q.uniqueId !== uniqueId));
-            } else if (question.question_source === 'global') {
-                // Hide the global question by removing it from the UI
-                setQuestions(questions.filter(q => q.uniqueId !== uniqueId));
-            }
-            showNotification('Question deleted successfully');
-        })
-        .catch(error => console.error('Error deleting question:', error));
+            .then(() => {
+                // Update the state: remove the question from the `questions` array
+                setQuestions(prevQuestions => prevQuestions.filter(q => q.uniqueId !== uniqueId));
+
+                // Update local storage: remove the question from local storage
+                const key = getLocalStorageKey(clientId, 'currentQuestions');
+                let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
+
+                // Remove the deleted question from local storage
+                if (savedCurrentQuestions) {
+                    savedCurrentQuestions = savedCurrentQuestions.filter(q => q.uniqueId !== uniqueId);
+                    localStorage.setItem(key, JSON.stringify(savedCurrentQuestions));
+                }
+
+                // Show notification after successful deletion
+                showNotification('Question deleted successfully');
+            })
+            .catch(error => console.error('Error deleting question:', error));
     };
-    
+
 
 
     const showNotification = (message) => {
@@ -249,7 +281,7 @@ const ManageQuestions = () => {
     };
 
     const handleRestoreConfirm = () => {
-        restoreQuestions();
+        restoreAllQuestions();
         setRestoreConfirm(false);
     };
 
@@ -257,15 +289,60 @@ const ManageQuestions = () => {
         setRestoreConfirm(false);
     };
 
-    const restoreQuestions = () => {
-        // Logic to restore all questions from the global question bank
+    const restoreAllQuestions = () => {
         axios.get('http://localhost:5000/api/restore_user_questions')
             .then(response => {
                 setQuestions(response.data);
-                showNotification('All questions restored successfully');
+                setRestoreConfirm(false);
             })
             .catch(error => console.error('Error restoring questions:', error));
     };
+
+    const restoreToDefault = (uniqueId) => {
+        const question = questions.find(q => q.uniqueId === restoreOneConfirm.questionId);
+        axios.delete(`http://localhost:5000/api/restore_question_to_default/${question.id}`)
+            .then(() => {
+                fetchQuestions();
+                setRestoreOneConfirm({ show: false, questionId: null });
+            })
+            .catch(error => console.error('Error restoring question to default:', error));
+    };
+
+    const ConfirmationModal = ({ message, onConfirm, onCancel }) => {
+        return (
+            <>
+                {/* Background overlay */}
+                <div style={{
+                    position: 'fixed', 
+                    top: 0, 
+                    left: 0, 
+                    width: '100%', 
+                    height: '100%', 
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',  // Dark background with transparency
+                    zIndex: 999  // Ensure it's behind the modal but on top of everything else
+                }} onClick={onCancel}></div>
+    
+                {/* Modal */}
+                <div style={{
+                    position: 'fixed', 
+                    top: '50%', 
+                    left: '50%', 
+                    transform: 'translate(-50%, -50%)', 
+                    backgroundColor: 'white', 
+                    padding: '20px', 
+                    borderRadius: '8px', 
+                    zIndex: 1000,  // Ensure it's on top of the overlay
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
+                }}>
+                    <p>{message}</p>
+                    <button onClick={onConfirm} className="bg-red-500 hover:bg-red-700 text-white p-2 rounded mr-2">Yes</button>
+                    <button onClick={onCancel} className="bg-gray-500 hover:bg-gray-700 text-white p-2 rounded">No</button>
+                </div>
+            </>
+        );
+    };
+    
+
 
     return (
         <div>
@@ -286,7 +363,6 @@ const ManageQuestions = () => {
                     onBlur={(e) => e.target.style.height = "40px"}  // Shrink back on blur
                     style={{ height: "40px", transition: "height 0.3s ease" }}  // Smooth transition
                 />
-
 
                 <select
                     name="question_type"
@@ -338,10 +414,10 @@ const ManageQuestions = () => {
                 <button onClick={addQuestion} className="bg-blue-500 hover:bg-blue-700 text-white mt-4 p-2 rounded">Add Question</button>
                 <div className="flex justify-end space-x-2">
                     <button
-                        onClick={confirmRestoreQuestions}
+                        onClick={() => setRestoreConfirm(true)}
                         className="mr-2 flex items-center bg-green-600 hover:bg-green-700 text-white p-2 rounded"
                         title='Restore All Default Questions'>
-                        <FaUndo className="inline mr-2" /> Restore by Default
+                        <FaUndo className="inline mr-2" /> Restore All
                     </button>
                 </div>
             </div>
@@ -391,7 +467,6 @@ const ManageQuestions = () => {
                                     placeholder="Enter options separated by commas"
                                     disabled={question.question_type !== 'dropdown' && question.question_type !== 'checkbox'} // Disable for non-select and non-checkbox
                                 />
-
                             </div>
                             <select
                                 name="category"
@@ -416,27 +491,38 @@ const ManageQuestions = () => {
 
                             <button onClick={() => editQuestion(question.uniqueId)} className="bg-green-500 hover:bg-green-600 text-white p-2 rounded mr-2">Save</button>
                             <button
-                                onClick={() => {
-                                    setEditingQuestion(null);
-                                    setEditValidationErrors(null);  // Clear the error messages when cancelling
-                                }}
+                                onClick={cancelEdit}
                                 className="bg-red-500 hover:bg-red-700 text-white p-2 rounded"
                             >
                                 Cancel
-                            </button>                        </div>
+                            </button>
+                        </div>
                     ) : (
                         <>
                             <div className="flex-grow w-3/4">
-                                <p className="font-bold" style={{ maxWidth: '80%', wordWrap: 'break-word' }}>{question.question_text}</p>
+                                {/* Highlight edited questions */}
+                                <p className="font-bold" style={{ maxWidth: '80%', wordWrap: 'break-word' }}>
+                                    {question.question_text} {question.isEdited && <span style={{ fontSize: '0.9em', color: '#6c757d' }}> (Edited)</span>}
+                                </p>
                                 <p>{question.category}</p>
                             </div>
                             <div className="w-1/4 space-x-2">
                                 <button
-                                    onClick={() => setEditingQuestion(question.uniqueId)}
+                                    onClick={() => startEditing(question.uniqueId)}
                                     className="bg-yellow-400 hover:bg-yellow-600 text-white p-2 rounded"
                                     title="Edit">
                                     <FaEdit />
                                 </button>
+                                {question.isEdited && (
+                                    // Restore button for edited questions
+                                    <button
+                                        onClick={() => setRestoreOneConfirm({ show: true, questionId: question.uniqueId })}
+                                        className="bg-blue-500 hover:bg-blue-700 text-white p-2 rounded"
+                                        title="Restore to Default"
+                                    >
+                                        <FaUndo />
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => setDeleteConfirm({ show: true, questionId: question.uniqueId })}
                                     className="bg-red-500 hover:bg-red-700 text-white p-2 rounded"
@@ -464,14 +550,19 @@ const ManageQuestions = () => {
                 </div>
             )}
             {restoreConfirm && (
-                <div style={{
-                    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                    backgroundColor: 'white', padding: '20px', borderRadius: '8px', zIndex: 1000, boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
-                }}>
-                    <p>Are you sure you want to restore all questions to default?</p>
-                    <button onClick={handleRestoreConfirm} className="bg-red-500 hover:bg-red-700 text-white p-2 rounded mr-2">Yes</button>
-                    <button onClick={handleRestoreCancel} className="bg-gray-500 hover:bg-gray-700 text-white p-2 rounded">No</button>
-                </div>
+                <ConfirmationModal
+                    message="Are you sure you want to restore all questions to default?"
+                    onConfirm={restoreAllQuestions}
+                    onCancel={() => setRestoreConfirm(false)}
+                />
+            )}
+
+            {restoreOneConfirm.show && (
+                <ConfirmationModal
+                    message="Are you sure you want to restore this question to default?"
+                    onConfirm={() => restoreToDefault(restoreOneConfirm.questionId)}
+                    onCancel={() => setRestoreOneConfirm({ show: false, questionId: null })}
+                />
             )}
             {(deleteConfirm.show || restoreConfirm) && (
                 <div style={{

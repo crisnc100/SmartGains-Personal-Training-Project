@@ -221,6 +221,18 @@ def delete_user_question(question_id):
     return jsonify({'error': 'Invalid question source'}), 400
 
 
+@app.route('/api/restore_question_to_default/<int:question_id>', methods=['DELETE'])
+def restore_question_to_default(question_id):
+    try:
+        success = TrainerIntakeQuestions.delete(question_id)
+        if success:
+            return jsonify({"message": "Question successfully deleted", "status": "success"}), 200
+        else:
+            return jsonify({"message": "Failed to delete the question", "status": "error"}), 400
+    except Exception as e:
+        return jsonify({"message": f"An error occurred: {e}", "status": "error"}), 50
+
+
 @app.route('/api/restore_user_questions', methods=['GET'])
 def restore_user_questions():
     try:
