@@ -192,11 +192,14 @@ const ManageQuestions = () => {
 
         })
             .then(() => {
-                setQuestions(prevQuestions =>
-                    prevQuestions.map(q =>
+                console.log("Updating question state for question ID: ", uniqueId);
+                setQuestions(prevQuestions => {
+                    const updatedQuestions = prevQuestions.map(q =>
                         q.uniqueId === uniqueId ? { ...q, isEdited: true } : q
-                    )
-                );
+                    );
+                    console.log("Updated questions state: ", updatedQuestions); // Log the updated state
+                    return updatedQuestions;
+                });
                 setEditingQuestion(null);
                 setEditValidationErrors('');  // Clear validation errors after successful edit
                 showNotification('Question updated successfully');
@@ -222,7 +225,9 @@ const ManageQuestions = () => {
         }
 
         setQuestions(prevQuestions =>
-            prevQuestions.map(q => q.uniqueId === updatedQuestion.uniqueId ? { ...q, ...updatedQuestion } : q)
+            prevQuestions.map(q =>
+                q.uniqueId === updatedQuestion.uniqueId ? { ...q, ...updatedQuestion, isEdited: q.isEdited } : q
+            )
         );
     };
 
@@ -276,19 +281,6 @@ const ManageQuestions = () => {
         setDeleteConfirm({ show: false, questionId: null });
     };
 
-    const confirmRestoreQuestions = () => {
-        setRestoreConfirm(true);
-    };
-
-    const handleRestoreConfirm = () => {
-        restoreAllQuestions();
-        setRestoreConfirm(false);
-    };
-
-    const handleRestoreCancel = () => {
-        setRestoreConfirm(false);
-    };
-
     const restoreAllQuestions = () => {
         axios.get('http://localhost:5000/api/restore_user_questions')
             .then(response => {
@@ -299,38 +291,57 @@ const ManageQuestions = () => {
     };
 
     const restoreToDefault = (uniqueId) => {
-        const question = questions.find(q => q.uniqueId === restoreOneConfirm.questionId);
+        const question = questions.find(q => q.uniqueId === uniqueId);
+    
+        // Call API to delete the trainer-specific version of the question
         axios.delete(`http://localhost:5000/api/restore_question_to_default/${question.id}`)
             .then(() => {
+                console.log("Restoring question to default for ID: ", uniqueId);
+    
+                // Remove the question from local storage if it exists
+                const key = getLocalStorageKey(clientId, 'currentQuestions');
+                let savedCurrentQuestions = JSON.parse(localStorage.getItem(key));
+    
+                if (savedCurrentQuestions) {
+                    // Filter out the trainer-specific version of the question from local storage
+                    const updatedCurrentQuestions = savedCurrentQuestions.filter(q => q.uniqueId !== uniqueId);
+                    localStorage.setItem(key, JSON.stringify(updatedCurrentQuestions));
+                }
+    
+                // Refetch questions to display the original global version
                 fetchQuestions();
+    
+                // Hide the confirmation modal
                 setRestoreOneConfirm({ show: false, questionId: null });
             })
-            .catch(error => console.error('Error restoring question to default:', error));
+            .catch(error => {
+                console.error('Error restoring question to default:', error);
+            });
     };
-
+    
     const ConfirmationModal = ({ message, onConfirm, onCancel }) => {
         return (
             <>
                 {/* Background overlay */}
                 <div style={{
-                    position: 'fixed', 
-                    top: 0, 
-                    left: 0, 
-                    width: '100%', 
-                    height: '100%', 
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
                     backgroundColor: 'rgba(0, 0, 0, 0.5)',  // Dark background with transparency
                     zIndex: 999  // Ensure it's behind the modal but on top of everything else
                 }} onClick={onCancel}></div>
-    
+
                 {/* Modal */}
                 <div style={{
-                    position: 'fixed', 
-                    top: '50%', 
-                    left: '50%', 
-                    transform: 'translate(-50%, -50%)', 
-                    backgroundColor: 'white', 
-                    padding: '20px', 
-                    borderRadius: '8px', 
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    backgroundColor: 'white',
+                    padding: '20px',
+                    borderRadius: '8px',
                     zIndex: 1000,  // Ensure it's on top of the overlay
                     boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
                 }}>
@@ -341,7 +352,7 @@ const ManageQuestions = () => {
             </>
         );
     };
-    
+
 
 
     return (
@@ -359,7 +370,7 @@ const ManageQuestions = () => {
                     onChange={handleInputChange}
                     placeholder="Enter your question"
                     className="border p-2 mr-2 w-full"
-                    onFocus={(e) => e.target.style.height = "200px"}  // Expand height on focus
+                    onFocus={(e) => e.target.style.height = "150px"}  // Expand height on focus
                     onBlur={(e) => e.target.style.height = "40px"}  // Shrink back on blur
                     style={{ height: "40px", transition: "height 0.3s ease" }}  // Smooth transition
                 />
