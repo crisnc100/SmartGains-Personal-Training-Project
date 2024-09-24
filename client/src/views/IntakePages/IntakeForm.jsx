@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
 import Modal from 'react-modal';
 
@@ -11,6 +11,9 @@ const getLocalStorageKey = (clientId, key) => `client_${clientId}_${key}`;
 
 const IntakeForm = () => {
     const { clientId } = useParams();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const mode = queryParams.get('mode') || 'default';
     const navigate = useNavigate();
     const [formId, setFormId] = useState(null); // New state for form ID
     const [questions, setQuestions] = useState([]);
@@ -31,7 +34,15 @@ const IntakeForm = () => {
     const [reloading, setReloading] = useState(false);
     const [customizeTriggered, setCustomizeTriggered] = useState(false);
 
-
+    useEffect(() => {
+        if (mode === 'finish') {
+            // Finish draft form logic
+        } else if (mode === 'update') {
+            // Update form logic
+        } else {
+            // Default form behavior (if no query params are provided)
+        }
+    }, [mode, formId]);
 
     useEffect(() => {
         const initializeFormState = async () => {
@@ -152,11 +163,6 @@ const IntakeForm = () => {
         }
     };
 
-
-
-
-
-
     const initializeForm = (questions, savedAnswers = {}) => {
         console.log("Initializing form with questions and answers...", questions, savedAnswers);
         const formState = {};
@@ -170,13 +176,6 @@ const IntakeForm = () => {
         setIntakeForm(formState);
         console.log('Initialized form state:', formState);
     };
-
-
-
-
-
-
-
 
 
     const handleInputChange = async (event, uniqueId) => {
@@ -274,7 +273,6 @@ const IntakeForm = () => {
     };
 
 
-
     const handleCreateNewForm = async () => {
         try {
             const response = await axios.post('http://localhost:5000/api/add_intake_form', {
@@ -323,7 +321,6 @@ const IntakeForm = () => {
         });
     };
     
-
 
 
     const renderInputField = (question) => {

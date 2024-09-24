@@ -120,23 +120,79 @@ const CurrentClient = () => {
                 });
         }
     };
+
+
+    const handleCreateUpdatedForm = (formId) => {
+        const formIndex = allClientData.intake_forms.findIndex(form => form.id === formId);
+        if (formIndex !== -1) {
+            const currentForm = allClientData.intake_forms[formIndex];
     
-
-
-
-        const saveChanges = () => {
-            console.log("Attempting to save changes:", editableData);
-            axios.post(`http://localhost:5000/api/update_client_data/${clientId}`, editableData)
-                .then(() => {
-                    console.log("Data saved successfully, updating state...");
-                    setAllClientData({ ...editableData });
-                    setEditableData({ ...editableData });
-                    setIsEditMode(false);
+            // Count existing updated forms to append the right number
+            const updatedFormCount = allClientData.intake_forms.filter(form => form.form_type.startsWith('Updated Consultation')).length;
+    
+            const updatedForm = {
+                ...currentForm,
+                id: null, // New form ID will be created
+                created_at: new Date(),
+                status: 'draft', // Reset status to draft
+                form_type: `Updated Consultation - ${updatedFormCount + 1}`, // Generate distinct name
+                client_id: clientId,
+                answers: currentForm.answers.map(answer => ({ ...answer, answer: '' })) // Reset answers
+            };
+    
+            // Add new form to the backend and state
+            axios.post(`http://localhost:5000/api/current_client/${clientId}/new_form`, updatedForm)
+                .then(response => {
+                    setAllClientData(prevData => ({
+                        ...prevData,
+                        intake_forms: [...prevData.intake_forms, response.data] // Add new form
+                    }));
+    
+                    // Navigate to the new form with mode=update
+                    navigate(`intake-form?mode=update&formId=${response.data.id}`);
                 })
                 .catch(error => {
-                    console.error('Error updating client data', error);
+                    console.error('Error creating updated form:', error);
                 });
-        };
+        }
+    };
+    
+    const handleFinishDraftForm = (formId) => {
+        const formIndex = allClientData.intake_forms.findIndex(form => form.id === formId);
+        if (formIndex !== -1) {
+            const form = allClientData.intake_forms[formIndex];
+
+            // Collect the necessary data: form ID, client ID, and answers
+            const submissionData = {
+                form_id: form.id,
+                client_id: clientId,
+                answers: form.answers
+            };
+
+            // Send this data to the backend (without updating the status)
+            navigate(`intake-form?mode=finish&formId=${formId}`);
+
+        }
+    };
+
+
+
+
+
+
+    const saveChanges = () => {
+        console.log("Attempting to save changes:", editableData);
+        axios.post(`http://localhost:5000/api/update_client_data/${clientId}`, editableData)
+            .then(() => {
+                console.log("Data saved successfully, updating state...");
+                setAllClientData({ ...editableData });
+                setEditableData({ ...editableData });
+                setIsEditMode(false);
+            })
+            .catch(error => {
+                console.error('Error updating client data', error);
+            });
+    };
 
 
 
@@ -350,49 +406,74 @@ const CurrentClient = () => {
                                         </NavLink>
                                     </div>
                                 ) : (
-                                    allClientData.intake_forms.map((form, formIndex) => (
-                                        <div key={form.id} className="mb-6">
-                                            <div
-                                                className="p-4 bg-gray-100 cursor-pointer flex justify-between items-center rounded-t-md"
-                                                onClick={() => toggleFormExpansion(form.id)}
-                                            >
-                                                <h3 className="font-bold text-xl">{capitalizeFirstLetter(form.form_type)}</h3>
-                                                <p className='text-xl'>{format(new Date(form.created_at), 'MM-dd-yyyy')}</p>
-                                            </div>
-                                            {isEditMode && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation(); // Prevent collapsing the form when clicking delete
-                                                        handleDeleteForm(form.id);
-                                                    }}
-                                                    className="py-1 px-2 font-semibold rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 ease-in-out"
-                                                >
-                                                    Delete
-                                                </button>
-                                            )}
-                                            {expandedForms[form.id] && (
-                                                <div className="p-4 bg-white rounded-b-md shadow-md">
-                                                    {form.answers.map((answer, answerIndex) => (
-                                                        <div key={answer.id} className="mb-4 p-2 border rounded-md bg-gray-50">
-                                                            <p className="font-semibold text-gray-700 mb-1">{answer.question_text}</p>
-                                                            {isEditMode ? (
-                                                                <input
-                                                                    type="text"
-                                                                    name="answer"
-                                                                    value={editableData.intake_forms[formIndex].answers[answerIndex].answer || ''}
-                                                                    onChange={(e) => handleInputChange(e, formIndex, answerIndex)}
-                                                                    className={styles.editableField}
+                                    allClientData.intake_forms.map((form, formIndex) => {
+                                        const isLatestForm = formIndex === allClientData.intake_forms.length - 1;
 
-                                                                />
-                                                            ) : (
-                                                                <p className="text-gray-800">{answer.answer}</p>
-                                                            )}
-                                                        </div>
-                                                    ))}
+                                        return (
+                                            <div key={form.id} className="mb-6">
+                                                <div
+                                                    className={`p-4 cursor-pointer flex justify-between items-center rounded-t-md ${form.status === 'draft' ? 'bg-yellow-100' : 'bg-green-100'}`}
+                                                    onClick={() => toggleFormExpansion(form.id)}
+                                                >
+                                                    <h3 className="font-bold text-xl">{capitalizeFirstLetter(form.form_type)}</h3>
+                                                    <p className='text-xl'>{format(new Date(form.created_at), 'MM-dd-yyyy')}</p>
+                                                    <span className={`text-sm ${form.status === 'draft' ? 'text-yellow-600' : 'text-green-600'}`}>
+                                                        {form.status === 'draft' ? 'Draft' : 'Completed'}
+                                                    </span>
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))
+                                                {isEditMode && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent collapsing the form when clicking delete
+                                                            handleDeleteForm(form.id);
+                                                        }}
+                                                        className="py-1 px-2 font-semibold rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 ease-in-out"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                                {expandedForms[form.id] && (
+                                                    <div className="p-4 bg-white rounded-b-md shadow-md">
+                                                        {/* Answers rendering */}
+                                                        {form.answers.map((answer, answerIndex) => (
+                                                            <div key={answer.id} className="mb-4 p-2 border rounded-md bg-gray-50">
+                                                                <p className="font-semibold text-gray-700 mb-1">{answer.question_text}</p>
+                                                                {isEditMode ? (
+                                                                    <input
+                                                                        type="text"
+                                                                        name="answer"
+                                                                        value={editableData.intake_forms[formIndex].answers[answerIndex].answer || ''}
+                                                                        onChange={(e) => handleInputChange(e, formIndex, answerIndex)}
+                                                                        className={styles.editableField}
+                                                                    />
+                                                                ) : (
+                                                                    <p className="text-gray-800">{answer.answer}</p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {form.status === 'draft' && (
+                                                    <button
+                                                        className="mt-2 py-1 px-2 font-semibold rounded-lg border-2 border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition-all duration-300 ease-in-out"
+                                                        onClick={() => handleFinishDraftForm(form.id)}
+                                                    >
+                                                        Finish Intake Form
+                                                    </button>
+                                                )}
+
+                                                {/* Add "Create Updated Version" button only for latest form and if it's complete */}
+                                                {isLatestForm && form.status === 'completed' && (
+                                                    <button
+                                                        className="mt-4 py-1 px-2 font-semibold rounded-lg border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-all duration-300 ease-in-out"
+                                                        onClick={() => handleCreateUpdatedForm(form.id)}
+                                                    >
+                                                        Create Updated Version
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })
                                 )}
                             </div>
                         )}

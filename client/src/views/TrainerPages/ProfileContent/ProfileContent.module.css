@@ -40,6 +40,92 @@
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   }
+
+  .notificationsContent {
+    margin-top: 16px;
+  }
+  
+  .draftFormsHeading {
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #333;
+  }
+  
+  .draftFormSummary {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 12px;
+  }
+  
+  /* View Details button */
+  .viewAllButton {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-bottom: 12px;
+  }
+  
+  .viewAllButton:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Draft form list */
+  .draftFormList {
+    list-style: none;
+    padding: 0;
+    margin-top: 4px;
+  }
+  
+  .draftFormItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border: 1px solid #e0e0e0; /* Subtle border for each item */
+
+  }
+
+  
+  
+  .draftFormItem:nth-child(odd) {
+    background-color: #f1f1f1;
+  }
+
+  .draftFormTextContainer {
+    display: inline; /* Ensures name and text are on the same line */
+    
+  }
+  
+  .draftFormClient {
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .draftFormText {
+    color: #555;
+  }
+  
+  /* Link to continue the form */
+  .continueFormLink {
+    color: #007bff;
+    font-weight: bold;
+    text-decoration: underline;
+    /*margin-right: 1rem;*/
+    white-space: nowrap; /* Prevent link wrapping */
+
+  }
+  
+  .continueFormLink:hover {
+    color: #0056b3;
+  }
   
   .pinnedPlans {
     margin-top: 20px;
@@ -92,5 +178,7 @@
 .removeButton:hover {
     background-color: #e60000;
 }
+
+
 
   

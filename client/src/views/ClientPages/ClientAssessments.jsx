@@ -24,14 +24,12 @@ const ClientAssessments = ({ clientAssessmentData }) => {
     if (isDataEmpty) {
         return (
             <div>
-                <p className="text-gray-600">No data is available</p>
-                <div>
+                <div className="text-center">
+                    <p className="text-gray-600">No data is available</p>
                     <NavLink
                         to='assessment-choice'
-                        className="group box-border relative inline-flex items-center whitespace-nowrap 
-                                justify-center w-auto px-4 py-2 overflow-hidden text-sm text-white font-bold bg-blue-500 
-                                hover:bg-blue-700 rounded-md cursor-pointer shadow-lg hover:shadow-xl transform 
-                                hover:translate-y-1 transition-all duration-300 ease-out focus:outline-none">
+                        className="inline-flex items-center px-4 py-2 bg-blue-500 text-white font-bold rounded-md shadow hover:bg-blue-700 transition duration-300"
+                    >
                         Add Assessments
                     </NavLink>
                 </div>

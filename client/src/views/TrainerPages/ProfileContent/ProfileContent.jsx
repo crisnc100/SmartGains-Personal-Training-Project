@@ -9,11 +9,16 @@ const ProfileContent = () => {
   const [error, setError] = useState('');
   const [pinnedPlans, setPinnedPlans] = useState([]);
   const [totalClients, setTotalClients] = useState(0); // Add state for total clients
+  const [draftForms, setDraftForms] = useState([]);
+  const [isExpanded, setIsExpanded] = useState(false); // State for handling collapsible section
+
 
   useEffect(() => {
     fetchTrainerData();
     fetchPinnedPlans();
     fetchTotalClients();
+    fetchDraftForms(); // Fetch draft forms on load
+
   }, []);
 
   const fetchTrainerData = async () => {
@@ -40,6 +45,20 @@ const ProfileContent = () => {
     } catch (error) {
       console.error('Error fetching pinned plans:', error);
       setError('Failed to fetch pinned plans');
+    }
+  };
+
+  const fetchDraftForms = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/client_draft_forms', { withCredentials: true });
+      if (response.data) {
+        setDraftForms(response.data); // Store draft forms in state
+      } else {
+        setError('Failed to fetch draft forms');
+      }
+    } catch (error) {
+      console.error('Error fetching draft forms:', error);
+      setError('Failed to fetch draft forms');
     }
   };
 
@@ -80,6 +99,10 @@ const ProfileContent = () => {
     } catch (error) {
       console.error('Failed to unpin the plan:', error);
     }
+  };
+
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
   };
 
   const getPlanLink = (plan) => {
@@ -129,7 +152,7 @@ const ProfileContent = () => {
 
       <div className={styles.statsAndNotifications}>
         <div className={styles.quickStats}>
-          <h2 className="text-xl font-semibold mb-2">Quick Stats</h2>
+          <h2 className="text-2xl font-semibold mb-2">Quick Stats</h2>
           <div className={styles.statsContent}>
             <p>Total Clients: {totalClients}</p> {/* Display total clients */}
             <p>Upcoming Sessions: --</p> {/* Display upcoming sessions */}
@@ -138,15 +161,42 @@ const ProfileContent = () => {
         </div>
 
         <div className={styles.notifications}>
-          <h2 className="text-xl font-semibold mb-2">Notifications</h2>
-          <div className={styles.notificationsContent}>
-            <p>No new notifications</p>
-          </div>
+        <h2 className="text-2xl font-semibold mb-2">Notifications</h2>
+        <div className={styles.notificationsContent}>
+          {draftForms.length > 0 ? (
+            <>
+              <h3 className={styles.draftFormsHeading}>Unfinished Intake Forms</h3>
+              <p className={styles.draftFormSummary}>You have {draftForms.length} unfinished forms</p>
+              <button onClick={toggleExpanded} className={styles.viewAllButton}>
+                {isExpanded ? 'Hide Details' : 'View Details'}
+              </button>
+              {isExpanded && (
+                <ul className={styles.draftFormList}>
+                  {draftForms.slice(0, 5).map((form, index) => (
+                    <li key={index} className={styles.draftFormItem}>
+                      <div className={styles.draftFormTextContainer}>
+                        <span className={styles.draftFormClient}>{form.client_first_name} {form.client_last_name}</span>
+                        <span className={styles.draftFormText}> has an unfinished intake form</span>
+                      </div>
+                      <Link to={`all_clients/${form.client_id}/current-client/intake-form?mode=finish&formId=${form.id}`}
+                        className={styles.continueFormLink}>
+                        Continue Form
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <p>No new notifications.</p>
+          )}
         </div>
       </div>
+    </div>
+
 
       <div className={styles.pinnedPlans}>
-        <h2 className="text-xl font-semibold mb-2">Pinned Plans for Today's Session</h2>
+        <h2 className="text-2xl font-semibold mb-2">Pinned Plans for Today's Session</h2>
         <div className={styles.pinnedPlansContent}>
           {pinnedPlans.length > 0 ? (
             pinnedPlans.map((plan, index) => (

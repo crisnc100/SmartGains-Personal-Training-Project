@@ -21,7 +21,9 @@ class IntakeForms:
             'client_id': self.client_id,
             'trainer_id': self.trainer_id,
             'created_at': str(self.created_at),
-            'updated_at': str(self.updated_at)
+            'updated_at': str(self.updated_at),
+            'client_first_name': self.client_first_name,  # Return first name in serialized data
+            'client_last_name': self.client_last_name 
         }
 
     # CREATE
@@ -125,6 +127,27 @@ class IntakeForms:
         except Exception as e:
             print(f"Error fetching data: {e}")
             return None
+    
+    # READ DRAFT FORMS BY TRAINER
+    @classmethod
+    def get_draft_forms_by_trainer(cls, trainer_id):
+        query = """
+        SELECT i.*, c.first_name AS client_first_name, c.last_name AS client_last_name
+        FROM intake_forms i
+        JOIN clients c ON i.client_id = c.id
+        WHERE i.trainer_id = %(trainer_id)s
+        AND i.status = 'draft'
+        """
+        data = {'trainer_id': trainer_id}
+        
+        try:
+            results = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            draft_forms = [cls(row) for row in results]  # Create IntakeForms objects from the result
+            return draft_forms
+        except Exception as e:
+            print(f"Error fetching draft intake forms by trainer: {e}")
+            return []
+
     
     #Update
     @classmethod

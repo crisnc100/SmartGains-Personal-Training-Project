@@ -6,6 +6,7 @@ from flask_app.models.trainer_model import Trainer
 from flask_app.models.demo_plans_model import DemoPlan
 from flask_app.models.workout_progress_model import WorkoutProgress
 from flask_app.models.generated_plans_model import GeneratedPlan
+from flask_app.models.intake_forms_model import IntakeForms
 from flask_app import mail
 from flask_mail import Message
 from flask_cors import cross_origin
@@ -57,3 +58,23 @@ def unpin_any_plan(plan_id):
     except Exception as e:
         print(f"Error in unpin_any_plan endpoint: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
+    
+@app.route('/api/client_draft_forms', methods=['GET'])
+def client_draft_forms():
+    # Get the trainer ID from the session
+    trainer_id = session.get('trainer_id')
+    
+    # Check if the trainer is authorized
+    if not trainer_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    # Fetch the draft forms for the trainer
+    draft_forms = IntakeForms.get_draft_forms_by_trainer(trainer_id)
+    
+    # Serialize the draft forms to JSON format
+    draft_forms_serialized = [form.serialize() for form in draft_forms]
+    
+    # Return the JSON response
+    return jsonify(draft_forms_serialized), 200
+
