@@ -3,18 +3,25 @@ import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format, differenceInYears } from 'date-fns';
 import ClipLoader from 'react-spinners/ClipLoader';  // Import the spinner component
+import { FaInfoCircle } from 'react-icons/fa';
+import { Tooltip } from 'react-tooltip';
+
 
 const CustomPrompt = () => {
     const { clientId } = useParams();
     const navigate = useNavigate();
     const [errors, setErrors] = useState({});
-    const [allClientData, setAllClientData] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({
         level: '',
-        intensity: '',
+        intensityMin: '',
+        intensityMax: '',
+        intensityRange: '',
+        intensityMethod: 'percentage', // 'percentage', 'heartRate', or 'RPE'
+        RPE: '', // For cardio with RPE
         trainingType: '',
+        sport: '', // For athletic training
         bodyParts: {},
         specific: {},
         duration: '',
@@ -22,56 +29,139 @@ const CustomPrompt = () => {
         sessionType: '',
         comments: ''
     });
+
+    const [intensityRange, setIntensityRange] = useState({ min: 0, max: 100 });
+    const [adjustedIntensityRange, setAdjustedIntensityRange] = useState({ min: 0, max: 100 });
+    const [intensityWarning, setIntensityWarning] = useState('');
     const [submitting, setSubmitting] = useState(false);  // State for loading spinner
+    const [allSummaries, setAllSummaries] = useState([]);
+    const [selectedSummary, setSelectedSummary] = useState(null);
+    const [basePrompt, setBasePrompt] = useState('');
+    const [showFullPrompt, setShowFullPrompt] = useState(false);
+    const [showBasePrompt, setShowBasePrompt] = useState(false);
+    const [clientName, setClientName] = useState('');
+    const [clientAge, setClientAge] = useState('');
+    const [clientGender, setClientGender] = useState('');
+    const [goal, setGoal] = useState("fitness and strength");
+    const [medicalHistory, setMedicalHistory] = useState("No significant medical history");
+    const [limitations, setLimitations] = useState("No physical limitations");
+    const [exercisePreference, setExercisePreference] = useState("a balanced mix of cardio and strength training");
+    const [motivation, setMotivation] = useState("personal progress");
+    const [template, setTemplate] = useState({
+        goals: "Focus on improving overall fitness and strength.",
+        medical_history: "No significant medical history.",
+        physical_limitations: "No physical limitations.",
+        exercise_preferences: "Client prefers a balanced mix of cardio and strength training.",
+        motivation: "Client is motivated by personal progress.",
+    });;
+
 
     const descriptions = {
         levels: {
-            beginner: "This client is new to fitness, focusing on building basic strength and endurance.",
-            intermediate: "This client has some experience and is looking to enhance their skill and fitness level.",
-            advanced: "This client is experienced and aims to optimize performance and target specific fitness goals."
-        },
-        intensity: {
-            low: "the workout will emphasize steady, sustainable exercises to gradually improve fitness without overexertion.",
-            moderate: "the workout will balance between challenging and achievable exercises to effectively boost fitness and skill.",
-            high: "the workout will include high-intensity exercises for maximum improvement in strength, endurance, and performance."
+            beginner: "New to fitness; focusing on building basic strength and endurance.",
+            intermediate: "Some experience; aiming to enhance skills and fitness levels.",
+            advanced: "Experienced; targeting optimization of performance and specific fitness goals."
         },
         trainingType: {
-            strength: "strength training approach which focuses on increasing muscle force and the ability to lift heavier weights, enhancing overall muscular strength.",
-            hypertrophy: "hypertrophy style approach which aims to increase muscle size through targeted exercises that incrementally increase the volume of weight lifted (sets x reps), optimizing muscle growth.",
-            functional: "functional fitness approach which trains the body for daily activities and improves range of motion using multi-joint movements that involve bending, twisting, lifting, and more, making everyday tasks easier.",
-            strengthEndurance: "strength endurance training which combines strength exercises with stabilization endurance exercises for the same body part, performed back-to-back without rest, enhancing muscle endurance and strength.",
-            balanced: "balanced health-focused method to provide a comprehensive workout that promotes overall health and well-being, blending various exercise forms to improve physical fitness in a well-rounded manner.",
-            athletic: "sports performance training to help athletes achieve performance goals through exercises designed to improve specific athletic capabilities, enhancing fitness for sports activities.",
-            cardio: "cardio training, or aerobic exercise that involves rhythmic activities to raise the heart rate to a target zone to burn the most fat and calories, improving cardiovascular health.",
-            power: "power training training which involves exercises that require applying the maximum amount of force as quickly as possible; it is based on the formula where strength + speed = power, enhancing explosive power."
+            strength: "Focuses on increasing muscle strength and the ability to lift heavier weights.",
+            hypertrophy: "Aims to increase muscle size through targeted exercises with progressive overload.",
+            functional: "Trains the body for daily activities using multi-joint movements to improve range of motion.",
+            strengthEndurance: "Combines strength and endurance exercises for the same body part without rest to enhance muscle endurance.",
+            balanced: "Provides a comprehensive workout promoting overall health and well-being by blending various exercise forms.",
+            athletic: "Improves specific athletic capabilities through exercises designed for sports performance.",
+            cardio: "Involves rhythmic activities to raise heart rate for fat and calorie burning, enhancing cardiovascular health.",
+            power: "Involves exercises applying maximum force quickly to enhance explosive power (strength + speed)."
         }
     };
-    
+
+    const trainingTypeIntensityRanges = {
+        hypertrophy: { min: 55, max: 85 },
+        strength: { min: 70, max: 100 },
+        power: { min: 75, max: 90 },
+        endurance: { min: 30, max: 60 },
+        functional: { min: 50, max: 70 },
+        cardio: { minHR: 50, maxHR: 85 }, // Percentage of max heart rate
+        athletic: { min: 50, max: 90 },
+        balanced: { min: 55, max: 75 }
+    };
+
     const calculateAge = (dob) => {
         if (!dob) return null;
         return differenceInYears(new Date(), new Date(dob));
     };
 
     useEffect(() => {
-        axios.get(`http://localhost:5000/api/current_client/${clientId}`)
+        console.log("Fetching summaries for clientId:", clientId);
+        axios.get(`http://localhost:5000/api/get_base_prompts/${clientId}`)
             .then(response => {
-                console.log("Initial data fetched:", response.data);
-                setAllClientData(response.data);
-                setLoading(false);
+                const summaries = response.data;
+                console.log("Summaries retrieved:", summaries);
+
+                if (summaries.length > 0) {
+                    setAllSummaries(summaries);
+                    const latestSummary = summaries[0].id; // Automatically select the latest summary
+                    setSelectedSummary(latestSummary); // Set selected summary to the latest one
+                    setBasePrompt(latestSummary.summary_prompt); // Directly use the summary_prompt as the basePrompt
+                    setClientName(`${summaries[0].id.first_name} ${summaries[0].id.last_name}`);
+                    setClientAge(calculateAge(summaries[0].id.dob)); // Use calculateAge to set the client's age
+                    setClientGender(`${summaries[0].id.gender}`.toLowerCase()); // Convert gender to lowercase
+                    console.log("Latest summary selected:", latestSummary);
+                } else {
+                    console.log("No summaries available for the client.");
+                    fetchBasicClientData(); // Fallback to basic client data if no summaries are found
+                }
             })
             .catch(error => {
-                console.error('Error fetching data:', error);
-                setError('Failed to fetch data');
-                setLoading(false);
+                if (error.response && error.response.status === 404) {
+                    console.log("No summaries available, fetching basic client data instead.");
+                    fetchBasicClientData(); // Fallback to basic client data on 404 error
+                } else {
+                    console.error('Error fetching summaries:', error);
+                    setError('Failed to fetch summaries');
+                }
+            })
+            .finally(() => {
+                setLoading(false); // Ensure loading state is stopped
             });
     }, [clientId]);
+
+    const fetchBasicClientData = () => {
+        axios.get(`http://localhost:5000/api/get_simple_client_data/${clientId}`)
+            .then(clientResponse => {
+                const clientData = clientResponse.data;
+                console.log("Simple client data retrieved:", clientData);
+                setClientName(`${clientData.first_name} ${clientData.last_name}`);
+                setClientAge(calculateAge(clientData.dob)); // Use calculateAge to set the client's age
+                setClientGender(`${clientData.gender}`.toLowerCase()); // Convert gender to lowercase
+            })
+            .catch(clientError => {
+                console.error('Error fetching simple client data:', clientError);
+                setError('Failed to fetch simple client data');
+            })
+            .finally(() => {
+                setLoading(false); // Ensure loading state is stopped after fetching basic data
+            });
+    };
+
+
+    const handleSummaryChange = (e) => {
+        const summaryId = e.target.value;
+        console.log("Summary selected:", summaryId);
+        const selectedSummary = allSummaries.find(summary => summary.id === parseInt(summaryId));
+        if (selectedSummary) {
+            setSelectedSummary(selectedSummary);
+            setBasePrompt(selectedSummary.summary_prompt); // Use the summary_prompt as basePrompt
+            console.log("Base prompt updated to:", selectedSummary.summary_prompt);
+        }
+    };
+
 
     const validateForm = () => {
         const specificCount = Object.values(formData.specific).filter(val => val).length;
         const bodyPartCount = Object.values(formData.bodyParts).filter(val => val).length;
         let maxAllowed = 0;
         let errorMessage = '';
-    
+
         switch (formData.sessionType) {
             case "single-day":
                 maxAllowed = 1;
@@ -88,14 +178,14 @@ const CustomPrompt = () => {
                 setErrors({ ...errors, sessionType: errorMessage });
                 return false;
         }
-    
+
         // Check if any body parts are selected
         if (bodyPartCount > 0) {
             console.log("Validation passed with body parts selection.");
             setErrors({});
             return true;
         }
-    
+
         // Check for the number of selected specifics
         if (specificCount > maxAllowed) {
             errorMessage = `You can only select up to ${maxAllowed} specifics for a ${formData.sessionType} session.`;
@@ -108,12 +198,99 @@ const CustomPrompt = () => {
             setErrors({ ...errors, specifics: errorMessage });
             return false;
         }
-    
+        if (formData.trainingType === 'cardio') {
+            if (formData.intensityMethod === 'heartRate') {
+                if (!formData.intensityMin || !formData.intensityMax) {
+                    setErrors({ ...errors, intensity: 'Please select an intensity range for cardio training.' });
+                    return false;
+                }
+            } else if (formData.intensityMethod === 'RPE') {
+                if (!formData.RPE) {
+                    setErrors({ ...errors, intensity: 'Please select an RPE level for cardio training.' });
+                    return false;
+                }
+            }
+        } else if (formData.trainingType === 'athletic') {
+            if (!formData.intensityRange) {
+                setErrors({ ...errors, intensity: 'Please select an intensity range for athletic training.' });
+                return false;
+            }
+            if (!formData.sport) {
+                setErrors({ ...errors, sport: 'Please specify the sport for athletic training.' });
+                return false;
+            }
+        } else {
+            if (!formData.intensityMin || !formData.intensityMax) {
+                setErrors({ ...errors, intensity: 'Please select an intensity range.' });
+                return false;
+            }
+        }
+
         console.log("Validation passed.");
         setErrors({});
         return true;
     };
-    
+
+    const adjustIntensityForFitnessLevel = (intensityRange, fitnessLevel) => {
+        let adjustedRange = { ...intensityRange };
+        if (fitnessLevel === 'beginner') {
+            adjustedRange.max = adjustedRange.min + (adjustedRange.max - adjustedRange.min) * 0.5;
+        } else if (fitnessLevel === 'intermediate') {
+            adjustedRange.min += (adjustedRange.max - adjustedRange.min) * 0.25;
+            adjustedRange.max -= (adjustedRange.max - adjustedRange.min) * 0.25;
+        }
+        // Advanced level uses the full range
+        return adjustedRange;
+    };
+
+
+    const generateIntensityOptions = (min, max) => {
+        const options = [];
+        for (let i = Math.ceil(min / 5) * 5; i <= max; i += 5) {
+            options.push(<option key={i} value={i}>{i}%</option>);
+        }
+        return options;
+    };
+
+    useEffect(() => {
+        if (formData.trainingType && formData.level) {
+            const range = trainingTypeIntensityRanges[formData.trainingType] || { min: 50, max: 75 };
+            setIntensityRange(range);
+
+            let adjustedRange;
+            if (formData.trainingType === 'cardio') {
+                adjustedRange = range; // For cardio, use the same range
+            } else {
+                adjustedRange = adjustIntensityForFitnessLevel(range, formData.level);
+            }
+            setAdjustedIntensityRange(adjustedRange);
+
+            // Set default intensity values within adjusted range
+            setFormData(prevFormData => ({
+                ...prevFormData,
+                intensityMin: adjustedRange.min,
+                intensityMax: adjustedRange.max
+            }));
+        }
+    }, [formData.trainingType, formData.level]);
+
+    useEffect(() => {
+        // Check if intensity is outside the adjusted range
+        if (formData.trainingType === 'cardio' && formData.intensityMethod === 'heartRate') {
+            if (formData.intensityMin < intensityRange.minHR || formData.intensityMax > intensityRange.maxHR) {
+                setIntensityWarning(`The selected heart rate intensity range is outside the recommended range for cardio training (${intensityRange.minHR}% - ${intensityRange.maxHR}%).`);
+            } else {
+                setIntensityWarning('');
+            }
+        } else {
+            if (formData.intensityMin < adjustedIntensityRange.min || formData.intensityMax > adjustedIntensityRange.max) {
+                setIntensityWarning(`The selected intensity range is outside the recommended range for ${formData.trainingType} training (${adjustedIntensityRange.min}% - ${adjustedIntensityRange.max}%).`);
+            } else {
+                setIntensityWarning('');
+            }
+        }
+    }, [formData.intensityMin, formData.intensityMax, formData.intensityMethod, formData.trainingType, adjustedIntensityRange, intensityRange]);
+
     const handleChange = (event) => {
         const { name, value, type, checked } = event.target;
 
@@ -123,13 +300,13 @@ const CustomPrompt = () => {
                     ...formData.bodyParts,
                     [value]: checked
                 };
-                // Determined if any body parts are checked
+                // Determine if any body parts are checked
                 const anyBodyPartsChecked = Object.values(newBodyParts).some(val => val);
 
                 setFormData(prevFormData => ({
                     ...prevFormData,
                     bodyParts: newBodyParts,
-                    specific: anyBodyPartsChecked ? {} : prevFormData.specific 
+                    specific: anyBodyPartsChecked ? {} : prevFormData.specific
                 }));
             } else if (name === 'specific') {
                 const newSpecific = {
@@ -142,14 +319,28 @@ const CustomPrompt = () => {
                 setFormData(prevFormData => ({
                     ...prevFormData,
                     specific: newSpecific,
-                    bodyParts: anySpecificsChecked ? {} : prevFormData.bodyParts 
+                    bodyParts: anySpecificsChecked ? {} : prevFormData.bodyParts
                 }));
             }
         } else {
-            setFormData(prevFormData => ({
-                ...prevFormData,
-                [name]: value
-            }));
+            setFormData(prevFormData => {
+                let updatedData = { ...prevFormData, [name]: value };
+
+                // Adjust intensityMax if intensityMin is changed
+                if (name === 'intensityMin' && parseInt(value) > parseInt(prevFormData.intensityMax)) {
+                    updatedData.intensityMax = value;
+                }
+
+                // Reset intensity values when training type or intensity method changes
+                if (name === 'trainingType' || name === 'intensityMethod') {
+                    updatedData.intensityMin = '';
+                    updatedData.intensityMax = '';
+                    updatedData.RPE = '';
+                    updatedData.intensityRange = '';
+                }
+
+                return updatedData;
+            });
         }
     };
 
@@ -176,40 +367,88 @@ const CustomPrompt = () => {
     };
 
     const createWorkoutPlanMessage = () => {
-        if (allClientData && allClientData.client_data) {
-            const { client_data, consultation_data, history_data } = allClientData;
-
-            // Combinded both body parts and specifics into one description
+        if (clientName && clientAge && clientGender) {
+            // Combine both body parts and specifics into one description
             const bodyPartDescriptions = Object.keys(formData.bodyParts)
-                .filter(key => formData.bodyParts[key])  
+                .filter(key => formData.bodyParts[key])
                 .map(part => formatBodyPartDescription(part))
                 .concat(
                     Object.keys(formData.specific)
-                        .filter(key => formData.specific[key])  
+                        .filter(key => formData.specific[key])
                         .map(part => formatBodyPartDescription(part))
                 )
                 .join(', ');
 
+            // Get level, intensity, and training type descriptions from descriptions object
             const levelDescription = descriptions.levels[formData.level] || "Fitness level description not found.";
-            const intensityDescription = descriptions.intensity[formData.intensity] || "Intensity level description not found.";
-            const trainingTypeDescription = descriptions.trainingType[formData.trainingType] || "No training type specified.";
-            
+            const trainingTypeDescription = descriptions.trainingType[formData.trainingType] || "Training type description not found.";
 
+            // Intensity description
+            let intensityDescription = '';
+            if (formData.trainingType === 'cardio') {
+                if (formData.intensityMethod === 'heartRate') {
+                    intensityDescription = `Cardio exercises will be performed between ${formData.intensityMin}% and ${formData.intensityMax}% of the client's maximum heart rate.`;
+                } else if (formData.intensityMethod === 'RPE') {
+                    intensityDescription = `Cardio exercises will be guided by an RPE of ${formData.RPE} on a scale of 1-10.`;
+                }
+            } else if (formData.trainingType === 'athletic') {
+                intensityDescription = `Exercises will be performed within an intensity range of ${formData.intensityRange}% to improve performance in ${formData.sport}.`;
+            } else {
+                intensityDescription = `Exercises will be performed between ${formData.intensityMin}% and ${formData.intensityMax}% of the client's one-repetition maximum (1RM).`;
+            }
+
+            // Fallback data for client-specific fields, like goals, medical history, etc.
+            const clientGoals = selectedSummary ? selectedSummary.goals : goal;
+            const medicalHistoryInfo = selectedSummary ? selectedSummary.medical_history : medicalHistory;
+            const physicalLimitations = selectedSummary ? selectedSummary.physical_limitations : limitations;
+            const exercisePreferences = selectedSummary ? selectedSummary.exercise_preferences : exercisePreference;
+            const motivationInfo = selectedSummary ? selectedSummary.motivation : motivation;
+
+            // Final workout plan message
             return `
-            Develop a ${formData.sessionType} workout plan for ${client_data.first_name} ${client_data.last_name},
-            a ${calculateAge(client_data.dob)}-year-old ${client_data.gender}.
-            Fitness Level: ${formData.level} - ${levelDescription}
-            Intensity: ${formData.intensity} - this indicates a focus on ${intensityDescription}
-            Client goals include "${consultation_data.fitness_goals}", approached through ${trainingTypeDescription}
-            This plan will specifically target ${bodyPartDescriptions}, ensuring a balanced engagement without straying into less relevant exercises.
-            Each session is designed to last approximately ${formData.duration} minutes, making optimal use of ${formData.equipment} gym resources.
-            Medical considerations are noted as: "${history_data.existing_conditions}".
-            Additional trainer insights: ${formData.comments}.
+           Please create a comprehensive **${formData.sessionType} workout plan** tailored for the following client:
+
+            **Client Information:**
+            - **Name:** ${clientName}
+            - **Age:** ${clientAge}
+            - **Gender:** ${clientGender}
+
+            **Fitness Profile:**
+            - **Fitness Level:** ${formData.level} (${levelDescription})
+            - **Intensity:** ${intensityDescription}
+            - **Training Type:** ${formData.trainingType} (${trainingTypeDescription})
+            - **Session Duration:** Approximately ${formData.duration} minutes
+            - **Available Equipment:** ${formData.equipment}
+
+            **Focus Areas:**
+            - **Targeted Body Parts:** ${bodyPartDescriptions}
+
+            **Personal Goals and Preferences:**
+            - **Goals:** ${clientGoals}
+            - **Exercise Preferences:** ${exercisePreferences}
+            - **Motivation Factors:** ${motivationInfo}
+
+            **Health Considerations:**
+            - **Medical History:** ${medicalHistoryInfo}
+            - **Physical Limitations:** ${physicalLimitations}
+
+            **Additional Notes:**
+            - ${formData.comments}
+
+            **Instructions:**
+            Please ensure the workout plan:
+            - Is aligned with the client's fitness level and goals.
+            - Takes into account their medical history and physical limitations.
+            - Incorporates their exercise preferences and motivation factors.
+            - Is structured in a clear, step-by-step format.
+
+            Thank you.
             `;
         } else {
             return "Loading client data...";
         }
     };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -236,7 +475,7 @@ const CustomPrompt = () => {
                 }
             });
             console.log("Response data:", res.data);
-            navigate(`success`);  
+            navigate(`success`);
         } catch (err) {
             console.error("Error during submission:", err);
             setError('Failed to submit the workout plan.');
@@ -257,6 +496,45 @@ const CustomPrompt = () => {
                         Return Back
                     </button>
                 </div>
+                <div className="my-4">
+                    <div className="flex items-center">
+                        <h2 className="text-xl font-medium text-gray-700">Client: {clientName}</h2>
+                        <FaInfoCircle
+                            className="ml-2 text-blue-600 cursor-pointer"
+                            onClick={() => setShowBasePrompt(!showBasePrompt)}
+                            data-tooltip-id={`tooltip-summary`}
+                            data-tooltip-content="View Client Summary"
+                        />
+                        <Tooltip id={`tooltip-summary`} place="right" type="dark" effect="solid" style={{ padding: '3px 8px', fontSize: '12px' }} />
+                    </div>
+                    {showBasePrompt && (
+                        <div className="mt-2 p-4 bg-gray-100 rounded-md">
+                            <h3 className="text-lg font-medium text-gray-700">Base Prompt (Summary):</h3>
+                            {basePrompt ? (
+                                <p>{basePrompt}</p>
+                            ) : (
+                                <p className="text-red-500">No base summary prompt available for this client.</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+                {allSummaries.length > 0 && (
+                    <div className="my-4">
+                        <label htmlFor="summarySelect" className="block text-lg font-medium text-gray-700">Select a Summary:</label>
+                        <select
+                            id="summarySelect"
+                            value={selectedSummary?.id}
+                            onChange={handleSummaryChange}
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        >
+                            {allSummaries.map((summary) => (
+                                <option key={summary.id.id} value={summary.id.id}>
+                                    {summary.id.summary_type} - {new Date(summary.id.created_at).toLocaleString()}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-bold mb-2">Client Level</label>
                     <select
@@ -269,21 +547,6 @@ const CustomPrompt = () => {
                         <option value="beginner">Beginner</option>
                         <option value="intermediate">Intermediate</option>
                         <option value="advanced">Advanced</option>
-                    </select>
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Intensity</label>
-                    <select
-                        name="intensity"
-                        value={formData.intensity}
-                        onChange={handleChange}
-                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    >
-                        <option value="">Select Intensity</option>
-                        <option value="low">Low</option>
-                        <option value="moderate">Moderate</option>
-                        <option value="high">High</option>
                     </select>
                 </div>
 
@@ -306,6 +569,183 @@ const CustomPrompt = () => {
                         <option value="cardio">Cardio Training</option>
                         <option value="power">Power Training</option>
                     </select>
+                </div>
+
+                {/* Intensity Selection */}
+                <div className="mb-4">
+                    <label className="block text-gray-700 text-sm font-bold mb-2">
+                        Intensity
+                        <FaInfoCircle
+                            className="ml-2 text-blue-600 cursor-pointer inline"
+                            data-tooltip-id="intensity-tooltip"
+                            data-tooltip-content="Adjust the intensity based on the client's fitness level and training type."
+                        />
+                        <Tooltip id="intensity-tooltip" place="right" type="dark" effect="solid" />
+                    </label>
+
+                    {formData.trainingType && formData.level && (
+                        <div className="mb-4">
+                            {formData.trainingType === 'cardio' ? (
+                                <>
+                                    {/* Intensity Method Selection */}
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700 text-sm font-bold mb-2">Intensity Method</label>
+                                        <div className="flex items-center">
+                                            <input
+                                                type="radio"
+                                                name="intensityMethod"
+                                                value="heartRate"
+                                                checked={formData.intensityMethod === 'heartRate'}
+                                                onChange={handleChange}
+                                                className="mr-2"
+                                            />
+                                            <label className="mr-4">Percentage of Max Heart Rate (%MHR)</label>
+                                            <input
+                                                type="radio"
+                                                name="intensityMethod"
+                                                value="RPE"
+                                                checked={formData.intensityMethod === 'RPE'}
+                                                onChange={handleChange}
+                                                className="mr-2"
+                                            />
+                                            <label>Rate of Perceived Exertion (RPE 1-10)</label>
+                                        </div>
+                                    </div>
+
+                                    {/* Intensity Inputs Based on Method */}
+                                    {formData.intensityMethod === 'heartRate' && (
+                                        <div className="mb-4">
+                                            <label className="block text-gray-700 text-sm font-bold mb-2">
+                                                Intensity Range (% of Max Heart Rate)
+                                            </label>
+                                            <div className="flex space-x-2">
+                                                <div>
+                                                    <label className="block text-gray-700 text-sm">Min</label>
+                                                    <select
+                                                        name="intensityMin"
+                                                        value={formData.intensityMin}
+                                                        onChange={handleChange}
+                                                        className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                                    >
+                                                        {generateIntensityOptions(50, 85)}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-gray-700 text-sm">Max</label>
+                                                    <select
+                                                        name="intensityMax"
+                                                        value={formData.intensityMax}
+                                                        onChange={handleChange}
+                                                        className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                                    >
+                                                        {generateIntensityOptions(formData.intensityMin || 50, 85)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {formData.intensityMethod === 'RPE' && (
+                                        <div className="mb-4">
+                                            <label className="block text-gray-700 text-sm font-bold mb-2">
+                                                RPE Intensity Level (1-10)
+                                            </label>
+                                            <select
+                                                name="RPE"
+                                                value={formData.RPE || ''}
+                                                onChange={handleChange}
+                                                className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                            >
+                                                <option value="">Select RPE</option>
+                                                {[...Array(10)].map((_, i) => (
+                                                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </>
+                            ) : formData.trainingType === 'athletic' ? (
+                                <>
+                                    {/* Athletic Training Intensity Range Selection */}
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                                            Intensity Range (% of 1RM)
+                                        </label>
+                                        <select
+                                            name="intensityRange"
+                                            value={formData.intensityRange}
+                                            onChange={handleChange}
+                                            className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                        >
+                                            <option value="">Select Intensity Range</option>
+                                            <option value="50-60">50% - 60%</option>
+                                            <option value="60-75">60% - 75%</option>
+                                            <option value="75-90">75% - 90%</option>
+                                        </select>
+                                        {errors.intensity && <p className="text-red-500 text-xs italic">{errors.intensity}</p>}
+                                    </div>
+
+                                    {/* Sport Input Field */}
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700 text-sm font-bold mb-2">Sport</label>
+                                        <input
+                                            type="text"
+                                            name="sport"
+                                            value={formData.sport || ''}
+                                            onChange={handleChange}
+                                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                            placeholder="Enter the sport (e.g., soccer, basketball)"
+                                        />
+                                        {errors.sport && <p className="text-red-500 text-xs italic">{errors.sport}</p>}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Regular Training Intensity Range Selection */}
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                                            Intensity Range (% of 1RM)
+                                            <FaInfoCircle
+                                                className="ml-2 text-blue-600 cursor-pointer inline"
+                                                data-tooltip-id="intensity-tooltip"
+                                                data-tooltip-content="Select the intensity range based on the client's fitness level and training type."
+                                            />
+                                            <Tooltip id="intensity-tooltip" place="right" type="dark" effect="solid" />
+                                        </label>
+                                        <div className="flex space-x-2">
+                                            <div>
+                                                <label className="block text-gray-700 text-sm">Min</label>
+                                                <select
+                                                    name="intensityMin"
+                                                    value={formData.intensityMin}
+                                                    onChange={handleChange}
+                                                    className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                                >
+                                                    {generateIntensityOptions(adjustedIntensityRange.min, adjustedIntensityRange.max)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-gray-700 text-sm">Max</label>
+                                                <select
+                                                    name="intensityMax"
+                                                    value={formData.intensityMax}
+                                                    onChange={handleChange}
+                                                    className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                                >
+                                                    {generateIntensityOptions(formData.intensityMin || adjustedIntensityRange.min, adjustedIntensityRange.max)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        {errors.intensity && <p className="text-red-500 text-xs italic">{errors.intensity}</p>}
+                                    </div>
+                                </>
+                            )}
+
+                            {intensityWarning && (
+                                <p className="text-red-500 text-xs italic">{intensityWarning}</p>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="mb-4">
