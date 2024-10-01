@@ -332,7 +332,7 @@ const DemoPrompt = () => {
           >
             {allSummaries.map((summary) => (
               <option key={summary.id.id} value={summary.id.id}>
-                {summary.id.summary_type} - {new Date(summary.id.created_at).toLocaleString()}
+                {summary.id.summary_type} - {new Date(summary.id.created_at).toLocaleDateString()}
               </option>
             ))}
           </select>

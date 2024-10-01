@@ -42,6 +42,8 @@ const CustomPrompt = () => {
     const [clientName, setClientName] = useState('');
     const [clientAge, setClientAge] = useState('');
     const [clientGender, setClientGender] = useState('');
+    const rpeExplanation = "RPE (Rate of Perceived Exertion) is a subjective scale from 1-10 that measures the intensity of exercise based on how hard you feel you're working.";
+    const mhrExplanation = "%MHR (Percentage of Maximum Heart Rate) is an objective measure of exercise intensity calculated as a percentage of your estimated maximum heart rate.";
     const [goal, setGoal] = useState("fitness and strength");
     const [medicalHistory, setMedicalHistory] = useState("No significant medical history");
     const [limitations, setLimitations] = useState("No physical limitations");
@@ -398,11 +400,11 @@ const CustomPrompt = () => {
             }
 
             // Fallback data for client-specific fields, like goals, medical history, etc.
-            const clientGoals = selectedSummary ? selectedSummary.goals : goal;
-            const medicalHistoryInfo = selectedSummary ? selectedSummary.medical_history : medicalHistory;
-            const physicalLimitations = selectedSummary ? selectedSummary.physical_limitations : limitations;
-            const exercisePreferences = selectedSummary ? selectedSummary.exercise_preferences : exercisePreference;
-            const motivationInfo = selectedSummary ? selectedSummary.motivation : motivation;
+            const clientGoals = selectedSummary?.goals || goal;
+            const medicalHistoryInfo = selectedSummary?.medical_history || medicalHistory;
+            const physicalLimitations = selectedSummary?.physical_limitations || limitations;
+            const exercisePreferences = selectedSummary?.exercise_preferences || exercisePreference;
+            const motivationInfo = selectedSummary?.motivation || motivation;
 
             // Final workout plan message
             return `
@@ -448,6 +450,73 @@ const CustomPrompt = () => {
             return "Loading client data...";
         }
     };
+
+    const capitalizeFirstLetter = (string) => {
+        if (!string) return '';
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    };
+
+
+    const createSimplifiedOverview = () => {
+        if (clientName && clientAge && clientGender) {
+            // Prepare key details for the overview
+            const levelType = capitalizeFirstLetter(formData.level) || 'Unspecified level';
+            const levelDescription = descriptions.levels[formData.level] || "Fitness level description not found.";
+            const trainingType = capitalizeFirstLetter(formData.trainingType) || 'Unspecified training type';
+            const trainingTypeDescription = descriptions.trainingType[formData.trainingType] || "Training type description not found.";
+            const duration = formData.duration ? `${formData.duration} minutes` : 'Unspecified duration';
+            const equipment = capitalizeFirstLetter(formData.equipment) || 'Unspecified equipment';
+            const sessionType = capitalizeFirstLetter(formData.sessionType) || 'Unspecified session type';
+            const additionalComments = formData.comments || 'No additional comments';
+
+            // Intensity overview
+            let intensityOverview = '';
+            if (formData.trainingType === 'cardio') {
+                if (formData.intensityMethod === 'heartRate') {
+                    intensityOverview = `Heart Rate: ${formData.intensityMin}% - ${formData.intensityMax}% of Max HR`;
+                } else if (formData.intensityMethod === 'RPE') {
+                    intensityOverview = `RPE Level: ${formData.RPE}/10`;
+                }
+            } else if (formData.trainingType === 'athletic') {
+                intensityOverview = `Intensity Range: ${formData.intensityRange}%`;
+            } else {
+                intensityOverview = `Intensity: ${formData.intensityMin}% - ${formData.intensityMax}% of 1RM`;
+            }
+
+            // Body parts or specifics
+            const bodyPartDescriptions = Object.keys(formData.bodyParts)
+                .filter(key => formData.bodyParts[key])
+                .map(part => formatBodyPartDescription(part))
+                .concat(
+                    Object.keys(formData.specific)
+                        .filter(key => formData.specific[key])
+                        .map(part => formatBodyPartDescription(part))
+                )
+                .join(', ') || 'No specific body parts selected';
+
+            // Sport (for athletic training)
+            const sport = formData.sport ? `Sport: ${formData.sport}` : '';
+
+            // Simplified overview
+            return (
+                <>
+                    <p><strong>Fitness Level:</strong> {levelType} - {levelDescription}</p>
+                    <p><strong>Training Type:</strong> {trainingType} - {trainingTypeDescription}</p>
+                    <p><strong>{intensityOverview}</strong></p>
+                    <p><strong>Focus Areas:</strong> {bodyPartDescriptions}</p>
+                    <p><strong>Duration:</strong> {duration}</p>
+                    <p><strong>Equipment:</strong> {equipment}</p>
+                    <p><strong>Session Type:</strong> {sessionType}</p>
+                    {sport && <p><strong>{sport}</strong></p>}
+                    <p><strong>Comments:</strong> {additionalComments}</p>
+                </>
+            );
+        } else {
+            return "Loading client data...";
+        }
+    };
+
+
 
 
     const handleSubmit = async (e) => {
@@ -529,7 +598,7 @@ const CustomPrompt = () => {
                         >
                             {allSummaries.map((summary) => (
                                 <option key={summary.id.id} value={summary.id.id}>
-                                    {summary.id.summary_type} - {new Date(summary.id.created_at).toLocaleString()}
+                                    {summary.id.summary_type} - {new Date(summary.id.created_at).toLocaleDateString()}
                                 </option>
                             ))}
                         </select>
@@ -591,24 +660,46 @@ const CustomPrompt = () => {
                                     <div className="mb-4">
                                         <label className="block text-gray-700 text-sm font-bold mb-2">Intensity Method</label>
                                         <div className="flex items-center">
-                                            <input
-                                                type="radio"
-                                                name="intensityMethod"
-                                                value="heartRate"
-                                                checked={formData.intensityMethod === 'heartRate'}
-                                                onChange={handleChange}
-                                                className="mr-2"
-                                            />
-                                            <label className="mr-4">Percentage of Max Heart Rate (%MHR)</label>
-                                            <input
-                                                type="radio"
-                                                name="intensityMethod"
-                                                value="RPE"
-                                                checked={formData.intensityMethod === 'RPE'}
-                                                onChange={handleChange}
-                                                className="mr-2"
-                                            />
-                                            <label>Rate of Perceived Exertion (RPE 1-10)</label>
+                                            {/* First Option: Percentage of Max Heart Rate (%MHR) */}
+                                            <div className="flex items-center mr-4">
+                                                <input
+                                                    type="radio"
+                                                    name="intensityMethod"
+                                                    value="heartRate"
+                                                    checked={formData.intensityMethod === 'heartRate'}
+                                                    onChange={handleChange}
+                                                    className="mr-2"
+                                                />
+                                                <label className="flex items-center">
+                                                    Percentage of Max Heart Rate (%MHR)
+                                                    <FaInfoCircle
+                                                        className="ml-1 text-blue-600 cursor-pointer inline"
+                                                        data-tooltip-id="mhr-tooltip"
+                                                        data-tooltip-content={mhrExplanation}
+                                                    />
+                                                    <Tooltip id="mhr-tooltip" place="top" type="dark" effect="solid" />
+                                                </label>
+                                            </div>
+                                            {/* Second Option: Rate of Perceived Exertion (RPE 1-10) */}
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="radio"
+                                                    name="intensityMethod"
+                                                    value="RPE"
+                                                    checked={formData.intensityMethod === 'RPE'}
+                                                    onChange={handleChange}
+                                                    className="mr-2"
+                                                />
+                                                <label className="flex items-center">
+                                                    Rate of Perceived Exertion (RPE 1-10)
+                                                    <FaInfoCircle
+                                                        className="ml-1 text-blue-600 cursor-pointer inline"
+                                                        data-tooltip-id="rpe-tooltip"
+                                                        data-tooltip-content={rpeExplanation}
+                                                    />
+                                                    <Tooltip id="rpe-tooltip" place="top" type="dark" effect="solid" />
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -802,8 +893,10 @@ const CustomPrompt = () => {
                     >
                         <option value="">Select Duration</option>
                         <option value="30">30 minutes</option>
+                        <option value="45">45 minutes</option>
                         <option value="60">60 minutes</option>
                         <option value="90">90 minutes</option>
+                        <option value="120+">2+ hours</option>
                     </select>
                 </div>
 
@@ -843,6 +936,100 @@ const CustomPrompt = () => {
                         ))}
                     </div>
                 </div>
+                {allSummaries.length === 0 && (
+                    <div className="my-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
+                        <p>No client summary data available. Using default options for the workout plan. Customize as needed below:</p>
+                    </div>
+                )}
+
+                {allSummaries.length === 0 && (
+                    <>
+                        {/* Primary Goal */}
+                        <div className="my-4">
+                            <label htmlFor="goalSelect" className="block text-lg font-medium text-gray-700">Select Primary Goal:</label>
+                            <select
+                                id="goalSelect"
+                                value={goal}
+                                onChange={(e) => setGoal(e.target.value)}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            >
+                                <option value="fitness and strength">Fitness and Strength</option>
+                                <option value="muscle gain">Muscle Gain</option>
+                                <option value="weight loss">Weight Loss</option>
+                                <option value="improve endurance">Improve Endurance</option>
+                                <option value="flexibility and mobility">Flexibility and Mobility</option>
+                            </select>
+                        </div>
+
+                        {/* Medical History */}
+                        <div className="my-4">
+                            <label htmlFor="medicalHistorySelect" className="block text-lg font-medium text-gray-700">Select Medical History:</label>
+                            <select
+                                id="medicalHistorySelect"
+                                value={medicalHistory}
+                                onChange={(e) => setMedicalHistory(e.target.value)}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            >
+                                <option value="No significant medical history">No significant medical history</option>
+                                <option value="Knee injury">Knee injury</option>
+                                <option value="Back pain">Back pain</option>
+                                <option value="Shoulder issues">Shoulder issues</option>
+                                <option value="Heart condition">Heart condition</option>
+                            </select>
+                        </div>
+
+                        {/* Physical Limitations */}
+                        <div className="my-4">
+                            <label htmlFor="limitationsSelect" className="block text-lg font-medium text-gray-700">Select Physical Limitations:</label>
+                            <select
+                                id="limitationsSelect"
+                                value={limitations}
+                                onChange={(e) => setLimitations(e.target.value)}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            >
+                                <option value="No physical limitations">No physical limitations</option>
+                                <option value="Avoid heavy lifting">Avoid heavy lifting</option>
+                                <option value="Limit cardio">Limit cardio</option>
+                                <option value="Limited range of motion">Limited range of motion</option>
+                                <option value="Low impact only">Low impact only</option>
+                            </select>
+                        </div>
+
+                        {/* Exercise Preferences */}
+                        <div className="my-4">
+                            <label htmlFor="exercisePreferenceSelect" className="block text-lg font-medium text-gray-700">Select Exercise Preference:</label>
+                            <select
+                                id="exercisePreferenceSelect"
+                                value={exercisePreference}
+                                onChange={(e) => setExercisePreference(e.target.value)}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            >
+                                <option value="a balanced mix of cardio and strength training">Balanced mix of cardio and strength training</option>
+                                <option value="heavy resistance training">Heavy resistance training</option>
+                                <option value="yoga and flexibility">Yoga and flexibility</option>
+                                <option value="high-intensity interval training (HIIT)">High-Intensity Interval Training (HIIT)</option>
+                                <option value="low-impact exercises">Low-Impact Exercises</option>
+                            </select>
+                        </div>
+
+                        {/* Motivation */}
+                        <div className="my-4">
+                            <label htmlFor="motivationSelect" className="block text-lg font-medium text-gray-700">Select Motivation:</label>
+                            <select
+                                id="motivationSelect"
+                                value={motivation}
+                                onChange={(e) => setMotivation(e.target.value)}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            >
+                                <option value="personal progress">Personal Progress</option>
+                                <option value="competitive drive">Competitive Drive</option>
+                                <option value="health improvement">Health Improvement</option>
+                                <option value="stress relief">Stress Relief</option>
+                                <option value="social engagement">Social Engagement</option>
+                            </select>
+                        </div>
+                    </>
+                )}
 
                 <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-bold mb-2">Additional Comments</label>
@@ -855,6 +1042,30 @@ const CustomPrompt = () => {
                     ></textarea>
                 </div>
 
+                {/* Simplified Overview and Full Prompt Toggle */}
+                <div className="bg-gray-100 p-4 border-2 border-gray-700 rounded-lg shadow mb-4" style={{ color: 'black' }}>
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-bold">Workout Plan Overview</h2>
+                        <FaInfoCircle
+                            className="text-blue-600 cursor-pointer"
+                            onClick={() => setShowFullPrompt(!showFullPrompt)}
+                            data-tooltip-id="full-prompt-tooltip"
+                            data-tooltip-content="View Full Prompt Details"
+                        />
+                        <Tooltip id="full-prompt-tooltip" place="left" type="dark" effect="solid" />
+                    </div>
+                    <div className="mt-2">
+                        {createSimplifiedOverview()}
+                    </div>
+                    {showFullPrompt && (
+                        <div className="mt-4">
+                            <h3 className="text-md font-semibold">Full Prompt:</h3>
+                            <p className="mt-2 whitespace-pre-wrap">{createWorkoutPlanMessage()}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Submit Button and Loader */}
                 {submitting && (
                     <div className="flex justify-center my-4">
                         <ClipLoader color={"#123abc"} loading={submitting} size={150} />
@@ -863,13 +1074,10 @@ const CustomPrompt = () => {
                 <button
                     type="submit"
                     className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mb-4"
-                    disabled={submitting}  // Disable button while submitting
+                    disabled={submitting}
                 >
                     Generate
                 </button>
-                <p className="bg-gray-100 p-4 border-2 border-gray-700 rounded-lg shadow" style={{ color: 'black' }}>
-                    {createWorkoutPlanMessage()}
-                </p>
 
                 {errors.submitError && <div className="text-red-500 text-sm mt-2">{errors.submitError}</div>}
             </form>
