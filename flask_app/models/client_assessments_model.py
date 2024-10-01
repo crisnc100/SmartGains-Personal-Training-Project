@@ -1,4 +1,6 @@
 from flask_app.config.mysqlconnection import connectToMySQL
+import json
+
 
 class ClientAssessments:
     def __init__(self, data):
@@ -121,6 +123,9 @@ class ClientAssessments:
 
     @classmethod
     def update(cls, data):
+        # Ensure input_data is a JSON string
+        if isinstance(data.get('input_data'), dict):
+            data['input_data'] = json.dumps(data['input_data'])
         query = """
             UPDATE client_assessments
             SET

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { format } from 'date-fns';
+import styles from './CurrentClient/CurrentClient.module.css'
 
 const capitalizeFirstLetter = (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
@@ -15,7 +16,7 @@ const groupAssessmentsByDate = (assessments) => {
     }, {});
 };
 
-const ClientAssessments = ({ clientAssessmentData }) => {
+const ClientAssessments = ({ clientAssessmentData, isEditMode, handleInputChange, handleDeleteAssessment }) => {
     const navigate = useNavigate();
     const [expandedDate, setExpandedDate] = useState(null);
 
@@ -43,16 +44,32 @@ const ClientAssessments = ({ clientAssessmentData }) => {
 
     const groupedAssessments = groupAssessmentsByDate(clientAssessmentData);
 
-    const renderAssessment = (assessment) => {
+    const renderAssessment = (assessment, assessmentIndex) => {
         const inputData = JSON.parse(assessment.input_data);
+
+        const handleAssessmentInputChange = (event, field) => {
+            handleInputChange(event, 'client_assessment_data', assessmentIndex, field);
+        };
+        
 
         return (
             <div key={assessment.id} className="mb-2 p-4 border rounded-md shadow-md bg-white">
                 <h4 className="font-semibold mb-2 text-lg">{assessment.assessment_name}</h4>
+                {/* Render assessment fields */}
                 {Object.entries(inputData).map(([key, value], index) => (
-                    <p key={index} className="mb-1 text-gray-700">
-                        <strong>{capitalizeFirstLetter(key.replace(/_/g, ' '))}:</strong> {value}
-                    </p>
+                    <div key={index} className="mb-1 text-gray-700">
+                        <strong>{capitalizeFirstLetter(key.replace(/_/g, ' '))}:</strong>
+                        {isEditMode ? (
+                            <input
+                                type="text"
+                                value={value}
+                                onChange={(event) => handleAssessmentInputChange(event, key)}
+                                className={styles.editableField}
+                            />
+                        ) : (
+                            <span className="ml-2">{value}</span>
+                        )}
+                    </div>
                 ))}
             </div>
         );
@@ -71,7 +88,20 @@ const ClientAssessments = ({ clientAssessmentData }) => {
                     </div>
                     {expandedDate === date && (
                         <div className="p-4 bg-white rounded-b-md shadow-md">
-                            {assessments.map(renderAssessment)}
+                            {/* Render all assessments for the selected date */}
+                            {assessments.map((assessment, index) => renderAssessment(assessment, index))}
+
+                            {/* Show "Delete" button only once for each assessment group when in edit mode */}
+                            {isEditMode && (
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={() => handleDeleteAssessment(assessments.map(a => a.id))}
+                                        className="py-2 px-4 mt-4 font-semibold rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 ease-in-out"
+                                    >
+                                        Delete Assessments for {date}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

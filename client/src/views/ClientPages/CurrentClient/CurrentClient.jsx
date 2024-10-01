@@ -17,8 +17,12 @@ const CurrentClient = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isEditMode, setIsEditMode] = useState(false);
-    const [editableData, setEditableData] = useState({});
-    const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'personal');
+    const [editableData, setEditableData] = useState({
+        client_data: {},
+        intake_forms: [],
+        client_assessment_data: [],
+        // ... other properties
+    });    const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'personal');
     const [expandedForms, setExpandedForms] = useState({});
 
 
@@ -61,16 +65,56 @@ const CurrentClient = () => {
         setIsEditMode(false);
     };
 
-    const handleInputChange = (event, section, field) => {
+    const handleInputChange = (event, section, ...rest) => {
         const { value } = event.target;
-        setEditableData(prevState => ({
-            ...prevState,
-            [section]: {
-                ...prevState[section],
-                [field]: value
+
+        setEditableData(prevState => {
+            let updatedData = { ...prevState };
+
+            if (section === 'client_data') {
+                // Update client data fields (e.g., first_name, last_name)
+                const field = rest[0];
+                updatedData.client_data = {
+                    ...prevState.client_data,
+                    [field]: value,
+                };
+            } else if (section === 'intake_forms') {
+                // Update intake form answers
+                const formIndex = rest[0];
+                const answerIndex = rest[1];
+
+                const updatedForms = [...prevState.intake_forms];
+                const updatedForm = { ...updatedForms[formIndex] };
+                const updatedAnswers = [...updatedForm.answers];
+
+                updatedAnswers[answerIndex] = {
+                    ...updatedAnswers[answerIndex],
+                    answer: value,
+                };
+
+                updatedForm.answers = updatedAnswers;
+                updatedForms[formIndex] = updatedForm;
+                updatedData.intake_forms = updatedForms;
+            } else if (section === 'client_assessment_data') {
+                // Update assessment data
+                const assessmentIndex = rest[0];
+                const field = rest[1];
+
+                const updatedAssessments = [...prevState.client_assessment_data];
+                const updatedAssessment = { ...updatedAssessments[assessmentIndex] };
+                const inputData = JSON.parse(updatedAssessment.input_data || '{}');
+
+                inputData[field] = value;
+                updatedAssessment.input_data = JSON.stringify(inputData);
+                updatedAssessments[assessmentIndex] = updatedAssessment;
+
+                updatedData.client_assessment_data = updatedAssessments;
             }
-        }));
+
+            return updatedData;
+        });
     };
+
     const toggleFormExpansion = (formId) => {
         setExpandedForms(prevState => ({
             ...prevState,
@@ -126,10 +170,10 @@ const CurrentClient = () => {
         const formIndex = allClientData.intake_forms.findIndex(form => form.id === formId);
         if (formIndex !== -1) {
             const currentForm = allClientData.intake_forms[formIndex];
-    
+
             // Count existing updated forms to append the right number
             const updatedFormCount = allClientData.intake_forms.filter(form => form.form_type.startsWith('Updated Consultation')).length;
-    
+
             const updatedForm = {
                 ...currentForm,
                 id: null, // New form ID will be created
@@ -139,7 +183,7 @@ const CurrentClient = () => {
                 client_id: clientId,
                 answers: currentForm.answers.map(answer => ({ ...answer, answer: '' })) // Reset answers
             };
-    
+
             // Add new form to the backend and state
             axios.post(`http://localhost:5000/api/current_client/${clientId}/new_form`, updatedForm)
                 .then(response => {
@@ -147,7 +191,7 @@ const CurrentClient = () => {
                         ...prevData,
                         intake_forms: [...prevData.intake_forms, response.data] // Add new form
                     }));
-    
+
                     // Navigate to the new form with mode=update
                     navigate(`intake-form?mode=update&formId=${response.data.id}`);
                 })
@@ -156,7 +200,7 @@ const CurrentClient = () => {
                 });
         }
     };
-    
+
     const handleFinishDraftForm = (formId) => {
         const formIndex = allClientData.intake_forms.findIndex(form => form.id === formId);
         if (formIndex !== -1) {
@@ -174,6 +218,35 @@ const CurrentClient = () => {
 
         }
     };
+
+
+    const handleDeleteAssessment = (assessmentId) => {
+        if (!window.confirm('Are you sure you want to delete this assessment?')) {
+            return;
+        }
+
+        axios.delete(`http://localhost:5000/api/delete_client_assessment/${assessmentId}`)
+            .then(response => {
+                if (response.status === 200) {
+                    // Remove the assessment from editableData.client_assessment_data
+                    setEditableData(prevData => {
+                        const updatedAssessments = prevData.client_assessment_data.filter(
+                            assessment => assessment.id !== assessmentId
+                        );
+                        return {
+                            ...prevData,
+                            client_assessment_data: updatedAssessments,
+                        };
+                    });
+                } else {
+                    console.error('Failed to delete assessment');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting assessment:', error);
+            });
+    };
+
 
 
 
@@ -427,7 +500,7 @@ const CurrentClient = () => {
                                                             e.stopPropagation(); // Prevent collapsing the form when clicking delete
                                                             handleDeleteForm(form.id);
                                                         }}
-                                                        className="py-1 px-2 font-semibold rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 ease-in-out"
+                                                        className="py-1 px-2 mr-2 font-semibold rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 ease-in-out"
                                                     >
                                                         Delete
                                                     </button>
@@ -435,15 +508,15 @@ const CurrentClient = () => {
                                                 {expandedForms[form.id] && (
                                                     <div className="p-4 bg-white rounded-b-md shadow-md">
                                                         {/* Answers rendering */}
-                                                        {form.answers.map((answer, answerIndex) => (
+                                                        {editableData.intake_forms[formIndex].answers.map((answer, answerIndex) => (
                                                             <div key={answer.id} className="mb-4 p-2 border rounded-md bg-gray-50">
                                                                 <p className="font-semibold text-gray-700 mb-1">{answer.question_text}</p>
                                                                 {isEditMode ? (
                                                                     <input
                                                                         type="text"
                                                                         name="answer"
-                                                                        value={editableData.intake_forms[formIndex].answers[answerIndex].answer || ''}
-                                                                        onChange={(e) => handleInputChange(e, formIndex, answerIndex)}
+                                                                        value={answer.answer || ''}
+                                                                        onChange={(e) => handleInputChange(e, 'intake_forms', formIndex, answerIndex)}
                                                                         className={styles.editableField}
                                                                     />
                                                                 ) : (
@@ -479,11 +552,16 @@ const CurrentClient = () => {
                         )}
                     </div>
 
-                    {activeTab === 'assessments' &&
+                    {activeTab === 'assessments' && (
                         <ClientAssessments
                             clientAssessmentData={editableData.client_assessment_data}
+                            isEditMode={isEditMode}
+                            handleInputChange={handleInputChange}
+                            handleDeleteAssessment={handleDeleteAssessment}
                         />
-                    }
+                    )}
+
+
                     {activeTab === 'workout' && <ClientWorkouts
                         clientId={clientId}
                         clientDemoPlans={allClientData.client_demo_plans || []}

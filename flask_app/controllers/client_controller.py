@@ -113,42 +113,6 @@ def current_client(client_id):
     print(f"Successfully retrieved all data for client_id: {client_id}")
     return jsonify(all_client_data)
 
-@app.route('/api/prompt_data/<int:client_id>')
-def prompt_data(client_id):
-    print(f"Received request to fetch tagged data for client_id: {client_id}")
-
-    client_data = Client.get_one(client_id)
-    if not client_data:
-        print(f"No client data found for client_id: {client_id}")
-        return jsonify({'error': 'No client data found'}), 404
-    
-    intake_forms = IntakeForms.get_by_client_id(client_id)
-    tagged_data = {}
-
-    # Collecting tagged data from intake forms
-    for form in intake_forms:
-        answers = IntakeFormAnswers.get_all_by_form_with_question_text(form.id)
-        for answer in answers:
-            # First, check in TrainerQuestions
-            question = TrainerIntakeQuestions.get_by_id(answer.question_id)
-            if not question:
-                # If not found, fall back to GlobalFormQuestions
-                question = GlobalFormQuestions.get_by_id(answer.question_id)
-            if question and question.tags:
-                for tag in question.tags.split(','):
-                    if tag in tagged_data:
-                        tagged_data[tag].append(answer.answer)
-                    else:
-                        tagged_data[tag] = [answer.answer]
-
-    all_tagged_data = {
-        "client_data": client_data.serialize() if client_data else {},
-        "tagged_data": tagged_data
-    }
-    
-    print(f"Successfully retrieved tagged data for client_id: {client_id}")
-    return jsonify(all_tagged_data)
-
 
 
 @app.route('/back_to_clients',methods=['POST'])
@@ -174,13 +138,13 @@ def get_editable_data(client_id):
 
         # Created a dictionary only if data exists, else set to None or a default value
         client_dict = client_data.__dict__ if client_data else None
-        client_assessment_dict = client_assessment_data.__dict__ if client_assessment_data else None
+        client_assessment_dicts = [assessment.__dict__ for assessment in client_assessment_data] if client_assessment_data else []
 
         editable_data = {
             "success": client_data is not None,
             "client_data": client_dict,
             "intake_forms": intake_forms_with_answers,
-            "client_assessment_data": client_assessment_dict,
+            "client_assessment_data": client_assessment_dicts,
         }
         
         return jsonify(editable_data), 200 if client_data else 404
@@ -217,12 +181,14 @@ def update_client_data(client_id):
                         **answer_data
                     })
 
-    client_assessment_data = updated_data.get('client_assessment_data', {})
-    if client_assessment_data and 'id' in client_assessment_data:
-        ClientAssessments.update({
-            "id": client_assessment_data['id'],
-            **client_assessment_data
+    client_assessment_data = updated_data.get('client_assessment_data', [])
+    for assessment_data in client_assessment_data:
+        if assessment_data and 'id' in assessment_data:
+            ClientAssessments.update({
+                "id": assessment_data['id'],
+                **assessment_data
         })
+
 
     return jsonify({"success": True})
 
