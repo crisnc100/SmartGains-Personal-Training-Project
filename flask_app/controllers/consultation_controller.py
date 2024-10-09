@@ -233,17 +233,39 @@ def restore_question_to_default(question_id):
         return jsonify({"message": f"An error occurred: {e}", "status": "error"}), 50
 
 
-@app.route('/api/restore_user_questions', methods=['GET'])
-def restore_user_questions():
+@app.route('/api/restore_deleted_questions', methods=['GET'])
+def restore_deleted_questions():
     try:
         if 'trainer_id' not in session:
             return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
         trainer_id = session['trainer_id']
-        TrainerIntakeQuestions.delete_all_by_trainer(trainer_id)
-        return jsonify({'message': 'All questions restored successfully'}), 200
+        success = TrainerIntakeQuestions.restore_deleted_questions(trainer_id)
+        if success:
+            return jsonify({'message': 'Deleted questions restored successfully'}), 200
+        else:
+            return jsonify({'error': 'Failed to restore deleted questions'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+
+@app.route('/api/restore_all_questions', methods=['GET'])
+def restore_all_questions():
+    try:
+        if 'trainer_id' not in session:
+            return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+        trainer_id = session['trainer_id']
+        success = TrainerIntakeQuestions.restore_all_but_added(trainer_id)
+        if success:
+            return jsonify({'message': 'All questions restored successfully'}), 200
+        else:
+            return jsonify({'error': 'Failed to restore questions'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 # Intake Forms and Answers Endpoints
 @app.route('/api/add_intake_form', methods=['POST'])

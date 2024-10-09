@@ -39,7 +39,7 @@ const AssessmentForm = () => {
                 withCredentials: true
             });
             console.log(res.data);
-            navigate(`highlights`);
+            navigate(`/trainer_dashboard/all_clients/${clientId}/current-client`);
         } catch (err) {
             console.error(err);
             setErrors(prevErrors => ({

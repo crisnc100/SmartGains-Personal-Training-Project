@@ -294,19 +294,19 @@ const IntakeForm = () => {
     const handleCheckboxChange = (event, questionId) => {
         const { value } = event.target;
         const isOtherSelected = value === 'Other';
-    
+
         setIntakeForm((prevState) => {
             const updatedArray = Array.isArray(prevState[questionId])
                 ? prevState[questionId].includes(value)
                     ? prevState[questionId].filter(item => item !== value)
                     : [...prevState[questionId], value]
                 : [value]; // Initialize as an array if it's not already
-    
+
             const updatedForm = {
                 ...prevState,
                 [questionId]: updatedArray, // Use questionId to update the state
             };
-    
+
             // If "Other" is selected, add an empty field for user input for "Other"
             if (isOtherSelected) {
                 updatedForm[`${questionId}_other`] = updatedForm[`${questionId}_other`] || ''; // Create "Other" field if not already there
@@ -314,13 +314,13 @@ const IntakeForm = () => {
                 // If "Other" is unchecked, remove the "Other" field
                 delete updatedForm[`${questionId}_other`];
             }
-    
+
             // Save the updated form to local storage
             localStorage.setItem(getLocalStorageKey(clientId, 'currentAnswers'), JSON.stringify(updatedForm));
             return updatedForm;
         });
     };
-    
+
 
 
     const renderInputField = (question) => {
@@ -449,22 +449,31 @@ const IntakeForm = () => {
     }, [formId, clientId, intakeForm, questions]);
 
     const gatherFormData = (questions, answers) => {
-        console.log('Gathering form data...');
-        console.log('Questions:', questions);
-        console.log('Answers:', answers);
-
         const formData = questions.map(question => {
+            let answerValue = answers[question.id];
+
+            if (question.question_type === 'checkbox') {
+                if (Array.isArray(answerValue)) {
+                    if (answerValue.includes('Other')) {
+                        const otherValue = answers[`${question.id}_other`] || '';
+                        answerValue = answerValue.map(val => val === 'Other' ? otherValue : val);
+                    }
+                    answerValue = answerValue.join(', ');
+                }
+            } else if (question.question_type === 'dropdown' && answerValue === 'Other') {
+                const otherValue = answers[`${question.id}_other`] || '';
+                answerValue = otherValue;
+            }
+
             const data = {
                 question: question.question_text,
-                answer: answers[question.id]
+                answer: answerValue
             };
-            console.log('Form Data Entry:', data);
             return data;
         });
-
-        console.log('Final Form Data:', formData);
         return formData;
     };
+
 
 
     const handleSubmit = async (e, skipAI = false) => {
@@ -490,12 +499,29 @@ const IntakeForm = () => {
 
             // Step 2: Prepare answers (if there are any unsaved answers)
             const answers = questions
-                .map(question => ({
-                    question_source: question.source || 'global',
-                    question_id: question.id,
-                    answer: intakeForm[question.id],
-                    form_id: formId
-                }))
+                .map(question => {
+                    let answerValue = intakeForm[question.id];
+
+                    if (question.question_type === 'checkbox') {
+                        if (Array.isArray(answerValue)) {
+                            if (answerValue.includes('Other')) {
+                                const otherValue = intakeForm[`${question.id}_other`] || '';
+                                answerValue = answerValue.map(val => val === 'Other' ? otherValue : val);
+                            }
+                            answerValue = answerValue.join(', ');
+                        }
+                    } else if (question.question_type === 'dropdown' && answerValue === 'Other') {
+                        const otherValue = intakeForm[`${question.id}_other`] || '';
+                        answerValue = otherValue;
+                    }
+
+                    return {
+                        question_source: question.source || 'global',
+                        question_id: question.id,
+                        answer: answerValue,
+                        form_id: formId
+                    };
+                })
                 .filter(answer => answer.answer !== '');
 
             if (answers.length > 0) {

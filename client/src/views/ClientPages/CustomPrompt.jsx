@@ -45,10 +45,13 @@ const CustomPrompt = () => {
     const rpeExplanation = "RPE (Rate of Perceived Exertion) is a subjective scale from 1-10 that measures the intensity of exercise based on how hard you feel you're working.";
     const mhrExplanation = "%MHR (Percentage of Maximum Heart Rate) is an objective measure of exercise intensity calculated as a percentage of your estimated maximum heart rate.";
     const [goal, setGoal] = useState("fitness and strength");
-    const [medicalHistory, setMedicalHistory] = useState("No significant medical history");
-    const [limitations, setLimitations] = useState("No physical limitations");
+    const [customGoal, setCustomGoal] = useState('');
+    const [medicalHistory, setMedicalHistory] = useState([]);
+    const [limitations, setLimitations] = useState([]);
     const [exercisePreference, setExercisePreference] = useState("a balanced mix of cardio and strength training");
+    const [customExercisePreference, setCustomExercisePreference] = useState('');
     const [motivation, setMotivation] = useState("personal progress");
+    const [customMotivation, setCustomMotivation] = useState('');
     const [template, setTemplate] = useState({
         goals: "Focus on improving overall fitness and strength.",
         medical_history: "No significant medical history.",
@@ -156,6 +159,50 @@ const CustomPrompt = () => {
             console.log("Base prompt updated to:", selectedSummary.summary_prompt);
         }
     };
+
+
+    // Medical History Change Handler
+    const handleMedicalHistoryChange = (e) => {
+        const { value, checked } = e.target;
+        if (value === "No significant medical history") {
+            if (checked) {
+                setMedicalHistory(["No significant medical history"]);
+            } else {
+                setMedicalHistory([]);
+            }
+        } else {
+            setMedicalHistory((prev) => {
+                const withoutNone = prev.filter(item => item !== "No significant medical history");
+                if (checked) {
+                    return [...withoutNone, value];
+                } else {
+                    return withoutNone.filter(item => item !== value);
+                }
+            });
+        }
+    };
+
+    // Physical Limitations Change Handler
+    const handleLimitationsChange = (e) => {
+        const { value, checked } = e.target;
+        if (value === "No physical limitations") {
+            if (checked) {
+                setLimitations(["No physical limitations"]);
+            } else {
+                setLimitations([]);
+            }
+        } else {
+            setLimitations((prev) => {
+                const withoutNone = prev.filter(item => item !== "No physical limitations");
+                if (checked) {
+                    return [...withoutNone, value];
+                } else {
+                    return withoutNone.filter(item => item !== value);
+                }
+            });
+        }
+    };
+
 
 
     const validateForm = () => {
@@ -346,6 +393,27 @@ const CustomPrompt = () => {
         }
     };
 
+    const handleGoalChange = (e) => {
+        setGoal(e.target.value);
+        if (e.target.value !== 'other') {
+            setCustomGoal('');
+        }
+    };
+
+    const handleExercisePreferenceChange = (e) => {
+        setExercisePreference(e.target.value);
+        if (e.target.value !== 'other') {
+            setCustomExercisePreference('');
+        }
+    };
+
+    const handleMotivationChange = (e) => {
+        setMotivation(e.target.value);
+        if (e.target.value !== 'other') {
+            setCustomMotivation('');
+        }
+    };
+
     const formatBodyPartDescription = (part) => {
         const normalizedPart = part.toLowerCase().replace(/\s+/g, '');
         const descriptions = {
@@ -369,6 +437,16 @@ const CustomPrompt = () => {
     };
 
     const createWorkoutPlanMessage = () => {
+
+        // Handle "Other" options for Goals, Exercise Preferences, and Motivation
+        const selectedGoal = goal === 'other' ? customGoal : goal;
+        const selectedExercisePreference = exercisePreference === 'other' ? customExercisePreference : exercisePreference;
+        const selectedMotivation = motivation === 'other' ? customMotivation : motivation;
+
+        // For Medical History and Physical Limitations, join the arrays into strings
+        const medicalHistoryString = medicalHistory.length > 0 ? medicalHistory.join(', ') : 'No significant medical history';
+        const limitationsString = limitations.length > 0 ? limitations.join(', ') : 'No physical limitations';
+
         if (clientName && clientAge && clientGender) {
             // Combine both body parts and specifics into one description
             const bodyPartDescriptions = Object.keys(formData.bodyParts)
@@ -400,12 +478,13 @@ const CustomPrompt = () => {
             }
 
             // Fallback data for client-specific fields, like goals, medical history, etc.
-            const clientGoals = selectedSummary?.goals || goal;
-            const medicalHistoryInfo = selectedSummary?.medical_history || medicalHistory;
-            const physicalLimitations = selectedSummary?.physical_limitations || limitations;
-            const exercisePreferences = selectedSummary?.exercise_preferences || exercisePreference;
-            const motivationInfo = selectedSummary?.motivation || motivation;
+            const clientGoals = selectedSummary?.goals || selectedGoal;
+            const exercisePreferences = selectedSummary?.exercise_preferences || selectedExercisePreference;
+            const motivationInfo = selectedSummary?.motivation || selectedMotivation;
 
+            // Use the joined strings for medical history and limitations
+            const medicalHistoryInfo = selectedSummary?.medical_history || medicalHistoryString;
+            const physicalLimitations = selectedSummary?.physical_limitations || limitationsString;
             // Final workout plan message
             return `
            Please create a comprehensive **${formData.sessionType} workout plan** tailored for the following client:
@@ -950,49 +1029,90 @@ const CustomPrompt = () => {
                             <select
                                 id="goalSelect"
                                 value={goal}
-                                onChange={(e) => setGoal(e.target.value)}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                onChange={handleGoalChange}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 rounded-md"
                             >
+                                <option value="">Select a goal</option>
                                 <option value="fitness and strength">Fitness and Strength</option>
                                 <option value="muscle gain">Muscle Gain</option>
                                 <option value="weight loss">Weight Loss</option>
                                 <option value="improve endurance">Improve Endurance</option>
                                 <option value="flexibility and mobility">Flexibility and Mobility</option>
+                                <option value="other">Other</option>
                             </select>
+                            {goal === 'other' && (
+                                <input
+                                    type="text"
+                                    value={customGoal}
+                                    onChange={(e) => setCustomGoal(e.target.value)}
+                                    placeholder="Enter custom goal"
+                                    className="mt-2 block w-full pl-3 pr-3 py-2 border-2 border-gray-400 rounded-md"
+                                />
+                            )}
                         </div>
 
                         {/* Medical History */}
                         <div className="my-4">
-                            <label htmlFor="medicalHistorySelect" className="block text-lg font-medium text-gray-700">Select Medical History:</label>
-                            <select
-                                id="medicalHistorySelect"
-                                value={medicalHistory}
-                                onChange={(e) => setMedicalHistory(e.target.value)}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                            >
-                                <option value="No significant medical history">No significant medical history</option>
-                                <option value="Knee injury">Knee injury</option>
-                                <option value="Back pain">Back pain</option>
-                                <option value="Shoulder issues">Shoulder issues</option>
-                                <option value="Heart condition">Heart condition</option>
-                            </select>
+                            <label className="block text-lg font-medium text-gray-700">Select Medical History:</label>
+                            <div className="mt-2">
+                                <label className="inline-flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        value="No significant medical history"
+                                        checked={medicalHistory.includes("No significant medical history")}
+                                        onChange={handleMedicalHistoryChange}
+                                        className="form-checkbox"
+                                    />
+                                    <span className="ml-2">No significant medical history</span>
+                                </label>
+                                <div className="flex flex-wrap mt-2">
+                                    {["Knee injury", "Back pain", "Shoulder issues", "Heart condition"].map((item) => (
+                                        <label key={item} className="inline-flex items-center mr-6">
+                                            <input
+                                                type="checkbox"
+                                                value={item}
+                                                checked={medicalHistory.includes(item)}
+                                                onChange={handleMedicalHistoryChange}
+                                                className="form-checkbox"
+                                                disabled={medicalHistory.includes("No significant medical history")}
+                                            />
+                                            <span className="ml-2">{item}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Physical Limitations */}
                         <div className="my-4">
-                            <label htmlFor="limitationsSelect" className="block text-lg font-medium text-gray-700">Select Physical Limitations:</label>
-                            <select
-                                id="limitationsSelect"
-                                value={limitations}
-                                onChange={(e) => setLimitations(e.target.value)}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                            >
-                                <option value="No physical limitations">No physical limitations</option>
-                                <option value="Avoid heavy lifting">Avoid heavy lifting</option>
-                                <option value="Limit cardio">Limit cardio</option>
-                                <option value="Limited range of motion">Limited range of motion</option>
-                                <option value="Low impact only">Low impact only</option>
-                            </select>
+                            <label className="block text-lg font-medium text-gray-700">Select Physical Limitations:</label>
+                            <div className="mt-2">
+                                <label className="inline-flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        value="No physical limitations"
+                                        checked={limitations.includes("No physical limitations")}
+                                        onChange={handleLimitationsChange}
+                                        className="form-checkbox"
+                                    />
+                                    <span className="ml-2">No physical limitations</span>
+                                </label>
+                                <div className="flex flex-wrap mt-2">
+                                    {["Avoid heavy lifting", "Limit cardio", "Limited range of motion", "Low impact only"].map((item) => (
+                                        <label key={item} className="inline-flex items-center mr-6">
+                                            <input
+                                                type="checkbox"
+                                                value={item}
+                                                checked={limitations.includes(item)}
+                                                onChange={handleLimitationsChange}
+                                                className="form-checkbox"
+                                                disabled={limitations.includes("No physical limitations")}
+                                            />
+                                            <span className="ml-2">{item}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Exercise Preferences */}
@@ -1001,15 +1121,26 @@ const CustomPrompt = () => {
                             <select
                                 id="exercisePreferenceSelect"
                                 value={exercisePreference}
-                                onChange={(e) => setExercisePreference(e.target.value)}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                onChange={handleExercisePreferenceChange}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 rounded-md"
                             >
+                                <option value="">Select an exercise preference</option>
                                 <option value="a balanced mix of cardio and strength training">Balanced mix of cardio and strength training</option>
                                 <option value="heavy resistance training">Heavy resistance training</option>
                                 <option value="yoga and flexibility">Yoga and flexibility</option>
                                 <option value="high-intensity interval training (HIIT)">High-Intensity Interval Training (HIIT)</option>
                                 <option value="low-impact exercises">Low-Impact Exercises</option>
+                                <option value="other">Other</option>
                             </select>
+                            {exercisePreference === 'other' && (
+                                <input
+                                    type="text"
+                                    value={customExercisePreference}
+                                    onChange={(e) => setCustomExercisePreference(e.target.value)}
+                                    placeholder="Enter custom exercise preference"
+                                    className="mt-2 block w-full pl-3 pr-3 py-2 border-2 border-gray-400 rounded-md"
+                                />
+                            )}
                         </div>
 
                         {/* Motivation */}
@@ -1018,15 +1149,26 @@ const CustomPrompt = () => {
                             <select
                                 id="motivationSelect"
                                 value={motivation}
-                                onChange={(e) => setMotivation(e.target.value)}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                onChange={handleMotivationChange}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 rounded-md"
                             >
+                                <option value="">Select a motivation</option>
                                 <option value="personal progress">Personal Progress</option>
                                 <option value="competitive drive">Competitive Drive</option>
                                 <option value="health improvement">Health Improvement</option>
                                 <option value="stress relief">Stress Relief</option>
                                 <option value="social engagement">Social Engagement</option>
+                                <option value="other">Other</option>
                             </select>
+                            {motivation === 'other' && (
+                                <input
+                                    type="text"
+                                    value={customMotivation}
+                                    onChange={(e) => setCustomMotivation(e.target.value)}
+                                    placeholder="Enter custom motivation"
+                                    className="mt-2 block w-full pl-3 pr-3 py-2 border-2 border-gray-400 rounded-md"
+                                />
+                            )}
                         </div>
                     </>
                 )}

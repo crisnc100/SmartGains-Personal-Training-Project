@@ -207,13 +207,31 @@ class TrainerIntakeQuestions:
         except Exception as e:
             print(f"Error deleting data: {e}")
             return False
+        
+    @classmethod
+    def restore_deleted_questions(cls, trainer_id, action):
+        query="""
+        DELETE FROM trainer_intake_questions WHERE trainer_id = %(trainer_id)s AND action = %(action)s;"""
+        data = {"trainer_id": trainer_id, "action": action}
+        try:
+            result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            return result !=0
+        except Exception as e:
+            print(f"Error restoring deleted questions: {e}")
+            return False
 
     @classmethod
-    def delete_all_by_trainer(cls, trainer_id):
-        query = "DELETE FROM trainer_intake_questions WHERE trainer_id = %(trainer_id)s"
+    def restore_all_but_added(cls, trainer_id):
+        query = """
+            DELETE FROM trainer_intake_questions
+            WHERE trainer_id = %(trainer_id)s AND action != 'add';
+        """
         data = {"trainer_id": trainer_id}
         try:
-            return connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            result = connectToMySQL('fitness_consultation_schema').query_db(query, data)
+            return result != 0  # Returns True if deletion was successful
         except Exception as e:
-            print(f"Error deleting data: {e}")
-            return None
+            print(f"Error restoring questions except added ones: {e}")
+            return False
+
+
