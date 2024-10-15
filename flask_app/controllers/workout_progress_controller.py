@@ -343,7 +343,7 @@ def get_single_day_generated_plan_progress(client_id):
     try:
         progress = WorkoutProgress.get_single_day_generated_plan_progress(client_id)
         if not progress:
-            return jsonify({"error": "No single-day generated plan progress found."}), 404
+            return jsonify([]), 200  # Return an empty list instead of a 404 error
         return jsonify([p.__dict__ for p in progress])
     except Exception as e:
         current_app.logger.error(f"Error fetching single-day generated plan progress: {str(e)}")

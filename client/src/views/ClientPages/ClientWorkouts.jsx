@@ -85,6 +85,7 @@ const ClientWorkouts = ({ clientId, clientDemoPlans, clientPlans, workoutProgres
 
 
       setGroupedProgress({ ...singleDayProgress, ...multiDayProgress, ...manualProgress });
+      console.log('Grouped Progress:', groupedProgress);
     } catch (error) {
       console.error('Error fetching grouped workout progress:', error);
     }
@@ -176,21 +177,25 @@ const ClientWorkouts = ({ clientId, clientDemoPlans, clientPlans, workoutProgres
   const filteredProgressPlans = () => {
     return Object.values(groupedProgress).filter(plan => {
       const matchesSearchTerm = plan.plan_name.toLowerCase().includes(searchTerm.toLowerCase());
-
+  
       // Determine the plan type based on session data
-      const isQuickPlan = plan.sessions.some(session => session.demo_plan_id && session.workout_source !== 'Manual');
-      const isCustomPlan = plan.sessions.some(session => session.generated_plan_id && session.workout_source !== 'Manual');
+      const hasDemoPlanId = plan.sessions.some(session => session.demo_plan_id);
+      const hasGeneratedPlanId = plan.sessions.some(session => session.generated_plan_id);
       const isManualPlan = plan.sessions.every(session => session.workout_source === 'Manual');
-
+  
+      const isQuickPlan = hasDemoPlanId && !isManualPlan;
+      const isCustomPlan = hasGeneratedPlanId && !isManualPlan;
+  
       const matchesFilterType =
         progressFilterType === 'all' ||
         (progressFilterType === 'quick' && isQuickPlan) ||
         (progressFilterType === 'custom' && isCustomPlan) ||
         (progressFilterType === 'manual' && isManualPlan);
-
+  
       return matchesSearchTerm && matchesFilterType;
     });
   };
+  
 
 
 
@@ -292,21 +297,34 @@ const ClientWorkouts = ({ clientId, clientDemoPlans, clientPlans, workoutProgres
 
   const renderSingleProgress = () => {
     console.log(`workoutProgressData`, workoutProgressData);
-    return workoutProgressData
-      .filter(session => session.workout_source !== 'Manual' && !session.generated_plan_id && !session.demo_plan_id)
+  
+    // Filter for non-manual sessions only
+    const nonManualSessions = workoutProgressData.filter(
+      session =>
+        session.workout_source !== 'Manual' &&
+        !session.generated_plan_id &&
+        !session.demo_plan_id
+    );
+  
+    // Render the non-manual sessions
+    return nonManualSessions
+      .filter((session, index, self) =>
+        self.findIndex(s => s.id === session.id) === index
+      )
       .map(session => (
         <div key={session.id} className="p-4 rounded shadow bg-gray-100 hover:bg-gray-200 mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">{session.name}</h3>
-          <p className="text-gray-700">{formatDate(session.date)}</p>
-          <p className="text-sm text-gray-500">{session.workout_type}</p>
-          <div className="flex items-center mt-2">
-            <button onClick={() => viewDetails(session.id, 'progress-session')} className="text-blue-500 hover:text-blue-700">View Details</button>
-            <button onClick={() => deletePlan(session.id, 'progress-session')} className="text-red-500 hover:text-red-700 ml-4">Delete</button>
-          </div>
+          {/* ... */}
         </div>
       ));
   };
   
+
+
+
+
+
+
+
 
 
   return (
